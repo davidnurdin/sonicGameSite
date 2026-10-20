@@ -24,6 +24,21 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         return $this->findOneBy(['username' => strtoupper(trim($identifier))]);
     }
 
+    /**
+     * A page of the members, by name.
+     *
+     * @return list<User>
+     */
+    public function page(int $page, int $perPage): array
+    {
+        return $this->createQueryBuilder('u')
+            ->orderBy('u.username', 'ASC')
+            ->setFirstResult(($page - 1) * $perPage)
+            ->setMaxResults($perPage)
+            ->getQuery()
+            ->getResult();
+    }
+
     /** Rehashes the password when the algorithm changes (on login). */
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
     {

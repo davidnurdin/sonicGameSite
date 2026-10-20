@@ -56,7 +56,7 @@ class HomeController extends AbstractController
     #[Route('/salons.json', name: 'rooms_json', methods: ['GET'])]
     public function rooms(OnlineStats $online): JsonResponse
     {
-        $response = new JsonResponse($online->get() ?? ['players' => null, 'watchers' => null, 'list' => []]);
+        $response = new JsonResponse(($online->get() ?? ['players' => null, 'watchers' => null, 'list' => []]) + ['ingame' => $online->inGame()]);
         $response->setPrivate();
 
         return $response;

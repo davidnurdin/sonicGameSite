@@ -6,6 +6,7 @@ use App\Entity\PlayerStats;
 use App\Entity\User;
 use App\Repository\PlayerStatsRepository;
 use App\Repository\UserRepository;
+use App\Service\GamePresence;
 use App\Service\StatsToken;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -44,6 +45,21 @@ class StatsController extends AbstractController
      * The game's page (GitHub Pages) sends what the player gained since its last sending: {"st": token, "d":
      * {key: amount}}, as text/plain (no CORS preflight; navigator.sendBeacon when the page is closed).
      */
+    /** The game's page: "this tab has the game open" (every 45 s), {"id", "name", "bye"} as text/plain. */
+    #[Route('/api/jeu', name: 'api_game', methods: ['POST', 'OPTIONS'])]
+    public function game(Request $request, GamePresence $presence): Response
+    {
+        $response = $this->cors($request, new Response('', Response::HTTP_NO_CONTENT));
+        if ($request->isMethod('OPTIONS')) return $response;
+        $body = json_decode(substr($request->getContent(), 0, 512), true);
+        $id = is_array($body) ? (string) ($body['id'] ?? '') : '';
+        if (!preg_match('/^[a-z0-9]{6,20}$/', $id)) return $response->setStatusCode(Response::HTTP_BAD_REQUEST);
+        $name = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', (string) ($body['name'] ?? '')), 0, 8));
+        $presence->beat($id, $name !== '' ? $name : null, !empty($body['bye']));
+
+        return $response;
+    }
+
     #[Route('/api/stats', name: 'api_stats', methods: ['POST', 'OPTIONS'])]
     public function receive(
         Request $request,
@@ -53,15 +69,7 @@ class StatsController extends AbstractController
         EntityManagerInterface $em,
         #[Autowire(service: 'limiter.stats')] RateLimiterFactoryInterface $limiter,
     ): Response {
-        $response = new Response('', Response::HTTP_NO_CONTENT);
-        $origin = $request->headers->get('Origin');
-        if ($origin !== null && $this->allowedOrigin($origin)) {
-            $response->headers->set('Access-Control-Allow-Origin', $origin);
-            $response->headers->set('Access-Control-Allow-Methods', 'POST');
-            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type');
-            $response->headers->set('Access-Control-Allow-Credentials', 'true');
-            $response->setVary('Origin');
-        }
+        $response = $this->cors($request, new Response('', Response::HTTP_NO_CONTENT));
         if ($request->isMethod('OPTIONS')) return $response;
 
         $body = json_decode(substr($request->getContent(), 0, 4096), true);
@@ -88,6 +96,21 @@ class StatsController extends AbstractController
         if ($stats === null) $em->persist($stats = new PlayerStats($user));
         $stats->add($delta);
         $em->flush();
+
+        return $response;
+    }
+
+    /** The game's page may read the answer (it is on another domain). */
+    private function cors(Request $request, Response $response): Response
+    {
+        $origin = $request->headers->get('Origin');
+        if ($origin !== null && $this->allowedOrigin($origin)) {
+            $response->headers->set('Access-Control-Allow-Origin', $origin);
+            $response->headers->set('Access-Control-Allow-Methods', 'POST');
+            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type');
+            $response->headers->set('Access-Control-Allow-Credentials', 'true');
+            $response->setVary('Origin');
+        }
 
         return $response;
     }

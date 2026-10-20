@@ -9,7 +9,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * The language of the site: the visitor's choice (FR / EN in the header, cookie "lang"), else the browser's
- * (Accept-Language): French for French, English for anything else.
+ * (Accept-Language): French for French, English for anything else. ?lang= in a shared link wins.
  */
 class LocaleSubscriber implements EventSubscriberInterface
 {
@@ -28,7 +28,8 @@ class LocaleSubscriber implements EventSubscriberInterface
     public function onRequest(RequestEvent $event): void
     {
         $request = $event->getRequest();
-        $chosen = $request->cookies->get(self::COOKIE);
+        // ?lang=: a shared link, in the language of the one who shared it (not kept)
+        $chosen = $request->query->get('lang', $request->cookies->get(self::COOKIE));
         $request->setLocale(in_array($chosen, self::LOCALES, true) ? $chosen : ($request->getPreferredLanguage(['en', 'fr']) ?? 'en'));
     }
 

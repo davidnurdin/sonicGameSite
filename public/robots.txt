@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /api/
+Disallow: /presence
+Disallow: /langue/
+Sitemap: https://sonic.mimichat.fr/sitemap.xml

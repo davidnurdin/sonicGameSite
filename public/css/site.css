@@ -355,3 +355,14 @@ canvas.sonics {
     .room-row { grid-template-columns: auto 1fr; grid-template-areas: "code info" "who who" "go go"; }
     .room-row .pill-button { justify-self: start; }
 }
+
+/* members */
+.members { margin: 12px 0 0; padding-left: 40px; columns: 2 260px; column-gap: 24px; }
+.members li { padding: 3px 0; break-inside: avoid; }
+.members li b { letter-spacing: .04em; margin-right: 8px; }
+.members li span { margin-right: 8px; font-size: 14px; }
+.members li.me b { color: var(--yellow); }
+.pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
+
+/* header: the players in the game right now */
+.ingame { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: var(--panel); font-weight: 800; font-size: 14px; }

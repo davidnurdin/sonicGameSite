@@ -20,7 +20,14 @@ class OnlineStats
     public function __construct(
         private CacheInterface $cache,
         #[Autowire(env: 'RELAY_HEALTH_URL')] private string $url,
+        private GamePresence $presence,
     ) {
+    }
+
+    /** Players in the game right now: the open games (GamePresence), at least the players of the relay's rooms. */
+    public function inGame(): int
+    {
+        return max($this->presence->count(), $this->get()['players'] ?? 0);
     }
 
     /**

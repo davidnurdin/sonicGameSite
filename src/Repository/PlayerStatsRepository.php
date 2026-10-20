@@ -21,6 +21,21 @@ class PlayerStatsRepository extends ServiceEntityRepository
     }
 
     /**
+     * Seconds played by each of these players (those who have statistics).
+     *
+     * @param list<User> $users
+     * @return array<int, float> user id => seconds
+     */
+    public function timesOf(array $users): array
+    {
+        if (!$users) return [];
+        $times = [];
+        foreach ($this->findBy(['user' => $users]) as $stats) $times[$stats->getUser()->getId()] = $stats->getTimePlayed();
+
+        return $times;
+    }
+
+    /**
      * The players who played the most (all modes), for the ranking of the page Statistiques.
      *
      * @return list<array{name: string, time: float, wins: int}>

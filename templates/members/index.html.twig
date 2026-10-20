@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Joueurs'|trans }} · Sonic PHP{% endblock %}
+{% block description %}{{ 'Les %n% joueurs inscrits sur Sonic PHP.'|trans({'%n%': total}) }}{% endblock %}
+
+{% block body %}
+<section class="panel wide">
+    <h1>{{ 'Joueurs'|trans }}</h1>
+    <p class="muted">{{ total > 1 ? '%n% membres inscrits'|trans({'%n%': total}) : '%n% membre inscrit'|trans({'%n%': total}) }}</p>
+    <ol class="members" start="{{ first }}">
+        {% for user in members %}
+            <li{% if app.user and app.user.username == user.username %} class="me"{% endif %}>
+                <b>{{ user.username }}</b>
+                <span class="muted">{{ 'depuis le %date%'|trans({'%date%': user.createdAt|date(app.request.locale == 'fr' ? 'd/m/Y' : 'Y-m-d')}) }}</span>
+                {% if times[user.id] is defined and times[user.id] >= 60 %}
+                    <span>{{ (times[user.id] / 3600)|round(0, 'floor') }} h {{ '%02d'|format((times[user.id] % 3600 / 60)|round(0, 'floor')) }}</span>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ol>
+    {% if pages > 1 %}
+        <nav class="pager" aria-label="{{ 'Pages'|trans }}">
+            {% if page > 1 %}<a class="pill-button" href="{{ path('members', {page: page - 1}) }}" rel="prev">← {{ 'Précédents'|trans }}</a>{% endif %}
+            <span>{{ 'Page %page% sur %pages%'|trans({'%page%': page, '%pages%': pages}) }}</span>
+            {% if page < pages %}<a class="pill-button" href="{{ path('members', {page: page + 1}) }}" rel="next">{{ 'Suivants'|trans }} →</a>{% endif %}
+        </nav>
+    {% endif %}
+</section>
+{% endblock %}

@@ -48,11 +48,10 @@
         list.replaceChildren(...(data.list || []).map(row));
         empty.hidden = (data.list || []).length > 0;
         empty.textContent = data.players === null ? T.offline : T.none;
-        if (players && data.players !== null) {
-            players.hidden = false;
-            players.querySelector('b').textContent = data.players;
+        if (players) {
+            players.querySelector('b').textContent = data.ingame;
             const label = players.querySelector('.label');
-            label.textContent = data.players > 1 ? label.dataset.many : label.dataset.one;
+            label.textContent = data.ingame > 1 ? label.dataset.many : label.dataset.one;
         }
     }
 

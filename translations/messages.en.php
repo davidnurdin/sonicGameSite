@@ -147,4 +147,22 @@ return [
     'victoire' => 'win',
     'victoires' => 'wins',
     'Ceux qui jouent le plus' => 'Who plays the most',
+
+    // members, invitations, links
+    'joueur dans le jeu' => 'player in the game',
+    'joueurs dans le jeu' => 'players in the game',
+    'Joueurs' => 'Players',
+    'Les %n% joueurs inscrits sur Sonic PHP.' => 'The %n% players signed up on Sonic PHP.',
+    '%n% membres inscrits' => '%n% members',
+    '%n% membre inscrit' => '%n% member',
+    'depuis le %date%' => 'since %date%',
+    'Pages' => 'Pages',
+    'Précédents' => 'Previous',
+    'Suivants' => 'Next',
+    'Page %page% sur %pages%' => 'Page %page% of %pages%',
+    'Sonic PHP : des Sonic de toutes les couleurs à Green Hill' => 'Sonic PHP: Sonics of every colour in Green Hill',
+    'Crée ton compte, puis tu reviens directement dans le salon.' => 'Create your account, then you go straight back to the room.',
+    'Course, drapeau, anneaux ou deathmatch, dans le navigateur.' => 'Race, flag, rings or deathmatch, in the browser.',
+    'connecte-toi' => 'log in',
+    'pour jouer et discuter dans le salon.' => 'to play and chat in the room.',
 ];

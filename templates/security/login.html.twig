@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ 'Connexion'|trans }} · Sonic PHP{% endblock %}
+{% block robots %}noindex, follow{% endblock %}
 
 {% block body %}
 <section class="panel">
@@ -22,8 +23,9 @@
         <input type="password" id="password" name="_password" autocomplete="current-password" required>
 
         <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+        {% if next %}<input type="hidden" name="_target_path" value="{{ next }}">{% endif %}
         <button type="submit" class="play small">{{ 'Se connecter'|trans }}</button>
     </form>
-    <p class="alt">{{ 'Pas encore de compte ?'|trans }} <a href="{{ path('register') }}">{{ 'Inscription'|trans }}</a></p>
+    <p class="alt">{{ 'Pas encore de compte ?'|trans }} <a href="{{ path('register', next ? {next: next} : {}) }}">{{ 'Inscription'|trans }}</a></p>
 </section>
 {% endblock %}

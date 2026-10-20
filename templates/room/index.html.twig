@@ -3,6 +3,8 @@
 {% block title %}{{ code ? 'Salon %code%'|trans({'%code%': code}) : 'Nouveau salon'|trans }} · Sonic PHP{% endblock %}
 
 {% block sonics_attr %}data-room="1"{% endblock %}
+{% block description %}{{ code ? 'Viens jouer à Sonic avec moi ! Salon %code%'|trans({'%code%': code}) ~ ' · ' ~ 'Course, drapeau, anneaux ou deathmatch, dans le navigateur.'|trans : '' }}{% endblock %}
+{% block robots %}noindex, follow{% endblock %}
 
 {% block body %}
 <section class="panel wide room" id="room" data-config="{{ config|json_encode }}" data-i18n="{{ {
@@ -44,7 +46,12 @@
             </div>
 
             <div class="actions">
-                <a class="play small" id="room-play" href="#" aria-disabled="true">{{ 'Jouer'|trans }}</a>
+                {% if app.user %}
+                    <a class="play small" id="room-play" href="#" aria-disabled="true">{{ 'Jouer'|trans }}</a>
+                {% else %}
+                    {# invited without an account: one first, then straight back to this room #}
+                    <a class="play small" id="room-play" data-guest="1" href="{{ path('register', {next: code ? path('room', {code: code}) : null}) }}">{{ 'Jouer'|trans }}</a>
+                {% endif %}
                 <button type="button" class="pill-button" id="room-share" disabled>{{ 'Partager'|trans }}</button>
                 <a class="pill-button" href="{{ path('home') }}">{{ 'Quitter le salon'|trans }}</a>
             </div>
@@ -59,7 +66,9 @@
                     <button type="submit" class="pill-button">{{ 'Envoyer'|trans }}</button>
                 </form>
             {% else %}
-                <p class="muted"><a href="{{ path('login') }}">{{ 'Connecte-toi'|trans }}</a> {{ 'pour discuter dans le salon.'|trans }}</p>
+                <p class="muted"><a href="{{ path('register', {next: code ? path('room', {code: code}) : null}) }}">{{ 'Crée un compte'|trans }}</a>
+                    {{ 'ou'|trans }} <a href="{{ path('login', {next: code ? path('room', {code: code}) : null}) }}">{{ 'connecte-toi'|trans }}</a>
+                    {{ 'pour jouer et discuter dans le salon.'|trans }}</p>
             {% endif %}
         </div>
     </div>

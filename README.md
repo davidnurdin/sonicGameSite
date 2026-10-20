@@ -16,6 +16,16 @@ Le site de [Sonic PHP](https://github.com/davidnurdin/sonicGamePhp), en ligne su
   lien est copié. Les Sonic du fond sont ceux du salon ;
 - l'onglet **Statistiques** : temps de jeu (seul, en ligne, contre l'ordinateur), sauts, anneaux, ennemis,
   ressorts, vies perdues, actes, émeraudes, matchs et victoires, et le classement de ceux qui jouent le plus ;
+- **invité sans compte** : JOUER, sur la page d'un salon, mène à l'inscription (ou à la connexion), puis
+  revient directement dans le salon (`?next=`) ;
+- la liste des **joueurs inscrits** (`/joueurs`, 30 par page) ;
+- le nombre de **joueurs dans le jeu** dans l'en-tête de chaque page : les jeux ouverts (la page du jeu le
+  dit au site toutes les 45 secondes, `POST /api/jeu`, gardé 2 minutes en cache), au moins les joueurs des
+  salons du relais ;
+- le **référencement** : description, Open Graph et Twitter sur chaque page, avec l'image
+  `public/img/og-fr.png` / `og-en.png` (refaite par `tools/og-image.py tools/og-background.png <jeu>`) ;
+  `robots.txt`, `/sitemap.xml`. Un lien de salon partagé porte `?lang=` : l'aperçu est dans la langue de
+  celui qui partage ;
 - le site en **français ou en anglais** : la langue du navigateur, ou FR / EN dans l'en-tête (cookie
   `lang`). Le jeu suit la langue du site (`?lang=`) ;
 - les **visiteurs en direct** : un Sonic par personne sur le site, sur le fond de la page, chacun avec son

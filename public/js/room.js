@@ -254,8 +254,10 @@
         $('room-level').value = String(level);
 
         const play = $('room-play');
-        play.href = me >= 0 ? playUrl() : '#';
-        play.setAttribute('aria-disabled', me >= 0 ? 'false' : 'true');
+        if (!play.dataset.guest) {
+            play.href = me >= 0 ? playUrl() : '#';
+            play.setAttribute('aria-disabled', me >= 0 ? 'false' : 'true');
+        }
         $('room-share').disabled = me < 0;
 
         // the Sonic of the background: the people of this room only
@@ -278,13 +280,15 @@
     $('room-level').addEventListener('change', changed);
 
     $('room-play').addEventListener('click', e => {
+        if ($('room-play').dataset.guest) return;   // to the sign-up, then back here
         if (me < 0) { e.preventDefault(); return; }
         // the others see it; the room is kept by the relay while the game loads
         send(SITE, { go: true, mode, level });
     });
 
     $('room-share').addEventListener('click', async () => {
-        const url = roomUrl(), text = fill(T.shareText, { code });
+        // the preview of the link (title, picture) in the language of the one who shares it
+        const url = roomUrl() + '?lang=' + document.documentElement.lang, text = fill(T.shareText, { code });
         if (navigator.share) {
             try { await navigator.share({ title: 'Sonic PHP', text, url }); return; }
             catch (e) { if (e && e.name === 'AbortError') return; }

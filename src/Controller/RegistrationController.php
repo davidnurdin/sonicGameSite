@@ -28,7 +28,8 @@ class RegistrationController extends AbstractController
         #[Autowire(service: 'limiter.registration')] RateLimiterFactoryInterface $registrationLimiter,
         TranslatorInterface $translator,
     ): Response {
-        if ($this->getUser()) return $this->redirectToRoute('home');
+        $next = SecurityController::next($request);
+        if ($this->getUser()) return $next ? $this->redirect($next) : $this->redirectToRoute('home');
 
         $user = new User();
         $form = $this->createForm(RegistrationType::class, $user);
@@ -45,10 +46,12 @@ class RegistrationController extends AbstractController
                 $em->flush();
                 $this->addFlash('success', $translator->trans('Bienvenue %name% ! Ton nom sera utilisé dans les parties en ligne.', ['%name%' => $user->getUsername()]));
 
-                return $security->login($user, 'form_login', 'main') ?? $this->redirectToRoute('home');
+                $response = $security->login($user, 'form_login', 'main');
+
+                return $next ? $this->redirect($next) : ($response ?? $this->redirectToRoute('home'));
             }
         }
 
-        return $this->render('registration/register.html.twig', ['form' => $form]);
+        return $this->render('registration/register.html.twig', ['form' => $form, 'next' => $next]);
     }
 }
