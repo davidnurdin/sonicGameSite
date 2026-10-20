@@ -259,8 +259,11 @@
         $('room-share').disabled = me < 0;
 
         // the Sonic of the background: the people of this room only
-        const names = [...players.values()].map((name, i) => ({ id: 'p' + i + name, name }))
-            .concat([...sites.entries()].filter(([, n]) => n).map(([id, name]) => ({ id: 's' + id, name, me: id === me })));
+        // one Sonic per name: in the game and on this page (or in two pages), it is the same person
+        const room = new Map();
+        for (const name of players.values()) room.set(name, { id: 'n:' + name, name });
+        for (const [id, name] of sites) if (name) room.set(name, { id: 'n:' + name, name, me: id === me || room.get(name)?.me });
+        const names = [...room.values()];
         window.dispatchEvent(new CustomEvent('sonic-room-people', { detail: names }));
     }
 

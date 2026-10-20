@@ -217,17 +217,25 @@
     let me = { key: null, id: null, name: null };
     let config = null, source = null, retry = 0;
 
+    // one Sonic per person: a name (an account) open in several pages, or a page just reopened whose old
+    // subscription the hub hasn't closed yet, is one Sonic; the visitors without an account, one per page
+    const personOf = id => people.get(id) ? 'n:' + people.get(id) : id;
+
     function render() {
+        const persons = new Map();       // person -> name
+        for (const [id, name] of people) persons.set(personOf(id), name);
+        const mine = me.id !== null && people.has(me.id) ? personOf(me.id) : null;
         if (counter) {
-            const n = people.size;
+            const n = persons.size;
             counter.hidden = n === 0;
             counter.querySelector('b').textContent = n;
             counter.querySelector('.label').textContent = n > 1 ? i18n.many : i18n.one;
         }
         if (roomMode) return;
-        const ids = [...people.keys()].sort((a, b) => (b === me.id) - (a === me.id)).slice(0, MAX);
+        me.person = mine;
+        const ids = [...persons.keys()].sort((a, b) => (b === mine) - (a === mine)).slice(0, MAX);
         for (const id of ids) {
-            if (!sonics.has(id)) sonics.set(id, new Sonic(id, people.get(id), id === me.id));
+            if (!sonics.has(id)) sonics.set(id, new Sonic(id, persons.get(id), id === mine));
         }
         for (const [id, sonic] of sonics) if (!ids.includes(id)) sonic.leave();
     }
@@ -336,7 +344,7 @@
                 sonic.draw();
             }
             // own Sonic in front
-            const mine = sonics.get(roomMode ? me.room : me.id);
+            const mine = sonics.get(roomMode ? me.room : me.person);
             if (mine) mine.draw();
         }
         requestAnimationFrame(frame);
