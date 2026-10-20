@@ -167,4 +167,16 @@ return [
     'pour jouer et discuter dans le salon.' => 'to play and chat in the room.',
     'Menu' => 'Menu',
     'Accueil' => 'Home',
+
+    // history, replays
+    'Historique' => 'History',
+    'Historique des parties' => 'Game history',
+    'Toutes les parties jouées sur Sonic PHP, à revoir dans le jeu.' => 'Every game played on Sonic PHP, to watch again in the game.',
+    'Toutes les parties' => 'All games',
+    'Mes parties' => 'My games',
+    'Les parties des joueurs inscrits sont enregistrées ici.' => 'The games of the signed-up players are kept here.',
+    'Crée ton compte' => 'Create your account',
+    'Aucune partie enregistrée pour le moment : joue depuis le site (bouton JOUER) pour garder tes parties.' => 'No game kept yet: play from the site (PLAY button) to keep your games.',
+    'Aucune partie pour le moment.' => 'No game yet.',
+    'Revoir' => 'Watch',
 ];

@@ -11,7 +11,7 @@ framework:
 
     # ?v= on css/js/img (cached one hour by docker/Caddyfile): bump it when one of them changes
     assets:
-        version: '12'
+        version: '13'
 
     rate_limiter:
         # sign-ups from one address
@@ -23,6 +23,11 @@ framework:
         stats:
             policy: sliding_window
             limit: 240
+            interval: '1 hour'
+        # replays sent by the game's page, per account (one a game)
+        replay:
+            policy: sliding_window
+            limit: 60
             interval: '1 hour'
 
     #esi: true

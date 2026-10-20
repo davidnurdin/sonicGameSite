@@ -14,7 +14,7 @@ class SitemapController extends AbstractController
     public function sitemap(): Response
     {
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n" . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-        foreach (['home' => 'daily', 'members' => 'daily', 'register' => 'monthly', 'editor' => 'monthly'] as $route => $freq) {
+        foreach (['home' => 'daily', 'members' => 'daily', 'history' => 'daily', 'register' => 'monthly', 'editor' => 'monthly'] as $route => $freq) {
             $xml .= '  <url><loc>' . htmlspecialchars($this->generateUrl($route, [], UrlGeneratorInterface::ABSOLUTE_URL))
                 . "</loc><changefreq>$freq</changefreq></url>\n";
         }

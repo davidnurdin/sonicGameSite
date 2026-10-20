@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Historique des parties'|trans }} · Sonic PHP{% endblock %}
+{% block description %}{{ 'Toutes les parties jouées sur Sonic PHP, à revoir dans le jeu.'|trans }}{% endblock %}
+
+{% block body %}
+<section class="panel wide">
+    <h1>{{ 'Historique des parties'|trans }}</h1>
+    {% if app.user %}
+        <nav class="tabs">
+            <a class="pill-button{% if not mine %} on{% endif %}" href="{{ path('history') }}">{{ 'Toutes les parties'|trans }}</a>
+            <a class="pill-button{% if mine %} on{% endif %}" href="{{ path('history', {voir: 'moi'}) }}">{{ 'Mes parties'|trans }}</a>
+        </nav>
+    {% else %}
+        <p class="muted">{{ 'Les parties des joueurs inscrits sont enregistrées ici.'|trans }} <a href="{{ path('register', {next: path('history')}) }}">{{ 'Crée ton compte'|trans }}</a></p>
+    {% endif %}
+    {% if replays is empty %}
+        <p class="muted">{{ mine ? 'Aucune partie enregistrée pour le moment : joue depuis le site (bouton JOUER) pour garder tes parties.'|trans : 'Aucune partie pour le moment.'|trans }}</p>
+    {% else %}
+        <ul class="replays">
+            {% for replay in replays %}
+                <li>
+                    <div class="replay-what">
+                        <b>{{ replay.kind == 'solo' ? 'Seul'|trans : (replay.kind == 'online' ? 'En ligne'|trans : 'Contre l\'ordinateur'|trans) }}</b>
+                        <span>{{ replay.kind == 'solo' ? '' : (modes[replay.mode]|default(replay.mode))|trans ~ ' · ' }}{{ level_name(replay.level) }}</span>
+                        <small class="muted">{{ replay.createdAt|date(app.request.locale == 'fr' ? 'd/m/Y H:i' : 'Y-m-d H:i', 'Europe/Paris') }} · {{ (replay.duration / 60)|round(0, 'floor') }}:{{ '%02d'|format(replay.duration % 60) }}</small>
+                    </div>
+                    <ol class="replay-result">
+                        {% for row in replay.result %}
+                            <li{% if app.user and row[0] == app.user.username %} class="me"{% endif %}><b>{{ row[0] }}</b> {{ row[1] }}</li>
+                        {% else %}
+                            <li>{{ replay.players|join(', ') }}</li>
+                        {% endfor %}
+                    </ol>
+                    <a class="pill-button" href="{{ watch ~ replay.id }}">▶ {{ 'Revoir'|trans }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% if pages > 1 %}
+        {% set query = mine ? {voir: 'moi'} : {} %}
+        <nav class="pager" aria-label="{{ 'Pages'|trans }}">
+            {% if page > 1 %}<a class="pill-button" href="{{ path('history', query|merge({page: page - 1})) }}" rel="prev">← {{ 'Précédents'|trans }}</a>{% endif %}
+            <span>{{ 'Page %page% sur %pages%'|trans({'%page%': page, '%pages%': pages}) }}</span>
+            {% if page < pages %}<a class="pill-button" href="{{ path('history', query|merge({page: page + 1})) }}" rel="next">{{ 'Suivants'|trans }} →</a>{% endif %}
+        </nav>
+    {% endif %}
+</section>
+{% endblock %}

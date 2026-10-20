@@ -51,6 +51,7 @@
                 <a href="{{ path('home') }}"{% if route == 'home' %} aria-current="page"{% endif %}>{{ app.user ? 'Salons'|trans : 'Accueil'|trans }}</a>
                 <a href="{{ path('play') }}">{{ 'Jouer'|trans }}</a>
                 <a href="{{ path('members') }}"{% if route == 'members' %} aria-current="page"{% endif %}>{{ 'Joueurs'|trans }}</a>
+                <a href="{{ path('history') }}"{% if route == 'history' %} aria-current="page"{% endif %}>{{ 'Historique'|trans }}</a>
                 {% if app.user %}
                     <a href="{{ path('stats') }}"{% if route == 'stats' %} aria-current="page"{% endif %}>{{ 'Statistiques'|trans }}</a>
                 {% endif %}
