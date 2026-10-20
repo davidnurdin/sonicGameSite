@@ -1,0 +1,7 @@
+# CSRF tokens kept in the session (no JavaScript needed: the forms of the site are plain HTML)
+framework:
+    form:
+        csrf_protection:
+            token_id: submit
+
+    csrf_protection: true

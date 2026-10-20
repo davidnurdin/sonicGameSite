@@ -1,0 +1,30 @@
+# see https://symfony.com/doc/current/reference/configuration/framework.html
+framework:
+    secret: '%env(APP_SECRET)%'
+
+    # Note that the session will be started ONLY if you read or write from it.
+    session: true
+
+    # behind Caddy (https, the client's address)
+    trusted_proxies: '%env(TRUSTED_PROXIES)%'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-host', 'x-forwarded-port']
+
+    # ?v= on css/js/img (cached one hour by docker/Caddyfile): bump it when one of them changes
+    assets:
+        version: '8'
+
+    rate_limiter:
+        # sign-ups from one address
+        registration:
+            policy: fixed_window
+            limit: 10
+            interval: '1 hour'
+
+    #esi: true
+    #fragments: true
+
+when@test:
+    framework:
+        test: true
+        session:
+            storage_factory_id: session.storage.factory.mock_file

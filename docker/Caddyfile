@@ -1,0 +1,33 @@
+# FrankenPHP inside the container: plain HTTP on :8080 (the Caddy in front does TLS and certificates)
+{
+	auto_https off
+	admin off
+	frankenphp
+}
+
+:8080 {
+	root * /app/public
+	encode zstd gzip
+	@static path /css/* /js/* /img/*
+	header @static Cache-Control "public, max-age=3600"
+
+	# Mercure hub, for the live visitor count of the home page: every page subscribes to the presence topic,
+	# and reads who else does through the subscription events / API ("subscriptions"). Tokens are signed by
+	# the site (PresenceController), the same secret and issuer as MERCURE_JWT_SECRET / MERCURE_JWT_ISSUER.
+	mercure {
+		issuer {$MERCURE_JWT_ISSUER:https://sonic.mimichat.fr} {
+			subscriber {
+				jwt {env.MERCURE_JWT_SECRET}
+			}
+		}
+		# the audience of the tokens: the public URL (the hub sees plain HTTP behind the proxy)
+		resource_identifier {$MERCURE_PUBLIC_URL:https://sonic.mimichat.fr/.well-known/mercure}
+		cookie_name {$MERCURE_COOKIE_NAME:__Secure-mercure_access_token}
+		subscriptions
+		# no history at all (nothing on disk, the bolt transport keeps everything by default): nothing is
+		# published, only the live presence events matter
+		transport local
+	}
+
+	php_server
+}

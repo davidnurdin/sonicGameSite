@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Éditeur de niveau · Sonic PHP{% endblock %}
+
+{% block body %}
+<section class="panel construction">
+    <div class="sign" aria-hidden="true"></div>
+    <h1>Éditeur de niveau</h1>
+    <p class="tagline">En construction.</p>
+    <p>Bientôt, tu pourras :</p>
+    <ul class="soon">
+        <li>dessiner ta zone bloc par bloc, avec les décors des zones du jeu ;</li>
+        <li>placer anneaux, moniteurs, badniks, ressorts et le panneau d'arrivée ;</li>
+        <li>la tester tout de suite dans le jeu ;</li>
+        <li>la publier et jouer à celles des autres, seul ou en ligne.</li>
+    </ul>
+    <a class="play small" href="{{ path('play') }}">En attendant, jouer</a>
+</section>
+{% endblock %}

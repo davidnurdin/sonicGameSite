@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connexion · Sonic PHP{% endblock %}
+
+{% block body %}
+<section class="panel">
+    <h1>Connexion</h1>
+    {% if error %}
+        <p class="error">
+            {%- if error.messageKey starts with 'Too many' -%} Trop d'essais : réessaie dans une minute.
+            {%- elseif error.messageKey starts with 'Invalid CSRF' -%} La page a expiré, réessaie.
+            {%- else -%} Nom ou mot de passe incorrect.
+            {%- endif -%}
+        </p>
+    {% endif %}
+    <form method="post" action="{{ path('login') }}" class="form">
+        <label for="username">Nom de joueur</label>
+        <input type="text" id="username" name="_username" value="{{ last_username }}" autocomplete="username"
+               autocapitalize="characters" spellcheck="false" maxlength="8" required autofocus>
+
+        <label for="password">Mot de passe</label>
+        <input type="password" id="password" name="_password" autocomplete="current-password" required>
+
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+        <button type="submit" class="play small">Se connecter</button>
+    </form>
+    <p class="alt">Pas encore de compte ? <a href="{{ path('register') }}">Inscription</a></p>
+</section>
+{% endblock %}

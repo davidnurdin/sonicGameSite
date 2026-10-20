@@ -1,0 +1,14 @@
+# Mercure hub of FrankenPHP (docker/Caddyfile), used for the live visitor count (presence) of the home page:
+# the site only signs the subscribers' cookie, nothing is published.
+mercure:
+    hubs:
+        default:
+            url: '%env(MERCURE_URL)%'
+            public_url: '%env(MERCURE_PUBLIC_URL)%'
+            cookie_name: '%env(MERCURE_COOKIE_NAME)%'
+            jwt:
+                secret: '%env(MERCURE_JWT_SECRET)%'
+                claims:
+                    iss: '%env(MERCURE_JWT_ISSUER)%'
+                    sub: 'site'
+                    client_id: 'site'
