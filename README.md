@@ -88,8 +88,9 @@ fichiers de déploiement sont dans
 - conteneurs `site` (ce dépôt, cloné dans `sonicGameSite/`) et `db` (MariaDB, sur un réseau où seul le site
   la voit) ;
 - le Caddy de devant fait le HTTPS. Il envoie `/ws` et `/health` au relais, et tout le reste au site ;
-- Traefik passe à Caddy l'adresse réelle des visiteurs (PROXY protocol). Elle sert à la limite
-  d'inscriptions et à celle des essais de connexion ;
+- l'adresse réelle des visiteurs vient du proxy Cloudflare (`CF-Connecting-IP`, lue par Caddy, puis passée
+  au site dans `X-Forwarded-For`). Elle sert à la limite d'inscriptions et à celle des essais de
+  connexion. Sans Cloudflare, tout le monde aurait l'adresse de Traefik : il passe le TLS tel quel ;
 - les secrets (`SITE_APP_SECRET`, `SITE_MERCURE_SECRET`, `SITE_DB_PASSWORD`, `SITE_DB_ROOT_PASSWORD`) sont
   dans le `.env` du serveur, jamais dans Git.
 

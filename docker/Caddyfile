@@ -1,7 +1,7 @@
 # FrankenPHP inside the container: plain HTTP on :8080 (the Caddy in front does TLS and certificates)
 {
 	auto_https off
-	admin off
+	# the admin API stays on localhost inside the container: the image's health check reads it
 	frankenphp
 }
 
