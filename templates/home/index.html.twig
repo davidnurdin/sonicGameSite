@@ -3,50 +3,31 @@
 {% block body %}
 <section class="hero">
     <h1>Sonic PHP</h1>
-    <p class="tagline">Le Sonic de la Master System, réécrit en PHP, dans ton navigateur.</p>
+    <p class="tagline">{{ 'Le Sonic de la Master System, réécrit en PHP, dans ton navigateur.'|trans }}</p>
 
-    <a class="play" href="{{ path('play') }}">Jouer</a>
+    <a class="play" href="{{ path('play') }}">{{ 'Jouer'|trans }}</a>
 
-    {% if app.user %}
-        <p class="as">Tu joues en ligne sous le nom <strong>{{ app.user.username }}</strong>.</p>
-    {% else %}
-        <p class="as">
-            <a href="{{ path('register') }}">Crée un compte</a> en 10 secondes pour garder ton nom dans les parties en ligne.
-        </p>
-    {% endif %}
+    <p class="as">
+        <a href="{{ path('register') }}">{{ 'Crée un compte'|trans }}</a> {{ 'en 10 secondes : ton nom dans les parties en ligne, les salons du site et tes statistiques.'|trans }}
+    </p>
 
-    <p class="online" id="presence" hidden><span class="dot" aria-hidden="true"></span><b>0</b> <span class="label"></span></p>
-
-    {% if online %}
-        <p class="online"><span class="dot" aria-hidden="true"></span>
-            {{ online.clients }} joueur{{ online.clients > 1 ? 's' }} dans le jeu en ligne
-            · {{ online.rooms }} salon{{ online.rooms > 1 ? 's' }}{% if online.public %} dont {{ online.public }} public{{ online.public > 1 ? 's' }}{% endif %}
-        </p>
-    {% endif %}
+    {% include '_parts/online.html.twig' %}
 </section>
 
 <section class="cards">
     <article class="card">
-        <h2>Seul</h2>
-        <p>Les zones du jeu d'origine, des meilleurs temps et un fantôme pour battre ton record.</p>
+        <h2>{{ 'Seul'|trans }}</h2>
+        <p>{{ 'Les zones du jeu d\'origine, des meilleurs temps et un fantôme pour battre ton record.'|trans }}</p>
     </article>
     <article class="card">
-        <h2>En ligne</h2>
-        <p>Course, drapeau, anneaux ou deathmatch jusqu'à 6 : un salon public avec qui veut, ou un code pour tes amis.
-            Menu <em>Multijoueur → En ligne</em>.</p>
+        <h2>{{ 'En ligne'|trans }}</h2>
+        <p>{{ 'Course, drapeau, anneaux ou deathmatch jusqu\'à 6, niveaux bonus compris : un salon public avec qui veut, ou un salon privé pour tes amis, ici ou dans le jeu (Multijoueur → En ligne).'|trans }}</p>
     </article>
     <article class="card">
-        <h2>Éditeur de niveau</h2>
-        <p>Crée tes propres zones et partage-les. <a href="{{ path('editor') }}">Bientôt</a>.</p>
+        <h2>{{ 'Éditeur de niveau'|trans }}</h2>
+        <p>{{ 'Crée tes propres zones et partage-les.'|trans }} <a href="{{ path('editor') }}">{{ 'Bientôt'|trans }}</a>.</p>
     </article>
 </section>
 
-<section class="howto">
-    <h2>Commandes</h2>
-    <ul>
-        <li><kbd>←</kbd> <kbd>→</kbd> courir · <kbd>↓</kbd> rouler · <kbd>Espace</kbd> sauter</li>
-        <li>Sur mobile : la croix en bas à gauche (ou glisse n'importe où) pour courir, tape ou bouton A pour sauter.</li>
-        <li>En partie en ligne : <kbd>T</kbd> ou <kbd>Entrée</kbd> pour parler.</li>
-    </ul>
-</section>
+{% include 'home/_howto.html.twig' %}
 {% endblock %}

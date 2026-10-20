@@ -1,26 +1,36 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ app.request.locale }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#1440c8">
-    <meta name="description" content="Sonic PHP : le Sonic de la Master System réécrit en PHP, jouable dans le navigateur, seul ou en ligne.">
+    <meta name="description" content="{{ 'Sonic PHP : le Sonic de la Master System réécrit en PHP, jouable dans le navigateur, seul ou en ligne.'|trans }}">
     <title>{% block title %}Sonic PHP{% endblock %}</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='34' fill='none' stroke='%23ffd400' stroke-width='16'/></svg>">
     <link rel="stylesheet" href="{{ asset('css/site.css') }}">
 </head>
 <body>
-    <canvas class="sonics" aria-hidden="true" data-sheet="{{ asset('img/sonics.png') }}" data-clouds="{{ asset('img/clouds.png') }}" data-presence="{{ path('presence') }}"></canvas>
+    <canvas class="sonics" aria-hidden="true" data-sheet="{{ asset('img/sonics.png') }}" data-clouds="{{ asset('img/clouds.png') }}"
+            data-presence="{{ path('presence') }}" {% block sonics_attr %}{% endblock %}
+            data-i18n="{{ {one: 'visiteur sur le site'|trans, many: 'visiteurs sur le site'|trans, me: 'TOI'|trans}|json_encode }}"></canvas>
     <header class="top">
         <a class="brand" href="{{ path('home') }}"><span class="ring" aria-hidden="true"></span>Sonic PHP</a>
         <nav class="account">
             {% if app.user %}
+                <a href="{{ path('home') }}">{{ 'Salons'|trans }}</a>
+                <a href="{{ path('stats') }}">{{ 'Statistiques'|trans }}</a>
                 <span class="who">{{ app.user.username }}</span>
-                <a href="{{ path('logout') }}">Déconnexion</a>
+                <a href="{{ path('logout') }}">{{ 'Déconnexion'|trans }}</a>
             {% else %}
-                <a href="{{ path('login') }}">Connexion</a>
-                <a class="pill" href="{{ path('register') }}">Inscription</a>
+                <a href="{{ path('login') }}">{{ 'Connexion'|trans }}</a>
+                <a class="pill" href="{{ path('register') }}">{{ 'Inscription'|trans }}</a>
             {% endif %}
+            <span class="langs">
+                {%- for l in ['fr', 'en'] -%}
+                    <a href="{{ path('lang', {lang: l, back: app.request.requestUri}) }}" hreflang="{{ l }}"
+                       {%- if app.request.locale == l %} aria-current="true"{% endif %}>{{ l|upper }}</a>
+                {%- endfor -%}
+            </span>
         </nav>
     </header>
 
@@ -33,12 +43,13 @@
 
     <footer class="ground">
         <p>
-            Projet de fan, en PHP : <a href="https://github.com/davidnurdin/sonicGamePhp">le jeu</a> ·
-            <a href="https://github.com/davidnurdin/php-wasm-sdl">le moteur</a> ·
-            <a href="https://github.com/davidnurdin/php-wasm-network">le réseau</a>
+            {{ 'Projet de fan, en PHP :'|trans }} <a href="https://github.com/davidnurdin/sonicGamePhp">{{ 'le jeu'|trans }}</a> ·
+            <a href="https://github.com/davidnurdin/php-wasm-sdl">{{ 'le moteur'|trans }}</a> ·
+            <a href="https://github.com/davidnurdin/php-wasm-network">{{ 'le réseau'|trans }}</a>
         </p>
-        <p class="small">Sonic the Hedgehog est une marque de SEGA. Ce site n'est pas affilié à SEGA.</p>
+        <p class="small">{{ 'Sonic the Hedgehog est une marque de SEGA. Ce site n\'est pas affilié à SEGA.'|trans }}</p>
     </footer>
     <script src="{{ asset('js/sonics.js') }}" defer></script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

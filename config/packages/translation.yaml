@@ -1,0 +1,7 @@
+framework:
+    # the texts of the site are written in French; English: translations/*.en.php
+    default_locale: fr
+    enabled_locales: [fr, en]
+    translator:
+        default_path: '%kernel.project_dir%/translations'
+        fallbacks: [fr]

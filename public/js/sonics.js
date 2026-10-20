@@ -1,12 +1,15 @@
 // The Sonic of the background: one per visitor on the site right now (Mercure presence, see
 // PresenceController), each with its own behaviour. The visitor's own Sonic is blue, named, and runs after the
 // mouse (on a phone: to where the screen is touched). Behind them, the clouds of Green Hill drift by.
+// On the page of a room (data-room): the people of the room instead (js/room.js, event "sonic-room-people").
 (() => {
     'use strict';
 
     const canvas = document.querySelector('canvas.sonics');
     const counter = document.getElementById('presence');
     if (!canvas || !window.EventSource || !window.fetch) return;
+    const i18n = JSON.parse(canvas.dataset.i18n || '{}');
+    const roomMode = !!canvas.dataset.room;
 
     // img/sonics.png: 23x32 frames, one row per colour (blue, red, green, yellow, purple, orange)
     const FW = 23, FH = 32, COLORS = 6;
@@ -197,7 +200,7 @@
             if (this.dir < 0) { ctx.translate(x + w, y); ctx.scale(-1, 1); } else ctx.translate(x, y);
             ctx.drawImage(sheet, this.pose * FW, this.color * FH, FW, FH, 0, 0, w, h);
             ctx.restore();
-            const label = this.me ? (this.name || 'TOI') : this.name;
+            const label = this.me ? (this.name || i18n.me || 'TOI') : this.name;
             if (label) {
                 ctx.font = '700 11px system-ui, sans-serif';
                 ctx.textAlign = 'center';
@@ -219,14 +222,26 @@
             const n = people.size;
             counter.hidden = n === 0;
             counter.querySelector('b').textContent = n;
-            counter.querySelector('.label').textContent = n > 1 ? 'visiteurs sur le site en ce moment' : 'visiteur sur le site en ce moment';
+            counter.querySelector('.label').textContent = n > 1 ? i18n.many : i18n.one;
         }
+        if (roomMode) return;
         const ids = [...people.keys()].sort((a, b) => (b === me.id) - (a === me.id)).slice(0, MAX);
         for (const id of ids) {
             if (!sonics.has(id)) sonics.set(id, new Sonic(id, people.get(id), id === me.id));
         }
         for (const [id, sonic] of sonics) if (!ids.includes(id)) sonic.leave();
     }
+
+    // the page of a room: its players and the members of the site in it
+    addEventListener('sonic-room-people', e => {
+        const list = e.detail.slice(0, MAX);
+        const ids = list.map(p => p.id);
+        for (const p of list) {
+            if (!sonics.has(p.id)) sonics.set(p.id, new Sonic(p.id, p.name, !!p.me));
+            if (p.me) me.room = p.id;
+        }
+        for (const [id, sonic] of sonics) if (!ids.includes(id)) sonic.leave();
+    });
 
     function apply(sub) {
         if (sub.match !== config.topic) return;
@@ -321,7 +336,7 @@
                 sonic.draw();
             }
             // own Sonic in front
-            const mine = sonics.get(me.id);
+            const mine = sonics.get(roomMode ? me.room : me.id);
             if (mine) mine.draw();
         }
         requestAnimationFrame(frame);

@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class RegistrationController extends AbstractController
 {
@@ -25,6 +26,7 @@ class RegistrationController extends AbstractController
         EntityManagerInterface $em,
         Security $security,
         #[Autowire(service: 'limiter.registration')] RateLimiterFactoryInterface $registrationLimiter,
+        TranslatorInterface $translator,
     ): Response {
         if ($this->getUser()) return $this->redirectToRoute('home');
 
@@ -36,12 +38,12 @@ class RegistrationController extends AbstractController
             // a bot (the hidden field is filled): looks done, nothing saved
             if ($form->get('website')->getData()) return $this->redirectToRoute('home');
             if (!$registrationLimiter->create($request->getClientIp())->consume()->isAccepted()) {
-                $form->addError(new FormError('Trop d\'inscriptions depuis ta connexion, réessaie dans une heure.'));
+                $form->addError(new FormError($translator->trans('Trop d\'inscriptions depuis ta connexion, réessaie dans une heure.')));
             } elseif ($form->isValid()) {
                 $user->setPassword($hasher->hashPassword($user, $form->get('plainPassword')->getData()));
                 $em->persist($user);
                 $em->flush();
-                $this->addFlash('success', 'Bienvenue ' . $user->getUsername() . ' ! Ton nom sera utilisé dans les parties en ligne.');
+                $this->addFlash('success', $translator->trans('Bienvenue %name% ! Ton nom sera utilisé dans les parties en ligne.', ['%name%' => $user->getUsername()]));
 
                 return $security->login($user, 'form_login', 'main') ?? $this->redirectToRoute('home');
             }

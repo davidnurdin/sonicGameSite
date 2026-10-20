@@ -1,0 +1,60 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+<section class="hero compact">
+    <h1>Sonic PHP</h1>
+    <p class="tagline">{{ 'Salut %name% ! Rejoins un salon, crée le tien, ou joue seul.'|trans({'%name%': app.user.username}) }}</p>
+    <a class="play small" href="{{ path('play') }}">{{ 'Jouer seul'|trans }}</a>
+    {% include '_parts/online.html.twig' %}
+</section>
+
+<section class="panel wide" id="lobby" data-url="{{ path('rooms_json') }}" data-room="{{ path('room', {code: 'CODE'}) }}"
+         data-i18n="{{ {
+             modes: modes|map(m => m|trans),
+             lobby: 'en attente'|trans, match: 'partie en cours'|trans, enter: 'Entrer'|trans,
+             site: 'sur le site'|trans, none: 'Aucun salon public pour le moment : crée le premier !'|trans,
+             offline: 'Le serveur de jeu ne répond pas.'|trans
+         }|json_encode }}" data-levels="{{ levels|json_encode }}">
+    <h2>{{ 'Salons publics'|trans }}</h2>
+    <ul class="rooms" id="rooms">
+        {% for room in online.list ?? [] %}
+            <li><a href="{{ path('room', {code: room.room}) }}">{{ room.room }}</a></li>
+        {% endfor %}
+    </ul>
+    <p class="muted" id="rooms-empty"{% if online.list ?? [] is not empty %} hidden{% endif %}>
+        {{ online is null ? 'Le serveur de jeu ne répond pas.'|trans : 'Aucun salon public pour le moment : crée le premier !'|trans }}
+    </p>
+</section>
+
+<section class="duo">
+    <form class="panel form" method="get" action="{{ path('room_new') }}">
+        <h2>{{ 'Créer un salon'|trans }}</h2>
+        <div class="choice">
+            <label><input type="radio" name="type" value="public" checked> {{ 'Public'|trans }}</label>
+            <label><input type="radio" name="type" value="prive"> {{ 'Privé (sur invitation)'|trans }}</label>
+        </div>
+        <label for="mode">{{ 'Mode'|trans }}</label>
+        <select id="mode" name="mode">
+            {% for key, name in modes %}<option value="{{ key }}">{{ name|trans }}</option>{% endfor %}
+        </select>
+        <label for="level">{{ 'Zone'|trans }}</label>
+        <select id="level" name="level">
+            {% for level, name in levels %}<option value="{{ level }}">{{ name }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="play small">{{ 'Créer'|trans }}</button>
+    </form>
+    <form class="panel form" method="get" action="{{ path('room_join') }}">
+        <h2>{{ 'Rejoindre un salon'|trans }}</h2>
+        <label for="code">{{ 'Code du salon'|trans }}</label>
+        <input type="text" id="code" name="code" maxlength="4" pattern="[A-Za-z]{4}" autocapitalize="characters"
+               autocomplete="off" spellcheck="false" placeholder="ABCD" required>
+        <button type="submit" class="play small">{{ 'Rejoindre'|trans }}</button>
+    </form>
+</section>
+
+{% include 'home/_howto.html.twig' %}
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ asset('js/lobby.js') }}" defer></script>
+{% endblock %}

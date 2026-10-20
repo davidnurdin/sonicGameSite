@@ -1,19 +1,19 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Inscription · Sonic PHP{% endblock %}
+{% block title %}{{ 'Inscription'|trans }} · Sonic PHP{% endblock %}
 
 {% block body %}
 <section class="panel">
-    <h1>Inscription</h1>
-    <p class="tagline">Un nom, un mot de passe, c'est tout (l'email est facultatif).</p>
+    <h1>{{ 'Inscription'|trans }}</h1>
+    <p class="tagline">{{ 'Un nom, un mot de passe, c\'est tout (l\'email est facultatif).'|trans }}</p>
     {{ form_start(form, {attr: {class: 'form', novalidate: 'novalidate'}}) }}
         {{ form_errors(form) }}
         {{ form_row(form.username) }}
         {{ form_row(form.plainPassword) }}
         {{ form_row(form.email) }}
         {{ form_row(form.website) }}
-        <button type="submit" class="play small">Créer mon compte</button>
+        <button type="submit" class="play small">{{ 'Créer mon compte'|trans }}</button>
     {{ form_end(form) }}
-    <p class="alt">Déjà inscrit ? <a href="{{ path('login') }}">Connexion</a></p>
+    <p class="alt">{{ 'Déjà inscrit ?'|trans }} <a href="{{ path('login') }}">{{ 'Connexion'|trans }}</a></p>
 </section>
 {% endblock %}

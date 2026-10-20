@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ code ? 'Salon %code%'|trans({'%code%': code}) : 'Nouveau salon'|trans }} · Sonic PHP{% endblock %}
+
+{% block sonics_attr %}data-room="1"{% endblock %}
+
+{% block body %}
+<section class="panel wide room" id="room" data-config="{{ config|json_encode }}" data-i18n="{{ {
+        room: 'Salon %code%'|trans, public: 'Public'|trans, private: 'Privé'|trans, connecting: 'Connexion au salon…'|trans,
+        lobby: 'En attente des joueurs'|trans, match: 'Partie en cours'|trans, host: 'hôte'|trans,
+        noPlayers: 'Personne dans le jeu pour le moment. Clique JOUER : tu seras l\'hôte.'|trans,
+        arrived: '%name% est arrivé'|trans, left: '%name% est parti'|trans, onSite: '%name% est sur le site'|trans,
+        leftSite: '%name% a quitté le site'|trans, toGame: '%name% lance le jeu'|trans,
+        noRoom: 'Ce salon n\'existe plus.'|trans, full: 'Ce salon est complet.'|trans,
+        lost: 'Connexion perdue, nouvel essai…'|trans, unreachable: 'Le serveur de jeu ne répond pas.'|trans,
+        version: 'Ce salon vient d\'une autre version du jeu.'|trans, notSonic: 'Ce salon n\'est pas une partie de Sonic.'|trans,
+        shareText: 'Viens jouer à Sonic avec moi ! Salon %code%'|trans, copied: 'Lien copié !'|trans,
+        modes: config.modes|map(m => m|trans), you: 'toi'|trans
+    }|json_encode }}">
+    <header class="room-head">
+        <h1 id="room-title">{{ code ? 'Salon %code%'|trans({'%code%': code}) : 'Nouveau salon'|trans }}</h1>
+        <span class="badge" id="room-kind" hidden></span>
+    </header>
+    <p class="status" id="room-status">{{ 'Connexion au salon…'|trans }}</p>
+    <p class="error" id="room-error" hidden></p>
+
+    <div class="room-grid">
+        <div>
+            <h2>{{ 'Dans le jeu'|trans }}</h2>
+            <ul class="people" id="players"></ul>
+            <p class="muted" id="no-players" hidden></p>
+            <h2>{{ 'Sur le site'|trans }}</h2>
+            <ul class="people" id="sites"></ul>
+
+            <div id="settings" class="form" hidden>
+                <label for="room-mode">{{ 'Mode'|trans }}</label>
+                <select id="room-mode">
+                    {% for key, name in config.modes %}<option value="{{ key }}">{{ name|trans }}</option>{% endfor %}
+                </select>
+                <label for="room-level">{{ 'Zone'|trans }}</label>
+                <select id="room-level">
+                    {% for level, name in config.levels %}<option value="{{ level }}">{{ name }}</option>{% endfor %}
+                </select>
+            </div>
+
+            <div class="actions">
+                <a class="play small" id="room-play" href="#" aria-disabled="true">{{ 'Jouer'|trans }}</a>
+                <button type="button" class="pill-button" id="room-share" disabled>{{ 'Partager'|trans }}</button>
+                <a class="pill-button" href="{{ path('home') }}">{{ 'Quitter le salon'|trans }}</a>
+            </div>
+        </div>
+        <div class="chat">
+            <h2>{{ 'Discussion'|trans }}</h2>
+            <ol class="chat-log" id="chat" aria-live="polite"></ol>
+            {% if app.user %}
+                <form id="say" class="say" autocomplete="off">
+                    <input type="text" id="say-text" maxlength="30" autocapitalize="characters" spellcheck="false"
+                           placeholder="{{ 'Ton message'|trans }}" aria-label="{{ 'Ton message'|trans }}">
+                    <button type="submit" class="pill-button">{{ 'Envoyer'|trans }}</button>
+                </form>
+            {% else %}
+                <p class="muted"><a href="{{ path('login') }}">{{ 'Connecte-toi'|trans }}</a> {{ 'pour discuter dans le salon.'|trans }}</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ asset('js/room.js') }}" defer></script>
+{% endblock %}

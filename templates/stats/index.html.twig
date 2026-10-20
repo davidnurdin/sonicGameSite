@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Statistiques'|trans }} · Sonic PHP{% endblock %}
+
+{% macro duration(seconds) -%}
+    {%- set s = seconds|round(0, 'floor') -%}
+    {%- if s >= 3600 -%}{{ (s / 3600)|round(0, 'floor') }} h {{ '%02d'|format((s % 3600 / 60)|round(0, 'floor')) }} min
+    {%- elseif s >= 60 -%}{{ (s / 60)|round(0, 'floor') }} min {{ '%02d'|format(s % 60) }} s
+    {%- else -%}{{ s }} s{%- endif -%}
+{%- endmacro %}
+
+{% block body %}
+{% import _self as m %}
+<section class="panel wide">
+    <h1>{{ 'Statistiques'|trans }}</h1>
+    {% if stats is null %}
+        <p>{{ 'Rien pour le moment : lance le jeu avec le bouton JOUER du site (connecté), et tes parties seront comptées ici.'|trans }}</p>
+    {% else %}
+        <p class="muted">{{ 'Comptées par le jeu ouvert depuis le site, sur cet appareil et les autres. Mises à jour chaque minute.'|trans }}</p>
+        <h2>{{ 'Temps de jeu'|trans }}</h2>
+        <dl class="stats">
+            <div class="big"><dt>{{ 'Total'|trans }}</dt><dd>{{ m.duration(stats.timePlayed) }}</dd></div>
+            <div><dt>{{ 'Seul'|trans }}</dt><dd>{{ m.duration(stats.get('time_solo')) }}</dd></div>
+            <div><dt>{{ 'En ligne'|trans }}</dt><dd>{{ m.duration(stats.get('time_online')) }}</dd></div>
+            <div><dt>{{ 'Contre l\'ordinateur'|trans }}</dt><dd>{{ m.duration(stats.get('time_versus')) }}</dd></div>
+        </dl>
+        <h2>{{ 'Exploits'|trans }}</h2>
+        <dl class="stats">
+            {% for key, label in {
+                jumps: 'Sauts', rings: 'Anneaux ramassés', enemies: 'Ennemis et moniteurs cassés', springs: 'Ressorts',
+                deaths: 'Vies perdues', acts: 'Actes terminés', emeralds: 'Émeraudes'
+            } %}
+                <div><dt>{{ label|trans }}</dt><dd>{{ stats.get(key)|number_format(0, '.', app.request.locale == 'fr' ? ' ' : ',') }}</dd></div>
+            {% endfor %}
+        </dl>
+        <h2>{{ 'Matchs'|trans }}</h2>
+        <dl class="stats">
+            <div><dt>{{ 'En ligne'|trans }}</dt><dd>{{ stats.get('wins_online') }} / {{ stats.get('matches_online') }}
+                <small>{{ 'victoires'|trans }}</small></dd></div>
+            <div><dt>{{ 'Contre l\'ordinateur'|trans }}</dt><dd>{{ stats.get('wins_versus') }} / {{ stats.get('matches_versus') }}
+                <small>{{ 'victoires'|trans }}</small></dd></div>
+        </dl>
+    {% endif %}
+</section>
+
+{% if top is not empty %}
+<section class="panel wide">
+    <h2>{{ 'Ceux qui jouent le plus'|trans }}</h2>
+    <ol class="ranking">
+        {% for row in top %}
+            <li{% if row.name == app.user.username %} class="me"{% endif %}><b>{{ row.name }}</b>
+                <span>{{ m.duration(row.time) }}</span>
+                <span class="muted">{{ row.wins }} {{ row.wins > 1 ? 'victoires'|trans : 'victoire'|trans }}</span></li>
+        {% endfor %}
+    </ol>
+</section>
+{% endif %}
+{% endblock %}
