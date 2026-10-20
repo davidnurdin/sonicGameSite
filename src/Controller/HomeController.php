@@ -96,12 +96,6 @@ class HomeController extends AbstractController
         return $this->renderRoom($request, $code, null);
     }
 
-    #[Route('/editeur', name: 'editor', methods: ['GET'])]
-    public function editor(): Response
-    {
-        return $this->render('home/editor.html.twig');
-    }
-
     private function renderRoom(Request $request, ?string $code, ?array $create): Response
     {
         $user = $this->getUser();

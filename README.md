@@ -72,6 +72,24 @@ jeton, puis envoie chaque minute, et à la fermeture, ce qui a été gagné depu
 `POST /api/stats` en `text/plain` (pas de requête CORS préalable ; `sendBeacon` à la fermeture). Le site
 plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
 
+## Comment marchent les éditeurs
+
+- `/editeur` : mes niveaux, mes tiles, les niveaux publics et les tiles (les zones du jeu et celles des joueurs).
+  Un niveau public se regarde sans compte (`/niveau/{id}`, image `/niveau/{id}.png` pour les liens). L'édition
+  demande un ordinateur : sur un téléphone, la page le dit et ne montre que la vue.
+- Un niveau a le format du jeu : largeur × hauteur blocs de 32 px, un octet par bloc (un bloc de son jeu de
+  tiles), le départ de Sonic et les objets (`[type, x, y]` en blocs, types de `EditorData::OBJECTS`, ceux des
+  `level<N>.objects.php` du jeu). Il ne se joue pas encore dans le jeu.
+- Un jeu de tiles : jusqu'à 256 blocs, 16 par ligne dans un PNG, et un octet de collision par bloc (comme
+  `level<N>.solidity` : les 6 bits du bas sont une des 47 formes de `public/data/solidity-shapes.json`, le bit 7
+  dessine le bloc devant Sonic). On peut copier ceux des autres s'ils sont publics. Un jeu utilisé par un niveau
+  ne peut pas être supprimé, et seul son dernier bloc peut être enlevé (les niveaux visent les blocs par leur
+  numéro).
+- Les zones du jeu (blocs, collisions, l'acte 1 de chacune comme modèle) sont dans `data/game/`, refaites par
+  `python3 tools/game-data.py <jeu>`. `bin/console app:zones` les met en base (lancé au démarrage du conteneur).
+- Les éditeurs (`public/js/level-view.js`, `editor-level.js`, `editor-tiles.js`) enregistrent en JSON avec le
+  jeton CSRF `editor` (en-tête `X-CSRF-Token`) ; `EditorData` vérifie tout ce qu'ils envoient.
+
 ## Développer
 
 ```bash

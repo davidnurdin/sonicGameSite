@@ -1,0 +1,130 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ level.name }} · {{ edit ? 'Éditeur de niveau'|trans : 'Niveau'|trans }} · Sonic PHP{% endblock %}
+{% block description %}{{ 'Un niveau de Sonic fait par %name% dans l\'éditeur de Sonic PHP (%w%×%h% blocs, tiles %tiles%).'|trans({'%name%': level.user.username, '%w%': level.width, '%h%': level.height, '%tiles%': level.tileset.name}) }}{% endblock %}
+{% block og_image %}{{ app.request.schemeAndHttpHost ~ path('level_png', {id: level.id, v: level.updatedAt.timestamp}) }}{% endblock %}
+{% block robots %}{{ level.public and not edit ? 'index, follow' : 'noindex' }}{% endblock %}
+{% block main_class %}{{ edit ? 'full' : 'wide' }}{% endblock %}
+
+{% block body %}
+{% if not edit %}
+    <section class="panel wide" data-level-viewer data-json="{{ path('level_json', {id: level.id}) }}"
+             data-sonic="{{ asset('img/sonics.png') }}" data-shapes="{{ asset('data/solidity-shapes.json') }}"
+             data-objects="{{ objects|json_encode }}">
+        <div class="lv-head">
+            <div>
+                <h1>{{ level.name }}</h1>
+                <p class="muted">
+                    {{ 'par %name%'|trans({'%name%': level.user.username}) }} · {{ level.width }}×{{ level.height }} {{ 'blocs'|trans }} ·
+                    {{ 'tiles'|trans }} <a href="{{ path('tileset', {id: level.tileset.id}) }}">{{ level.tileset.name }}</a> ·
+                    {{ level.objects|length }} {{ 'objets'|trans }}
+                    {% if not level.public %}· <span class="badge off">{{ 'Privé'|trans }}</span>{% endif %}
+                </p>
+            </div>
+            <div class="lv-actions">
+                <button type="button" class="pill-button" data-zoom="0.5" aria-label="{{ 'Dézoomer'|trans }}">−</button>
+                <button type="button" class="pill-button" data-zoom="2" aria-label="{{ 'Zoomer'|trans }}">+</button>
+                <label class="small"><input type="checkbox" data-toggle="collisions"> {{ 'Collisions'|trans }}</label>
+                {% if level.isOwnedBy(app.user) %}
+                    <a class="pill-button" href="{{ path('level_edit', {id: level.id}) }}">{{ 'Éditer'|trans }}</a>
+                {% elseif app.user %}
+                    <form method="post" action="{{ path('level_copy', {id: level.id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+                        <button class="pill-button pc-hide" type="submit">{{ 'Copier pour l\'éditer'|trans }}</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+        <div class="lv-box view"></div>
+        <p class="small muted">{{ 'Fais glisser pour te déplacer dans le niveau.'|trans }} <a href="{{ path('editor') }}">{{ 'Tous les niveaux'|trans }}</a></p>
+    </section>
+{% else %}
+    <p class="pc-only panel wide">{{ 'L\'éditeur se fait sur un ordinateur, avec une souris et un clavier.'|trans }}
+        <a href="{{ path('level', {id: level.id}) }}">{{ 'Voir le niveau'|trans }}</a></p>
+    <section id="level-editor" class="editor pc-hide"
+             data-json="{{ path('level_json', {id: level.id}) }}" data-save="{{ path('level_save', {id: level.id}) }}"
+             data-tileset-json="{{ path('tileset_json', {id: 0})|replace({'/0.json': '/ID.json'}) }}"
+             data-tileset-page="{{ path('tileset', {id: 0})|replace({'/0': '/ID'}) }}"
+             data-token="{{ csrf_token('editor') }}" data-sonic="{{ asset('img/sonics.png') }}"
+             data-shapes="{{ asset('data/solidity-shapes.json') }}"
+             data-objects="{{ objects|json_encode }}"
+             data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans, error: 'Erreur'|trans, block: 'bloc'|trans}|json_encode }}">
+        <div class="ed-bar">
+            <input type="text" name="name" value="{{ level.name }}" maxlength="40" aria-label="{{ 'Nom'|trans }}">
+            <label><input type="checkbox" name="public" {{ level.public ? 'checked' }}> {{ 'Public'|trans }}</label>
+            <span class="ed-sep"></span>
+            <button type="button" class="pill-button ed-undo" title="Ctrl+Z">↶</button>
+            <button type="button" class="pill-button ed-redo" title="Ctrl+Y">↷</button>
+            <button type="button" class="pill-button" data-zoom="-1" title="-">−</button>
+            <span class="ed-zoom">100 %</span>
+            <button type="button" class="pill-button" data-zoom="1" title="+">+</button>
+            <label title="G"><input type="checkbox" data-toggle="grid" checked> {{ 'Grille'|trans }}</label>
+            <label title="C"><input type="checkbox" data-toggle="collisions"> {{ 'Collisions'|trans }}</label>
+            <span class="ed-sep"></span>
+            <span class="ed-status" role="status"></span>
+            <a class="pill-button" href="{{ path('level', {id: level.id}) }}" target="_blank">{{ 'Voir'|trans }}</a>
+            <button type="button" class="play small ed-save" title="Ctrl+S">{{ 'Enregistrer'|trans }}</button>
+        </div>
+        <div class="ed-main">
+            <div class="lv-box"></div>
+            <aside class="ed-side">
+                <div class="ed-tools">
+                    <button type="button" data-tool="pencil" title="B">✎ {{ 'Crayon'|trans }}</button>
+                    <button type="button" data-tool="rect" title="R">▭ {{ 'Rectangle'|trans }}</button>
+                    <button type="button" data-tool="fill" title="F">◧ {{ 'Remplir'|trans }}</button>
+                    <button type="button" data-tool="picker" title="I">⌖ {{ 'Pipette'|trans }}</button>
+                    <button type="button" data-tool="eraser" title="E">⌫ {{ 'Gomme'|trans }}</button>
+                    <button type="button" data-tool="start" title="S">◉ {{ 'Départ'|trans }}</button>
+                </div>
+                <h3>{{ 'Tiles'|trans }} <small class="ed-block muted"></small></h3>
+                <div class="ed-row">
+                    <select name="tileset" aria-label="{{ 'Tiles'|trans }}">
+                        {% for tileset in usable %}<option value="{{ tileset.id }}">{{ tileset.name }}{% if tileset.user and tileset.user != app.user %} ({{ tileset.user.username }}){% endif %}</option>{% endfor %}
+                        {% if level.tileset not in usable %}<option value="{{ level.tileset.id }}">{{ level.tileset.name }}</option>{% endif %}
+                    </select>
+                    <a class="ed-tileset-link small" href="#" target="_blank">{{ 'voir'|trans }}</a>
+                </div>
+                <div class="ed-palette-box"><canvas class="ed-palette"></canvas></div>
+                <details class="ed-objects-box">
+                    <summary><h3>{{ 'Objets'|trans }}</h3> <small class="muted">O · {{ 'Maj+clic : enlever'|trans }}</small></summary>
+                    <div class="ed-objects"></div>
+                </details>
+                <details>
+                    <summary><h3>{{ 'Taille'|trans }}</h3></summary>
+                    <div class="ed-row">
+                        <input type="number" name="width" min="8" max="256" aria-label="{{ 'Largeur'|trans }}"> ×
+                        <input type="number" name="height" min="6" max="256" aria-label="{{ 'Hauteur'|trans }}">
+                        <select name="anchor" aria-label="{{ 'Ancrage'|trans }}">
+                            <option value="bottom">{{ 'garder le bas'|trans }}</option>
+                            <option value="top">{{ 'garder le haut'|trans }}</option>
+                        </select>
+                        <button type="button" class="pill-button ed-resize">OK</button>
+                    </div>
+                    <p class="small muted">{{ '%n% blocs au plus (256 de côté).'|trans({'%n%': 16384}) }}</p>
+                </details>
+                <details>
+                    <summary><h3>{{ 'Aide'|trans }}</h3></summary>
+                    <ul class="small ed-help">
+                        <li>{{ 'Clic gauche : l\'outil. Clic droit : prendre le bloc sous la souris.'|trans }}</li>
+                        <li>{{ 'Molette : défiler (Maj : de côté). Ctrl + molette : zoom.'|trans }}</li>
+                        <li>{{ 'Espace + glisser, ou bouton du milieu : déplacer la vue.'|trans }}</li>
+                        <li>{{ 'Ctrl+Z / Ctrl+Y : annuler / refaire. Ctrl+S : enregistrer.'|trans }}</li>
+                        <li>{{ 'Les collisions (C) montrent en rouge où Sonic marche ; un carré jaune : bloc devant Sonic.'|trans }}</li>
+                    </ul>
+                    <form method="post" action="{{ path('level_delete', {id: level.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
+                          data-confirm="{{ 'Supprimer ce niveau pour de bon ?'|trans }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+                        <button class="pill-button danger" type="submit">{{ 'Supprimer le niveau'|trans }}</button>
+                    </form>
+                </details>
+                <p class="ed-pos small muted"></p>
+            </aside>
+        </div>
+    </section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ asset('js/level-view.js') }}" defer></script>
+    {% if edit %}<script src="{{ asset('js/editor-level.js') }}" defer></script>{% endif %}
+{% endblock %}

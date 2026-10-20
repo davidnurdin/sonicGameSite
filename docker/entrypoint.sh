@@ -1,6 +1,6 @@
 #!/bin/sh
 # Start of the container: waits for MariaDB (its first start creates the database), brings the schema up to
-# date (Doctrine migrations), warms the cache.
+# date (Doctrine migrations), the zones of the game for the editors (app:zones), warms the cache.
 set -e
 cd /app
 tries=0
@@ -10,5 +10,6 @@ until php bin/console dbal:run-sql -q "SELECT 1" >/dev/null 2>&1; do
     sleep 2
 done
 php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+php bin/console app:zones
 php bin/console cache:warmup
 exec "$@"

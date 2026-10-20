@@ -1,0 +1,125 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Éditeur de niveau'|trans }} · Sonic PHP{% endblock %}
+{% block description %}{{ 'Crée tes niveaux de Sonic bloc par bloc, et tes propres tiles. Regarde les niveaux publics des autres joueurs.'|trans }}{% endblock %}
+
+{% block main_class %}wide{% endblock %}
+
+{% macro level_card(level, mine) %}
+    <li class="ed-card">
+        <a class="ed-thumb" href="{{ path(mine ? 'level_edit' : 'level', {id: level.id}) }}">
+            <img src="{{ path('level_png', {id: level.id, v: level.updatedAt.timestamp}) }}" alt="" loading="lazy">
+        </a>
+        <div class="ed-card-text">
+            <b>{{ level.name }}</b>
+            <small class="muted">
+                {% if not mine %}{{ 'par %name%'|trans({'%name%': level.user.username}) }} · {% endif %}
+                {{ level.width }}×{{ level.height }} · {{ level.tileset.name }}
+            </small>
+            {% if mine %}<span class="badge{% if not level.public %} off{% endif %}">{{ level.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
+        </div>
+        <div class="ed-card-go">
+            {% if mine %}<a class="pill-button" href="{{ path('level_edit', {id: level.id}) }}">{{ 'Éditer'|trans }}</a>{% endif %}
+            <a class="pill-button" href="{{ path('level', {id: level.id}) }}">{{ 'Voir'|trans }}</a>
+        </div>
+    </li>
+{% endmacro %}
+
+{% macro tileset_card(tileset, mine) %}
+    <li class="ed-card tiles">
+        <a class="ed-thumb" href="{{ path(mine ? 'tileset_edit' : 'tileset', {id: tileset.id}) }}">
+            <img src="{{ path('tileset_png', {id: tileset.id, v: tileset.updatedAt.timestamp}) }}" alt="" loading="lazy">
+        </a>
+        <div class="ed-card-text">
+            <b>{{ tileset.name }}</b>
+            <small class="muted">
+                {{ tileset.zone ? 'Zone du jeu'|trans ~ ' · ' : (mine ? '' : 'par %name%'|trans({'%name%': tileset.user.username}) ~ ' · ') }}
+                {{ tileset.count }} {{ 'blocs'|trans }}
+            </small>
+            {% if mine %}<span class="badge{% if not tileset.public %} off{% endif %}">{{ tileset.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
+        </div>
+        <div class="ed-card-go">
+            {% if mine %}<a class="pill-button" href="{{ path('tileset_edit', {id: tileset.id}) }}">{{ 'Éditer'|trans }}</a>{% endif %}
+            <a class="pill-button" href="{{ path('tileset', {id: tileset.id}) }}">{{ 'Voir'|trans }}</a>
+        </div>
+    </li>
+{% endmacro %}
+
+{% block body %}
+<section class="panel wide">
+    <h1>{{ 'Éditeur de niveau'|trans }}</h1>
+    <p>{{ 'Dessine ta zone bloc par bloc avec les tiles des zones du jeu ou les tiennes, place les anneaux, les badniks, les moniteurs et le départ de Sonic. Publie-la : tout le monde pourra la voir, même sans compte.'|trans }}</p>
+    <p class="muted small">{{ 'Les niveaux ne se jouent pas encore dans le jeu : ça viendra.'|trans }}</p>
+    <p class="pc-only">{{ 'L\'éditeur se fait sur un ordinateur, avec une souris et un clavier. Sur ton téléphone, tu peux regarder les niveaux publics.'|trans }}</p>
+    {% for flash in app.flashes('editor') %}<p class="flash error">{{ flash.m|trans({'%n%': flash.n}) }}</p>{% endfor %}
+</section>
+
+{% if app.user %}
+    <section class="duo">
+        <form class="panel form" method="post" action="{{ path('level_new') }}">
+            <h2>{{ 'Nouveau niveau'|trans }}</h2>
+            <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+            <label for="new-name">{{ 'Nom'|trans }}</label>
+            <input type="text" id="new-name" name="name" maxlength="40" required placeholder="{{ 'Ma zone'|trans }}">
+            <label for="new-template">{{ 'Partir de'|trans }}</label>
+            <select id="new-template" name="template" onchange="this.form.querySelector('.ed-only-empty').hidden = this.value !== ''">
+                <option value="">{{ 'Un niveau vide'|trans }}</option>
+                {% for key, template in templates %}<option value="{{ key }}">{{ 'Copie de %name%'|trans({'%name%': template.name}) }}</option>{% endfor %}
+            </select>
+            <div class="ed-only-empty">
+                <label for="new-tileset">{{ 'Tiles'|trans }}</label>
+                <select id="new-tileset" name="tileset">
+                    {% for tileset in usable %}<option value="{{ tileset.id }}">{{ tileset.name }}{% if tileset.user and tileset.user != app.user %} ({{ tileset.user.username }}){% endif %}</option>{% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="play small">{{ 'Créer'|trans }}</button>
+        </form>
+        <form class="panel form" method="post" action="{{ path('tileset_new') }}">
+            <h2>{{ 'Nouveau jeu de tiles'|trans }}</h2>
+            <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+            <label for="tiles-name">{{ 'Nom'|trans }}</label>
+            <input type="text" id="tiles-name" name="name" maxlength="40" required placeholder="{{ 'Mes tiles'|trans }}">
+            <p class="small muted">{{ 'Des blocs de 32×32 pixels (256 au plus), chacun avec sa forme de collision. Pour partir des tiles d\'une zone ou d\'un autre joueur : « Copier » sur leur page.'|trans }}</p>
+            <button type="submit" class="play small">{{ 'Créer'|trans }}</button>
+        </form>
+    </section>
+
+    <section class="panel wide">
+        <h2>{{ 'Mes niveaux'|trans }}</h2>
+        {% if myLevels is empty %}<p class="muted">{{ 'Pas encore de niveau.'|trans }}</p>{% endif %}
+        <ul class="ed-cards">{% for level in myLevels %}{{ _self.level_card(level, true) }}{% endfor %}</ul>
+    </section>
+    <section class="panel wide">
+        <h2>{{ 'Mes tiles'|trans }}</h2>
+        {% if myTilesets is empty %}<p class="muted">{{ 'Pas encore de tiles à toi.'|trans }}</p>{% endif %}
+        <ul class="ed-cards">{% for tileset in myTilesets %}{{ _self.tileset_card(tileset, true) }}{% endfor %}</ul>
+    </section>
+{% else %}
+    <section class="panel wide">
+        <p>{{ 'Pour créer des niveaux et des tiles :'|trans }}
+            <a href="{{ path('register', {next: path('editor')}) }}">{{ 'crée ton compte'|trans }}</a> {{ 'ou'|trans }}
+            <a href="{{ path('login', {next: path('editor')}) }}">{{ 'connecte-toi'|trans }}</a>.</p>
+    </section>
+{% endif %}
+
+<section class="panel wide">
+    <h2>{{ 'Niveaux publics'|trans }}</h2>
+    {% if publicLevels is empty %}<p class="muted">{{ 'Aucun niveau public pour le moment.'|trans }}</p>{% endif %}
+    <ul class="ed-cards">{% for level in publicLevels %}{{ _self.level_card(level, app.user and level.user == app.user) }}{% endfor %}</ul>
+    {% if pages > 1 %}
+        <nav class="pager" aria-label="{{ 'Pages'|trans }}">
+            {% if page > 1 %}<a class="pill-button" href="{{ path('editor', {page: page - 1}) }}" rel="prev">← {{ 'Précédents'|trans }}</a>{% endif %}
+            <span>{{ 'Page %page% sur %pages%'|trans({'%page%': page, '%pages%': pages}) }}</span>
+            {% if page < pages %}<a class="pill-button" href="{{ path('editor', {page: page + 1}) }}" rel="next">{{ 'Suivants'|trans }} →</a>{% endif %}
+        </nav>
+    {% endif %}
+</section>
+
+<section class="panel wide">
+    <h2>{{ 'Tiles'|trans }}</h2>
+    <ul class="ed-cards">
+        {% for tileset in zones %}{{ _self.tileset_card(tileset, false) }}{% endfor %}
+        {% for tileset in publicTilesets %}{{ _self.tileset_card(tileset, app.user and tileset.user == app.user) }}{% endfor %}
+    </ul>
+</section>
+{% endblock %}
