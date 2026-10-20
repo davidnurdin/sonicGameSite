@@ -165,4 +165,6 @@ return [
     'Course, drapeau, anneaux ou deathmatch, dans le navigateur.' => 'Race, flag, rings or deathmatch, in the browser.',
     'connecte-toi' => 'log in',
     'pour jouer et discuter dans le salon.' => 'to play and chat in the room.',
+    'Menu' => 'Menu',
+    'Accueil' => 'Home',
 ];
