@@ -22,7 +22,7 @@
                 <li>
                     <div class="replay-what">
                         <b>{{ replay.kind == 'solo' ? 'Seul'|trans : (replay.kind == 'online' ? 'En ligne'|trans : 'Contre l\'ordinateur'|trans) }}</b>
-                        <span>{{ replay.kind == 'solo' ? '' : (modes[replay.mode]|default(replay.mode))|trans ~ ' · ' }}{{ level_name(replay.level) }}</span>
+                        <span>{{ replay.kind == 'solo' ? '' : (modes[replay.mode]|default(replay.mode))|trans ~ ' · ' }}{% if replay.level == 36 %}{{ replay.siteLevel ? replay.siteLevel.name : 'Niveau supprimé'|trans }}{% else %}{{ level_name(replay.level) }}{% endif %}</span>
                         <small class="muted">{{ replay.createdAt|date(app.request.locale == 'fr' ? 'd/m/Y H:i' : 'Y-m-d H:i', 'Europe/Paris') }} · {{ (replay.duration / 60)|round(0, 'floor') }}:{{ '%02d'|format(replay.duration % 60) }}</small>
                     </div>
                     <ol class="replay-result">
@@ -32,7 +32,7 @@
                             <li>{{ replay.players|join(', ') }}</li>
                         {% endfor %}
                     </ol>
-                    <a class="pill-button" href="{{ watch ~ replay.id }}">▶ {{ 'Revoir'|trans }}</a>
+                    {% if replay.level != 36 or replay.siteLevel %}<a class="pill-button" href="{{ watch ~ replay.id }}">▶ {{ 'Revoir'|trans }}</a>{% endif %}
                 </li>
             {% endfor %}
         </ul>

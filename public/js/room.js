@@ -22,7 +22,9 @@
     let level = cfg.create ? cfg.create.level : 1;
     // a level of the site's editor, chosen in the game (36): its name, sent by the host
     const SITE_LEVEL = 36;
-    let siteName = '';
+    let site = null;   // {id, lt, name}
+    const validSite = s => s && Number.isInteger(s.id) && s.id > 0 && /^[0-9a-f]{0,64}$/.test(String(s.lt ?? ''))
+        ? { id: s.id, lt: String(s.lt ?? ''), name: String(s.name ?? '').slice(0, 40) } : null;
     let state = 'lobby';
     const players = new Map();   // peer -> name (in the game)
     const sites = new Map();     // watcher -> name ('' : a visitor without an account)
@@ -59,7 +61,8 @@
     /** What the list of rooms shows while nobody is in the game (then the game's host says it). */
     function publish() {
         if (host !== -1 || me < FIRST_WATCHER) return;
-        control({ t: 'info', data: { names: [], sites: [...sites.values()].filter(Boolean), mode, level, state: 'lobby', v: cfg.version } });
+        control({ t: 'info', data: { names: [], sites: [...sites.values()].filter(Boolean), mode, level,
+            site: level === SITE_LEVEL && site ? site.name : null, state: 'lobby', v: cfg.version } });
     }
 
     function connect() {
@@ -154,7 +157,10 @@
             } else if (type === SITE) {
                 const data = json();
                 if (data.go && sites.get(from)) line(null, fill(T.toGame, { name: sites.get(from) }));
-                if (!players.size && cfg.modes[data.mode] && cfg.levels[data.level]) { mode = data.mode; level = Number(data.level); render(); }
+                const other = Number(data.level) === SITE_LEVEL ? validSite(data.site) : null;
+                if (!players.size && cfg.modes[data.mode] && (cfg.levels[data.level] || other)) {
+                    mode = data.mode; level = Number(data.level); site = other; render();
+                }
             }
             return;
         }
@@ -173,7 +179,7 @@
                 for (const [peer, name] of Object.entries(data.names || {})) players.set(Number(peer), cleanName(name, Number(peer)));
                 if (cfg.modes[data.mode]) mode = data.mode;
                 if (cfg.levels[data.level] || Number(data.level) === SITE_LEVEL) level = Number(data.level);
-                siteName = data.site && typeof data.site.name === 'string' ? data.site.name : '';
+                site = level === SITE_LEVEL ? validSite(data.site) : null;
                 state = data.state === 'match' ? 'match' : 'lobby';
                 break;
             }
@@ -230,7 +236,10 @@
 
     function playUrl() {
         const sep = cfg.play.includes('?') ? '&' : '?';
-        return cfg.play + sep + new URLSearchParams({ room: code, mode, level: String(level), back: roomUrl() });
+        const query = { room: code, mode, level: String(level), back: roomUrl() };
+        // a level of the site's editor: which one (the game downloads it before the match)
+        if (level === SITE_LEVEL && site) Object.assign(query, { sl: String(site.id), slt: site.lt, sln: site.name });
+        return cfg.play + sep + new URLSearchParams(query);
     }
 
     function render() {
@@ -242,7 +251,7 @@
         kind.textContent = isPublic ? T.public : T.private;
         kind.classList.toggle('private', !isPublic);
 
-        const levelName = level === SITE_LEVEL ? siteName || T.siteLevel : cfg.levels[level] || '';
+        const levelName = level === SITE_LEVEL ? site?.name || T.siteLevel : cfg.levels[level] || '';
         status(me >= 0 ? `${state === 'match' ? T.match : T.lobby} · ${T.modes[mode] || mode} · ${levelName}` : T.connecting);
 
         const hostId = host;
@@ -255,7 +264,14 @@
         const settings = $('settings');
         settings.hidden = !cfg.name || players.size > 0 || me < 0;
         $('room-mode').value = mode;
-        $('room-level').value = String(level);
+        const select = $('room-level');
+        if (level === SITE_LEVEL && site) {
+            // chosen by another page of the site (a level not in this list): added to it
+            if (![...select.options].some(o => o.value === 's' + site.id)) select.add(new Option(site.name, 's' + site.id));
+            select.value = 's' + site.id;
+        } else {
+            select.value = String(level);
+        }
 
         const play = $('room-play');
         if (!play.dataset.guest) {
@@ -275,8 +291,16 @@
 
     const changed = () => {
         mode = $('room-mode').value;
-        level = Number($('room-level').value);
-        send(SITE, { mode, level });
+        const value = $('room-level').value;
+        if (value.startsWith('s')) {
+            const chosen = cfg.siteLevels.find(l => 's' + l.id === value);
+            level = SITE_LEVEL;
+            site = chosen ? validSite(chosen) : site;
+        } else {
+            level = Number(value);
+            site = null;
+        }
+        send(SITE, { mode, level, site });
         publish();
         render();
     };
@@ -287,7 +311,7 @@
         if ($('room-play').dataset.guest) return;   // to the sign-up, then back here
         if (me < 0) { e.preventDefault(); return; }
         // the others see it; the room is kept by the relay while the game loads
-        send(SITE, { go: true, mode, level });
+        send(SITE, { go: true, mode, level, site });
     });
 
     $('room-share').addEventListener('click', async () => {

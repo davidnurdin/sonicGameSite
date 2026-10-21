@@ -39,7 +39,7 @@
              data-json="{{ path('tileset_json', {id: tileset.id}) }}" data-save="{{ path('tileset_save', {id: tileset.id}) }}"
              data-tileset-json="{{ path('tileset_json', {id: 0})|replace({'/0.json': '/ID.json'}) }}"
              data-token="{{ csrf_token('editor') }}" data-shapes="{{ asset('data/solidity-shapes.json') }}"
-             data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans,
+             data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, cloneFirst: 'Alt+clic : choisis d\'abord la source à copier.'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans,
                  error: 'Erreur'|trans, block: 'Bloc'|trans, shape: 'Forme'|trans, copied: 'Bloc copié'|trans,
                  full: '256 blocs au plus'|trans, imported: '%n% blocs ajoutés'|trans, other: 'autre'|trans}|json_encode }}">
         <div class="ed-bar">
@@ -80,6 +80,16 @@
                     <button type="button" data-tool="fill" title="F">◧ {{ 'Remplir'|trans }}</button>
                     <button type="button" data-tool="picker" title="I">⌖ {{ 'Pipette'|trans }}</button>
                     <button type="button" data-tool="eraser" title="E">⌫ {{ 'Gomme'|trans }}</button>
+                    <button type="button" data-tool="clone" title="K">⧉ {{ 'Clone'|trans }}</button>
+                </div>
+                <div class="ed-clone" hidden>
+                    <p class="small">{{ 'Alt+clic sur le dessin ou sur la liste des blocs : la source (encadrée en bleu, même dans un autre bloc). Puis peins le bloc : ses pixels sont recopiés.'|trans }}</p>
+                    <div class="ed-row">
+                        <label class="small">{{ 'Taille'|trans }} <select name="clone-size">
+                            {% for n in [1, 2, 4, 8, 16] %}<option value="{{ n }}"{% if n == 4 %} selected{% endif %}>{{ n }}×{{ n }} px</option>{% endfor %}
+                        </select></label>
+                        <label class="small" title="{{ 'Coché : la source garde la même distance d\'un trait à l\'autre. Décoché : chaque trait repart de la source.'|trans }}"><input type="checkbox" name="clone-aligned" checked> {{ 'Aligné'|trans }}</label>
+                    </div>
                 </div>
                 <div class="ed-row">
                     <button type="button" class="pill-button te-flip-h" title="{{ 'Miroir'|trans }}">⇋</button>

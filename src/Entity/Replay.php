@@ -37,6 +37,11 @@ class Replay
     #[ORM\Column]
     private int $level;
 
+    /** A level of the site's editor (level Game::SITE_LEVEL): the one it was played on, null once deleted. */
+    #[ORM\ManyToOne(targetEntity: Level::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Level $siteLevel = null;
+
     /** Online: the id of the match (Versus::matchId), the same for every player. */
     #[ORM\Column(length: 16, nullable: true)]
     private ?string $matchId;
@@ -78,6 +83,8 @@ class Replay
     public function getKind(): string { return $this->kind; }
     public function getMode(): string { return $this->mode; }
     public function getLevel(): int { return $this->level; }
+    public function getSiteLevel(): ?Level { return $this->siteLevel; }
+    public function setSiteLevel(?Level $level): void { $this->siteLevel = $level; }
     public function getMatchId(): ?string { return $this->matchId; }
     /** @return list<string> */
     public function getPlayers(): array { return $this->players; }

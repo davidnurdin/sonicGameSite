@@ -191,6 +191,8 @@ class EditorController extends AbstractController
         return $response->setData([
             'id' => $level->getId(),
             'name' => $level->getName(),
+            // its key (a private level): the game puts it in the replays and the matches played on it
+            'lt' => $level->isPublic() ? '' : $tokens->create($level),
             'width' => $level->getWidth(),
             'height' => $level->getHeight(),
             'blocks' => base64_encode($level->getBlocks()),

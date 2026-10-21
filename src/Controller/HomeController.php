@@ -2,9 +2,12 @@
 
 namespace App\Controller;
 
+use App\Entity\Level;
 use App\Entity\User;
+use App\Repository\LevelRepository;
 use App\Repository\UserRepository;
 use App\Service\Game;
+use App\Service\LevelToken;
 use App\Service\OnlineStats;
 use App\Service\StatsToken;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,6 +24,8 @@ class HomeController extends AbstractController
         #[Autowire(env: 'GAME_URL')] private string $gameUrl,
         #[Autowire(env: 'RELAY_WS_URL')] private string $relayUrl,
         private StatsToken $statsToken,
+        private LevelRepository $levels,
+        private LevelToken $levelTokens,
     ) {
     }
 
@@ -99,6 +104,14 @@ class HomeController extends AbstractController
     private function renderRoom(Request $request, ?string $code, ?array $create): Response
     {
         $user = $this->getUser();
+        // the levels of the site's editor a room may play: the account's own, then the public ones
+        [$levels] = $this->levels->gamePage($user instanceof User ? $user : null, 1, 100);
+        $siteLevels = array_map(fn(Level $level) => [
+            'id' => $level->getId(),
+            'name' => $level->getName(),
+            'author' => $level->getUser()->getUsername(),
+            'lt' => $level->isPublic() ? '' : $this->levelTokens->create($level),
+        ], $levels);
 
         return $this->render('room/index.html.twig', [
             'code' => $code,
@@ -113,6 +126,8 @@ class HomeController extends AbstractController
                 'version' => OnlineStats::VERSION,
                 'modes' => Game::MODES,
                 'levels' => Game::levels(),
+                'siteLevel' => Game::SITE_LEVEL,
+                'siteLevels' => $siteLevels,
             ],
         ]);
     }

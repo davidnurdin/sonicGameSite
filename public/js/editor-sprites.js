@@ -76,6 +76,7 @@
                 for (let y = 1; y < sheet.height; y++) { viewCtx.moveTo(0, y * zoom + 0.5); viewCtx.lineTo(view.width, y * zoom + 0.5); }
                 viewCtx.stroke();
             }
+            drawClone();
         });
     }
     function setZoom(z, keep = null) {
@@ -121,6 +122,8 @@
     }
     function select(name) {
         current = name;
+        // the source of the clone was on the other sheet
+        clone.source = clone.offset = null;
         const sheet = sheets[name];
         $('.sp-size').textContent = `${sheet.width}×${sheet.height}`;
         drawSwatches(sheet.colours);
@@ -179,6 +182,8 @@
     function setTool(name) {
         tool = name;
         root.querySelectorAll('[data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === name));
+        $('.ed-clone').hidden = name !== 'clone';
+        draw();
     }
     root.querySelectorAll('[data-tool]').forEach((b) => b.addEventListener('click', () => setTool(b.dataset.tool)));
 
@@ -227,6 +232,54 @@
         }
         ctx.putImageData(image, 0, 0);
     }
+    // ---- clone (K): Alt+click the source, then paint elsewhere: the pixels at the same distance are copied, from
+    // the sheet as it was when the stroke began. Aligned: the distance stays from one stroke to the next.
+
+    const clone = { source: null, offset: null, from: null, hover: null };
+    const cloneSize = () => Number($('[name="clone-size"]').value) || 4;
+    const brushAt = ([x, y]) => { const n = cloneSize(); return [x - Math.floor(n / 2), y - Math.floor(n / 2), n]; };
+    function stamp(p) {
+        const { ctx, width, height } = sheets[current];
+        const [x0, y0, n] = brushAt(p);
+        const out = ctx.getImageData(x0, y0, n, n);
+        const from = clone.from.data;
+        for (let dy = 0; dy < n; dy++) for (let dx = 0; dx < n; dx++) {
+            const sx = x0 + dx + clone.offset[0], sy = y0 + dy + clone.offset[1];
+            if (sx < 0 || sy < 0 || sx >= width || sy >= height) continue;
+            const i = (sy * width + sx) * 4;
+            out.data.set(from.subarray(i, i + 4), (dy * n + dx) * 4);
+        }
+        ctx.putImageData(out, x0, y0);
+    }
+    // every pixel from a to b
+    function walk([x0, y0], [x1, y1], fn) {
+        const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+        for (let i = 0; i <= steps; i++) fn([Math.round(x0 + (x1 - x0) * i / steps), Math.round(y0 + (y1 - y0) * i / steps)]);
+    }
+    // the brush (white) and the source it copies (blue, dashed, with a cross)
+    function drawClone() {
+        if (tool !== 'clone' || (!clone.hover && !clone.source)) return;
+        const frame = ([x, y, n], colour, dash) => {
+            viewCtx.setLineDash(dash);
+            viewCtx.strokeStyle = colour;
+            viewCtx.lineWidth = 2;
+            viewCtx.strokeRect(x * zoom + 1, y * zoom + 1, n * zoom - 2, n * zoom - 2);
+            viewCtx.setLineDash([]);
+        };
+        let source = null;
+        if (clone.hover && clone.offset) source = brushAt([clone.hover[0] + clone.offset[0], clone.hover[1] + clone.offset[1]]);
+        else if (clone.source) source = brushAt(clone.source);
+        if (source) {
+            frame(source, '#3fd0ff', [6, 4]);
+            const cx = (source[0] + source[2] / 2) * zoom, cy = (source[1] + source[2] / 2) * zoom;
+            viewCtx.strokeStyle = '#3fd0ff';
+            viewCtx.beginPath();
+            viewCtx.moveTo(cx - 8, cy); viewCtx.lineTo(cx + 8, cy); viewCtx.moveTo(cx, cy - 8); viewCtx.lineTo(cx, cy + 8);
+            viewCtx.stroke();
+        }
+        if (clone.hover) frame(brushAt(clone.hover), 'rgba(255, 255, 255, .9)', []);
+    }
+
     function pick([x, y]) {
         const d = sheets[current].ctx.getImageData(x, y, 1, 1).data;
         if (d[3] < 128) setTool('eraser'); else setColour([d[0], d[1], d[2], 255]);
@@ -238,6 +291,20 @@
         if (!current || e.button === 1) return;
         const p = pixelAt(e);
         if (!inside(p)) return;
+        if (tool === 'clone') {
+            if (e.altKey || e.button === 2) { clone.source = p; clone.offset = null; draw(); return; }
+            if (!clone.source) { status(T.cloneFirst, 'warn'); return; }
+            remember();
+            sheets[current].own = true;
+            if (!clone.offset || !$('[name="clone-aligned"]').checked) clone.offset = [clone.source[0] - p[0], clone.source[1] - p[1]];
+            const { ctx, width, height } = sheets[current];
+            clone.from = ctx.getImageData(0, 0, width, height);
+            view.setPointerCapture(e.pointerId);
+            stroke = { last: p, clone: true };
+            stamp(p);
+            refresh();
+            return;
+        }
         if (e.button === 2 || tool === 'picker') { pick(p); return; }
         remember();
         sheets[current].own = true;
@@ -251,7 +318,14 @@
     view.addEventListener('pointermove', (e) => {
         const p = pixelAt(e);
         $('.sp-pos').textContent = current && inside(p) ? `x ${p[0]} · y ${p[1]}` : '';
+        if (tool === 'clone') { clone.hover = current && inside(p) ? p : null; draw(); }
         if (!stroke) return;
+        if (stroke.clone) {
+            walk(stroke.last, p, stamp);
+            stroke.last = p;
+            draw();
+            return;
+        }
         line(stroke.last, p, stroke.c);
         stroke.last = p;
         draw();
@@ -259,6 +333,7 @@
     const endStroke = () => { stroke = null; };
     view.addEventListener('pointerup', endStroke);
     view.addEventListener('pointercancel', endStroke);
+    view.addEventListener('pointerleave', () => { clone.hover = null; draw(); });
 
     // ---- the sheet: download, back to the game's, import
 
@@ -332,7 +407,7 @@
     $('.ed-redo').addEventListener('click', () => restore(redo, undo));
     addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
-    const KEYS = { b: 'pencil', f: 'fill', i: 'picker', e: 'eraser' };
+    const KEYS = { b: 'pencil', f: 'fill', i: 'picker', e: 'eraser', k: 'clone' };
     addEventListener('keydown', (e) => {
         if (e.target.matches('input, select, textarea')) return;
         const key = e.key.toLowerCase();

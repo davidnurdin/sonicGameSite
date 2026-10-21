@@ -539,3 +539,6 @@ main.full { max-width: none; padding: 0 12px 24px; }
 .sfx-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 600; }
 .sfx-fields output { color: var(--yellow); font-weight: 700; }
 .ed-card.sound .ed-card-text b { font-size: 16px; }
+/* the level's sound effects: one per line, the game's sound on the left, the editor's on the right */
+.ed-sfx label.small { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; }
+.ed-sfx label.small select { flex: 0 1 60%; min-width: 0; }

@@ -104,6 +104,7 @@ return [
     'Connexion au salon…' => 'Connecting to the room…',
     'En attente des joueurs' => 'Waiting for the players',
     'Niveau du site' => 'Site level',
+    'Niveau supprimé' => 'Deleted level',
     'Partie en cours' => 'Match being played',
     'hôte' => 'host',
     "Personne dans le jeu pour le moment. Clique JOUER : tu seras l'hôte." => 'Nobody in the game yet. Click PLAY: you will be the host.',
@@ -492,4 +493,11 @@ return [
     'Sélection (V) : clic ou rectangle pour choisir des objets, puis glisser, flèches, Ctrl+D, Suppr.' => 'Select (V): click or rectangle to choose objects, then drag, arrows, Ctrl+D, Del.',
     'Clone (K) : clic droit sur la source, puis peins ailleurs : la source suit le pinceau.' => 'Clone (K): right click on the source, then paint elsewhere: the source follows the brush.',
     'clic droit : enlever' => 'right click: remove',
+    // Tile and sprite editors: clone
+    'Alt+clic : la source. Puis peins ailleurs : les pixels de la source (encadrée en bleu) sont recopiés.' => 'Alt+click: the source. Then paint elsewhere: the pixels of the source (framed in blue) are copied.',
+    'Alt+clic sur le dessin ou sur la liste des blocs : la source (encadrée en bleu, même dans un autre bloc). Puis peins le bloc : ses pixels sont recopiés.' => 'Alt+click on the drawing or on the list of blocks: the source (framed in blue, even in another block). Then paint the block: its pixels are copied.',
+    'Clone (K) : Alt+clic sur la source, puis peins ailleurs : la source suit le pinceau.' => 'Clone (K): Alt+click on the source, then paint elsewhere: the source follows the brush.',
+    'Alt+clic : choisis d\'abord la source à copier.' => 'Alt+click: choose the source to copy first.',
+    'Zones du jeu' => 'Game zones',
+    'Niveaux du site' => 'Site levels',
 ];

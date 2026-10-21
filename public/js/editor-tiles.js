@@ -73,11 +73,20 @@
         listCtx.strokeStyle = '#ffd400';
         listCtx.lineWidth = 2;
         listCtx.strokeRect(at(current)[0] + 1, at(current)[1] + 1, SIZE - 2, SIZE - 2);
+        // the source of the clone, in whichever block it is
+        const source = cloneSource();
+        if (source) cloneFrame(listCtx, source, 1);
         $('.te-count').textContent = `${solidity.length} / ${MAX}`;
     }
     list.addEventListener('pointerdown', (e) => {
         const rect = list.getBoundingClientRect();
         const scale = list.width / rect.width;
+        // the clone's source in another block: Alt+click on it here
+        if (tool === 'clone' && e.altKey) {
+            const x = Math.floor((e.clientX - rect.left) * scale), y = Math.floor((e.clientY - rect.top) * scale);
+            if (Math.floor(y / SIZE) * COLUMNS + Math.floor(x / SIZE) < solidity.length) { clone.source = [x, y]; clone.offset = null; refresh(); }
+            return;
+        }
         const n = Math.floor((e.clientY - rect.top) * scale / SIZE) * COLUMNS + Math.floor((e.clientX - rect.left) * scale / SIZE);
         if (n < solidity.length) { current = n; refresh(); }
     });
@@ -111,6 +120,18 @@
             bigCtx.moveTo(0, i * PIXEL + 0.5); bigCtx.lineTo(SIZE * PIXEL, i * PIXEL + 0.5);
         }
         bigCtx.stroke();
+        // the clone: the brush, and its source when it is in this block
+        if (tool === 'clone') {
+            const [bx, by] = at(current);
+            const source = cloneSource();
+            if (source) cloneFrame(bigCtx, [source[0] - bx, source[1] - by, source[2]], PIXEL);
+            if (clone.hover) {
+                const [x, y, n] = brushAt(clone.hover);
+                bigCtx.strokeStyle = 'rgba(255, 255, 255, .9)';
+                bigCtx.lineWidth = 2;
+                bigCtx.strokeRect((x - bx) * PIXEL + 1, (y - by) * PIXEL + 1, n * PIXEL - 2, n * PIXEL - 2);
+            }
+        }
         // 3x3 of the block: do the sides join?
         previewCtx.imageSmoothingEnabled = false;
         previewCtx.fillStyle = '#0a1440';
@@ -133,12 +154,83 @@
         const p = pixelAt(e);
         if (!p) return;
         big.setPointerCapture(e.pointerId);
+        if (tool === 'clone' && !paintMask.checked) {
+            const g = global(p);
+            if (e.altKey || e.button === 2) { clone.source = g; clone.offset = null; refresh(); return; }
+            if (!clone.source) { status(T.cloneFirst, 'warn'); return; }
+            remember();
+            if (!clone.offset || !$('[name="clone-aligned"]').checked) clone.offset = [clone.source[0] - g[0], clone.source[1] - g[1]];
+            clone.from = sheetCtx.getImageData(0, 0, sheet.width, sheet.height);
+            stroke = { clone: true, last: g };
+            stamp(g);
+            return;
+        }
         if (e.button === 2 || tool === 'picker') { if (!paintMask.checked) pick(p); return; }
         stroke = { remembered: false, last: null };
         paint(p);
     });
-    big.addEventListener('pointermove', (e) => { if (stroke) { const p = pixelAt(e); if (p) paint(p); } });
+    big.addEventListener('pointermove', (e) => {
+        const p = pixelAt(e);
+        // the source follows the brush: in this block and in the list (another block)
+        if (tool === 'clone') { clone.hover = p ? global(p) : null; drawBig(); drawList(); }
+        if (!stroke || !p) return;
+        if (stroke.clone) {
+            const g = global(p);
+            const steps = Math.max(Math.abs(g[0] - stroke.last[0]), Math.abs(g[1] - stroke.last[1]), 1);
+            for (let i = 1; i <= steps; i++) {
+                stamp([Math.round(stroke.last[0] + (g[0] - stroke.last[0]) * i / steps), Math.round(stroke.last[1] + (g[1] - stroke.last[1]) * i / steps)]);
+            }
+            stroke.last = g;
+            return;
+        }
+        paint(p);
+    });
+    big.addEventListener('pointerleave', () => { clone.hover = null; drawBig(); drawList(); });
     big.addEventListener('pointerup', () => { stroke = null; drawList(); });
+
+    // ---- clone (K): Alt+click the source (this block or another, in the list), then paint the block: the pixels at
+    // the same distance are copied, from the blocks as they were when the stroke began. In sheet pixels.
+
+    const clone = { source: null, offset: null, from: null, hover: null };
+    const global = (p) => [at(current)[0] + p.x, at(current)[1] + p.y];
+    const cloneSize = () => Number($('[name="clone-size"]').value) || 4;
+    const brushAt = ([x, y]) => { const n = cloneSize(); return [x - Math.floor(n / 2), y - Math.floor(n / 2), n]; };
+    // where the source is now: following the brush once a stroke set the distance
+    const cloneSource = () => {
+        if (tool !== 'clone') return null;
+        if (clone.hover && clone.offset) return brushAt([clone.hover[0] + clone.offset[0], clone.hover[1] + clone.offset[1]]);
+        return clone.source ? brushAt(clone.source) : null;
+    };
+    function cloneFrame(ctx, [x, y, n], scale) {
+        ctx.save();
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = '#3fd0ff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x * scale, y * scale, n * scale, n * scale);
+        ctx.setLineDash([]);
+        const cx = (x + n / 2) * scale, cy = (y + n / 2) * scale;
+        ctx.beginPath();
+        ctx.moveTo(cx - 6, cy); ctx.lineTo(cx + 6, cy); ctx.moveTo(cx, cy - 6); ctx.lineTo(cx, cy + 6);
+        ctx.stroke();
+        ctx.restore();
+    }
+    // the brush at g (sheet pixels), inside the block being drawn only
+    function stamp(g) {
+        const [bx, by] = at(current);
+        const data = getBlock(current);
+        const from = clone.from.data;
+        const [x0, y0, n] = brushAt(g);
+        for (let y = Math.max(y0, by); y < Math.min(y0 + n, by + SIZE); y++) {
+            for (let x = Math.max(x0, bx); x < Math.min(x0 + n, bx + SIZE); x++) {
+                const sx = x + clone.offset[0], sy = y + clone.offset[1];
+                if (sx < 0 || sy < 0 || sx >= sheet.width || sy >= sheet.height) continue;
+                const i = (sy * sheet.width + sx) * 4;
+                data.data.set(from.subarray(i, i + 4), ((y - by) * SIZE + (x - bx)) * 4);
+            }
+        }
+        putBlock(current, data);
+        drawBig();
+    }
 
     function pick(p) {
         const d = sheetCtx.getImageData(at(current)[0] + p.x, at(current)[1] + p.y, 1, 1).data;
@@ -236,6 +328,8 @@
     function setTool(name) {
         tool = name;
         root.querySelectorAll('[data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === name));
+        $('.ed-clone').hidden = name !== 'clone';
+        if (solidity.length) refresh();
     }
     root.querySelectorAll('[data-tool]').forEach((b) => b.addEventListener('click', () => setTool(b.dataset.tool)));
 
@@ -497,7 +591,7 @@
     $('.ed-redo').addEventListener('click', () => restore(redo, undo));
     addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
-    const KEYS = { b: 'pencil', f: 'fill', i: 'picker', e: 'eraser' };
+    const KEYS = { b: 'pencil', f: 'fill', i: 'picker', e: 'eraser', k: 'clone' };
     addEventListener('keydown', (e) => {
         if (e.target.matches('input, select, textarea')) return;
         const key = e.key.toLowerCase();

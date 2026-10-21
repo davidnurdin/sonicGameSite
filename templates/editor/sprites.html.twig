@@ -44,7 +44,7 @@
     <section id="sprite-editor" class="editor pc-hide"
              data-json="{{ path('sprites_json', {id: set.id}) }}" data-save="{{ path('sprites_save', {id: set.id}) }}"
              data-token="{{ csrf_token('editor') }}"
-             data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans,
+             data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, cloneFirst: 'Alt+clic : choisis d\'abord la source à copier.'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans,
                  error: 'Erreur'|trans, size: 'Il faut une image de %w%×%h% pixels, comme la planche du jeu.'|trans, own: 'redessinée'|trans}|json_encode }}">
         <div class="ed-bar">
             <input type="text" name="name" value="{{ set.name }}" maxlength="40" aria-label="{{ 'Nom'|trans }}">
@@ -72,6 +72,16 @@
                     <button type="button" data-tool="fill" title="F">◧ {{ 'Remplir'|trans }}</button>
                     <button type="button" data-tool="picker" title="I">⌖ {{ 'Pipette'|trans }}</button>
                     <button type="button" data-tool="eraser" title="E">⌫ {{ 'Gomme'|trans }}</button>
+                    <button type="button" data-tool="clone" title="K">⧉ {{ 'Clone'|trans }}</button>
+                </div>
+                <div class="ed-clone" hidden>
+                    <p class="small">{{ 'Alt+clic : la source. Puis peins ailleurs : les pixels de la source (encadrée en bleu) sont recopiés.'|trans }}</p>
+                    <div class="ed-row">
+                        <label class="small">{{ 'Taille'|trans }} <select name="clone-size">
+                            {% for n in [1, 2, 4, 8, 16, 32] %}<option value="{{ n }}"{% if n == 4 %} selected{% endif %}>{{ n }}×{{ n }} px</option>{% endfor %}
+                        </select></label>
+                        <label class="small" title="{{ 'Coché : la source garde la même distance d\'un trait à l\'autre. Décoché : chaque trait repart de la source.'|trans }}"><input type="checkbox" name="clone-aligned" checked> {{ 'Aligné'|trans }}</label>
+                    </div>
                 </div>
                 <h3>{{ 'Couleur'|trans }}</h3>
                 <div class="ed-row"><input type="color" name="colour" aria-label="{{ 'Couleur'|trans }}"> <small class="muted">{{ 'clic droit : prendre la couleur'|trans }}</small></div>
@@ -90,6 +100,7 @@
                         <li>{{ 'Chaque onglet est une planche du jeu : garde les dessins à leur place, le jeu les découpe aux mêmes endroits.'|trans }}</li>
                         <li>{{ 'Sonic : ses poses d\'attente, de ressort et de glissade sont dans « Divers ».'|trans }}</li>
                         <li>{{ 'La gomme rend transparent. Clic droit : la pipette.'|trans }}</li>
+                        <li>{{ 'Clone (K) : Alt+clic sur la source, puis peins ailleurs : la source suit le pinceau.'|trans }}</li>
                         <li>{{ 'Molette : défiler (Maj : de côté). Ctrl + molette : zoom.'|trans }}</li>
                         <li>{{ 'Ctrl+Z / Ctrl+Y : annuler / refaire. Ctrl+S : enregistrer.'|trans }}</li>
                         <li>{{ 'Dans l\'éditeur de niveau, choisis ces sprites (en haut) : le niveau se jouera avec eux.'|trans }}</li>

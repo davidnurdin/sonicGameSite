@@ -41,7 +41,14 @@
                 </select>
                 <label for="room-level">{{ 'Zone'|trans }}</label>
                 <select id="room-level">
-                    {% for level, name in config.levels %}<option value="{{ level }}">{{ name }}</option>{% endfor %}
+                    <optgroup label="{{ 'Zones du jeu'|trans }}">
+                        {% for level, name in config.levels %}<option value="{{ level }}">{{ name }}</option>{% endfor %}
+                    </optgroup>
+                    {% if config.siteLevels is not empty %}
+                        <optgroup label="{{ 'Niveaux du site'|trans }}">
+                            {% for site in config.siteLevels %}<option value="s{{ site.id }}">{{ site.name }} ({{ site.author }})</option>{% endfor %}
+                        </optgroup>
+                    {% endif %}
                 </select>
             </div>
 

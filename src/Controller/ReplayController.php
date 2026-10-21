@@ -2,8 +2,10 @@
 
 namespace App\Controller;
 
+use App\Entity\Level;
 use App\Entity\Replay;
 use App\Entity\User;
+use App\Repository\LevelRepository;
 use App\Repository\ReplayRepository;
 use App\Repository\UserRepository;
 use App\Service\Game;
@@ -26,7 +28,7 @@ class ReplayController extends AbstractController
     /** The replays kept per account: the oldest go. */
     private const KEEP = 300;
 
-    public function __construct(#[Autowire(env: 'GAME_URL')] private string $gameUrl)
+    public function __construct(#[Autowire(env: 'GAME_URL')] private string $gameUrl, private LevelRepository $levels)
     {
     }
 
@@ -125,7 +127,15 @@ class ReplayController extends AbstractController
         $match = $kind === 'online' && is_string($data['match'] ?? null) && preg_match('/^[0-9a-f]{12}$/', $data['match']) ? $data['match'] : null;
         $duration = min(3600.0, max(0.0, (float) ($data['duration'] ?? count($data['frames']) / 30)));
 
-        return new Replay($user, $kind, $mode, $level, $match, $players, $result, $duration, $gzip);
+        $replay = new Replay($user, $kind, $mode, $level, $match, $players, $result, $duration, $gzip);
+        // a level of the site: which one (its name in the history; gone, the replay can't be watched)
+        if ($level === Game::SITE_LEVEL) {
+            $site = is_array($data['site'] ?? null) && is_int($data['site']['id'] ?? null) ? $this->levels->find($data['site']['id']) : null;
+            if (!$site instanceof Level) return null;
+            $replay->setSiteLevel($site);
+        }
+
+        return $replay;
     }
 
     /** The game's page may read the answer (it is on another domain): see StatsController. */
