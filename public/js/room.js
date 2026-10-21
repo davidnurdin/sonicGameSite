@@ -20,6 +20,9 @@
     let ws = null, code = cfg.room, me = -1, host = -1, isPublic = null, closedForGood = false, retry = 0;
     let mode = cfg.create ? cfg.create.mode : 'race';
     let level = cfg.create ? cfg.create.level : 1;
+    // a level of the site's editor, chosen in the game (36): its name, sent by the host
+    const SITE_LEVEL = 36;
+    let siteName = '';
     let state = 'lobby';
     const players = new Map();   // peer -> name (in the game)
     const sites = new Map();     // watcher -> name ('' : a visitor without an account)
@@ -169,7 +172,8 @@
                 players.clear();
                 for (const [peer, name] of Object.entries(data.names || {})) players.set(Number(peer), cleanName(name, Number(peer)));
                 if (cfg.modes[data.mode]) mode = data.mode;
-                if (cfg.levels[data.level]) level = Number(data.level);
+                if (cfg.levels[data.level] || Number(data.level) === SITE_LEVEL) level = Number(data.level);
+                siteName = data.site && typeof data.site.name === 'string' ? data.site.name : '';
                 state = data.state === 'match' ? 'match' : 'lobby';
                 break;
             }
@@ -238,7 +242,7 @@
         kind.textContent = isPublic ? T.public : T.private;
         kind.classList.toggle('private', !isPublic);
 
-        const levelName = cfg.levels[level] || '';
+        const levelName = level === SITE_LEVEL ? siteName || T.siteLevel : cfg.levels[level] || '';
         status(me >= 0 ? `${state === 'match' ? T.match : T.lobby} · ${T.modes[mode] || mode} · ${levelName}` : T.connecting);
 
         const hostId = host;

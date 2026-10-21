@@ -103,6 +103,7 @@ return [
     'Privé' => 'Private',
     'Connexion au salon…' => 'Connecting to the room…',
     'En attente des joueurs' => 'Waiting for the players',
+    'Niveau du site' => 'Site level',
     'Partie en cours' => 'Match being played',
     'hôte' => 'host',
     "Personne dans le jeu pour le moment. Clique JOUER : tu seras l'hôte." => 'Nobody in the game yet. Click PLAY: you will be the host.',

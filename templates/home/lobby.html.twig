@@ -12,7 +12,7 @@
          data-i18n="{{ {
              modes: modes|map(m => m|trans),
              lobby: 'en attente'|trans, match: 'partie en cours'|trans, enter: 'Entrer'|trans,
-             site: 'sur le site'|trans, none: 'Aucun salon public pour le moment : crée le premier !'|trans,
+             site: 'sur le site'|trans, siteLevel: 'Niveau du site'|trans, none: 'Aucun salon public pour le moment : crée le premier !'|trans,
              offline: 'Le serveur de jeu ne répond pas.'|trans
          }|json_encode }}" data-levels="{{ levels|json_encode }}">
     <h2>{{ 'Salons publics'|trans }}</h2>

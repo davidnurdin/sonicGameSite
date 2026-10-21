@@ -15,7 +15,7 @@ class OnlineStats
 {
     /** The rooms of this game (Online::META of the game: its version must be the same to play together). */
     public const GAME = 'sonic';
-    public const VERSION = 4;
+    public const VERSION = 5;
 
     public function __construct(
         private CacheInterface $cache,
@@ -60,6 +60,8 @@ class OnlineStats
                     'sites' => array_values(array_map('strval', (array) ($info['sites'] ?? []))),
                     'mode' => (string) ($info['mode'] ?? 'race'),
                     'level' => (int) ($info['level'] ?? 1),
+                    // a level of the site's editor (Game::SITE_LEVEL): its name
+                    'site' => mb_substr((string) ($info['site'] ?? ''), 0, 40),
                     'state' => ($info['state'] ?? '') === 'match' ? 'match' : 'lobby',
                 ];
             }

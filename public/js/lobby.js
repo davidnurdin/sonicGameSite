@@ -24,7 +24,7 @@
         a.href = lobby.dataset.room.replace('CODE', room.room);
         const info = el('div', 'room-info');
         info.append(
-            el('span', 'room-match', `${T.modes[room.mode] || room.mode} · ${levels[room.level] || ''}`),
+            el('span', 'room-match', `${T.modes[room.mode] || room.mode} · ${room.level === 36 ? room.site || T.siteLevel : levels[room.level] || ''}`),
             el('span', 'badge' + (room.state === 'match' ? ' busy' : ''), room.state === 'match' ? T.match : T.lobby),
         );
         const who = el('div', 'room-who');
