@@ -258,6 +258,7 @@ final class Creations
             $creation instanceof Tileset => [
                 'name' => $creation->getName(), 'public' => $creation->isPublic(), 'image' => base64_encode($creation->getImage()),
                 'solidity' => $creation->getSolidity(), 'behaviour' => $creation->getBehaviour(), 'masks' => $creation->getMasks(),
+                'animations' => $creation->getAnimations(),
                 'style' => $creation->getStyle(),
             ],
             $creation instanceof SpriteSet => ['name' => $creation->getName(), 'public' => $creation->isPublic(), 'sheets' => $creation->getSheets()],
@@ -308,6 +309,11 @@ final class Creations
                 $behaviours = 0;
                 for ($i = 0; $i < min($blocksA, $blocksB); $i++) if (($a['behaviour'][$i] ?? 0) !== ($b['behaviour'][$i] ?? 0)) $behaviours++;
                 $out = array_merge($out, $count($behaviours, 'Effet de %n% blocs changé', 'Effet de %n% bloc changé'));
+                // animated blocks (older versions have none)
+                $animA = $a['animations'] ?? [];
+                $animB = $b['animations'] ?? [];
+                $animated = count(array_filter(array_unique(array_merge(array_keys($animA), array_keys($animB))), fn($k) => ($animA[$k] ?? null) != ($animB[$k] ?? null)));
+                $out = array_merge($out, $count($animated, 'Animation de %n% blocs changée', 'Animation de %n% bloc changée'));
                 break;
             case 'sprites':
                 foreach (array_keys(SpriteSet::SHEETS) as $sheet) {

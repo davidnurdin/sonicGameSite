@@ -34,7 +34,7 @@ final class TilesetBlocks
     #[ApiProperty(description: 'Les blocs, dans l\'ordre. `shape` : la forme de collision (0 vide, 22 plein, 16 moitié basse, 1 à 4 des '
         . 'pentes…), `solidFloor` / `solidWalls` / `solidCeiling` : de quels côtés il arrête Sonic, `front` : dessiné devant Sonic, '
         . '`behaviour` : ce qu\'il fait (1 pics, 9 ressort…), `customCollision` : une collision dessinée pixel par pixel, '
-        . '`ring` : un anneau (blocs 120 à 123).', schema: [
+        . '`ring` : un anneau (blocs 120 à 123), `animation` : un bloc animé (null sinon).', schema: [
         'type' => 'array',
         'items' => ['type' => 'object', 'properties' => [
             'index' => ['type' => 'integer', 'example' => 1],
@@ -45,6 +45,11 @@ final class TilesetBlocks
             'front' => ['type' => 'boolean'],
             'behaviour' => ['type' => 'integer', 'example' => 0], 'behaviourName' => ['type' => 'string', 'example' => 'Rien'],
             'customCollision' => ['type' => 'boolean'], 'ring' => ['type' => 'boolean'],
+            'animation' => ['type' => ['object', 'null'], 'description' => 'Un bloc animé : les blocs qu\'il montre tour à tour (`frames`), chacun '
+                . 'pendant `ticks` images du jeu (60 par seconde). Sa collision reste la sienne.', 'properties' => [
+                'frames' => ['type' => 'array', 'items' => ['type' => 'integer'], 'example' => [40, 41, 42, 43]],
+                'ticks' => ['type' => 'integer', 'example' => 6],
+            ]],
         ]],
     ])]
     public array $blocks;

@@ -26,13 +26,16 @@ final class TilesetTools implements ToolProvider
             . '{"op":"copy_block","from_index","from_tileset_id"?,"to_index"} a block (picture, collision, behaviour) of this or another tileset you can see; '
             . '{"op":"recolour","map":{"#rrggbb" or "transparent":"#rrggbb" or "transparent"},"blocks"?:[index...]} colours replaced (all blocks if none given); '
             . '{"op":"collision_mask","index","rows"?:[32 x "8 hex digits"],"floor"?,"walls"?,"ceiling"?} a collision drawn pixel by pixel (rows null: back to its shape); '
-            . '{"op":"remove_last_blocks","count"} (not those used by levels)',
-            'items' => ['type' => 'object', 'properties' => ['op' => ['type' => 'string', 'enum' => ['set_block', 'copy_block', 'recolour', 'collision_mask', 'remove_last_blocks']]],
+            . '{"op":"remove_last_blocks","count"} (not those used by levels); '
+            . '{"op":"animate","index","frames":[block...],"ticks"} makes a block animated in the game: it shows the pictures of frames (2-16 blocks of this '
+            . 'set, often extra blocks at the end, drawn with set_block) in turn, each for ticks frames of the game (60 a second; 6-10 for water), and keeps '
+            . 'its own collision and behaviour; frames [] stops it. See get_reference "tiles" (animations).',
+            'items' => ['type' => 'object', 'properties' => ['op' => ['type' => 'string', 'enum' => ['set_block', 'copy_block', 'recolour', 'collision_mask', 'remove_last_blocks', 'animate']]],
                 'required' => ['op']]];
 
         return [
-            new Tool('get_tileset', 'Read a tileset', 'A tileset: each block\'s collision shape, front, behaviour, and the image of all its blocks (16 a row, 32 x 32 each; '
-                . 'scale 2 doubles it to see the pixels better).',
+            new Tool('get_tileset', 'Read a tileset', 'A tileset: each block\'s collision shape, front, behaviour, animation (the blocks it shows in turn), and the '
+                . 'image of all its blocks (16 a row, 32 x 32 each; scale 2 doubles it to see the pixels better).',
                 ['properties' => ['id' => self::ID, 'image' => ['type' => 'boolean', 'default' => true], 'scale' => ['type' => 'integer', 'enum' => [1, 2], 'default' => 1]],
                     'required' => ['id']], $this->get(...)),
             new Tool('get_tileset_block', 'Read blocks', 'Blocks of a tileset as pixel art text (palette + 32 rows of 32 characters), with their collision: to copy a style, '
@@ -43,8 +46,8 @@ final class TilesetTools implements ToolProvider
                 . 'To start from a zone of the game or another tileset, use fork.',
                 ['properties' => ['name' => ['type' => 'string', 'maxLength' => 40], 'blocks' => ['type' => 'integer', 'minimum' => 1, 'maximum' => Tileset::MAX, 'default' => 1]],
                     'required' => ['name']], $this->create(...), write: true),
-            new Tool('edit_tileset', 'Change a tileset', 'Changes a tileset of this account: draws blocks (pixel art as text), copies blocks, recolours, sets collisions and '
-                . 'behaviours. All or nothing. Levels using it change too.',
+            new Tool('edit_tileset', 'Change a tileset', 'Changes a tileset of this account: draws blocks (pixel art as text), copies blocks, recolours, sets collisions, '
+                . 'behaviours and animations (water, waterfalls, lava, lights). All or nothing. Levels using it change too.',
                 ['properties' => ['id' => self::ID, 'ops' => $ops, 'set' => ['type' => 'object', 'properties' => ['name' => ['type' => 'string', 'maxLength' => 40]]]],
                     'required' => ['id', 'ops']], $this->edit(...), write: true, heavy: true),
         ];
@@ -55,11 +58,13 @@ final class TilesetTools implements ToolProvider
         /** @var Tileset $tileset */
         $tileset = $this->studio->find('tileset', $args->raw('id'), $c->user);
         $masks = $tileset->getMasks();
+        $animations = $tileset->getAnimations();
         $blocks = [];
         foreach ($tileset->getSolidity() as $i => $value) {
             $blocks[] = array_filter(['index' => $i, 'shape' => $value & 0x3F, 'front' => ($value & 0x80) !== 0 ?: null,
                 'behaviour' => ($tileset->getBehaviour()[$i] ?? 0) ?: null, 'collision_mask' => isset($masks[$i]) ?: null,
-                'ring' => $i >= 120 && $i <= 123 ?: null], fn($v) => $v !== null);
+                'ring' => $i >= 120 && $i <= 123 ?: null,
+                'animation' => isset($animations[$i]) ? ['frames' => $animations[$i]['f'], 'ticks' => $animations[$i]['t']] : null], fn($v) => $v !== null);
         }
         $images = [];
         if ($args->bool('image', true)) {
@@ -109,12 +114,13 @@ final class TilesetTools implements ToolProvider
         $solidity = $tileset->getSolidity();
         $behaviour = $tileset->getBehaviour();
         $masks = $tileset->getMasks();
+        $animations = $tileset->getAnimations();
         $pictures = [];
         for ($i = 0; $i < count($solidity); $i++) $pictures[$i] = $this->block($sheet, $i);
         $others = [];
         foreach ($args->list('ops', self::MAX_OPS) as $i => $_) {
             $op = $args->item('ops', $i);
-            switch ($op->choice('op', ['set_block', 'copy_block', 'recolour', 'collision_mask', 'remove_last_blocks'])) {
+            switch ($op->choice('op', ['set_block', 'copy_block', 'recolour', 'collision_mask', 'remove_last_blocks', 'animate'])) {
                 case 'set_block':
                     $index = $op->int('index', 0, min(Tileset::MAX - 1, count($solidity)));
                     if ($index === count($solidity)) {
@@ -178,6 +184,25 @@ final class TilesetTools implements ToolProvider
                     array_splice($behaviour, $keep);
                     array_splice($pictures, $keep);
                     $masks = array_filter($masks, fn($k) => $k < $keep, ARRAY_FILTER_USE_KEY);
+                    // the animations of those blocks, or showing them, go too
+                    $animations = array_filter($animations, fn(array $a, $k) => $k < $keep && max($a['f']) < $keep, ARRAY_FILTER_USE_BOTH);
+                    break;
+                case 'animate':
+                    $index = $op->int('index', 0, count($solidity) - 1);
+                    $frames = $op->list('frames', EditorData::MAX_FRAMES);
+                    if ($frames === []) {
+                        unset($animations[$index]);
+                        break;
+                    }
+                    if ($index >= 120 && $index <= 123) throw new ToolError($op->where() . 'index: the blocks of the rings (120-123) cannot be animated.');
+                    if (count($frames) < 2) throw new ToolError($op->where() . 'frames: 2 to ' . EditorData::MAX_FRAMES . ' blocks (or [] to stop it).');
+                    foreach ($frames as $k => $frame) {
+                        if (!is_int($frame) || $frame < 0 || $frame >= count($solidity)) {
+                            throw new ToolError($op->where() . "frames[$k]: a block 0-" . (count($solidity) - 1) . ' (draw new blocks first with set_block).');
+                        }
+                    }
+                    $animations[$index] = ['f' => $frames, 't' => $op->int('ticks', 1, 240, 8)];
+                    if (count($animations) > EditorData::MAX_ANIMATIONS) throw new ToolError($op->where() . 'at most ' . EditorData::MAX_ANIMATIONS . ' animated blocks.');
                     break;
             }
         }
@@ -189,7 +214,7 @@ final class TilesetTools implements ToolProvider
         $count = count($solidity);
         $image = Canvas::blank(Tileset::COLUMNS * Tileset::SIZE, intdiv($count + Tileset::COLUMNS - 1, Tileset::COLUMNS) * Tileset::SIZE);
         foreach ($pictures as $i => $picture) $image->draw($picture, ($i % Tileset::COLUMNS) * Tileset::SIZE, intdiv($i, Tileset::COLUMNS) * Tileset::SIZE, false);
-        $blocks = EditorData::blocks(base64_encode($image->png()), array_values($solidity), array_values($behaviour), $masks);
+        $blocks = EditorData::blocks(base64_encode($image->png()), array_values($solidity), array_values($behaviour), $masks, $animations);
         if ($blocks === null) throw new ToolError('The tileset is not valid after these operations (too big an image?).');
         $tileset->setBlocks(...$blocks);
         $this->studio->em->flush();

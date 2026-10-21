@@ -109,6 +109,19 @@
                 <div class="te-swatches" aria-label="{{ 'Les 64 couleurs de la Master System'|trans }}"></div>
                 <h3>{{ 'Aperçu'|trans }}</h3>
                 <canvas class="te-preview" width="192" height="192"></canvas>
+                <h3>{{ 'Animation'|trans }}</h3>
+                <p class="small muted">{{ 'Dans le jeu, le bloc montre tour à tour les images d\'autres blocs (cascade, eau, lave, lumières). Il garde sa collision et son comportement.'|trans }}</p>
+                <canvas class="te-anim" width="128" height="64"></canvas>
+                <label class="small">{{ 'Images (numéros de blocs, dans l\'ordre)'|trans }}
+                    <input type="text" name="anim-frames" placeholder="{{ 'ex. 12, 160, 161, 162'|trans }}"></label>
+                <p class="small muted">{{ 'Maj+clic sur la liste des blocs : ajoute une image.'|trans }}</p>
+                <label class="small">{{ 'Durée de chaque image (60 = une seconde)'|trans }}
+                    <input type="number" name="anim-ticks" min="1" max="240" value="8"></label>
+                <div class="ed-row">
+                    <button type="button" class="pill-button te-anim-next">{{ 'Ce bloc et les suivants'|trans }}</button>
+                    <select name="anim-count" aria-label="{{ 'Nombre d\'images'|trans }}">{% for n in 2..8 %}<option value="{{ n }}"{% if n == 4 %} selected{% endif %}>{{ n }}</option>{% endfor %}</select>
+                    <button type="button" class="pill-button te-anim-stop" hidden>{{ 'Arrêter l\'animation'|trans }}</button>
+                </div>
                 <h3>{{ 'Collision'|trans }}</h3>
                 <label class="small"><input type="checkbox" data-toggle="shape" checked> {{ 'montrer sur le dessin'|trans }}</label>
                 <label class="small"><input type="checkbox" name="front"> {{ 'Devant Sonic (Sonic passe derrière)'|trans }}</label>

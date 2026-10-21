@@ -134,6 +134,7 @@ final class PublicView
         $dto->image = $this->url('tileset_png', ['id' => $tileset->getId()]);
         $behaviours = $tileset->getBehaviour();
         $masks = $tileset->getMasks();
+        $animations = $tileset->getAnimations();
         $dto->blocks = [];
         foreach ($tileset->getSolidity() as $i => $solidity) {
             $shape = $solidity & 0x3F;
@@ -146,6 +147,7 @@ final class PublicView
                 'shape' => $shape, 'solidFloor' => $ways['floor'], 'solidWalls' => $ways['walls'], 'solidCeiling' => $ways['ceiling'],
                 'front' => (bool) ($solidity & 0x80), 'behaviour' => $behaviour, 'behaviourName' => EditorData::BEHAVIOURS[$behaviour] ?? '?',
                 'customCollision' => isset($masks[$i]), 'ring' => in_array($i, self::RINGS, true),
+                'animation' => isset($animations[$i]) ? ['frames' => $animations[$i]['f'], 'ticks' => $animations[$i]['t']] : null,
             ];
         }
 

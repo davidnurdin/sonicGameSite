@@ -132,7 +132,7 @@ final class AccountTools implements ToolProvider
         $em = $this->studio->em;
         $copy = match (true) {
             $from instanceof Level => $this->forkLevel($from, $name, $c),
-            $from instanceof Tileset => new Tileset($user, $name, $from->getImage(), $from->getSolidity(), $from->getBehaviour(), $from->getStyle(), $from->getMasks()),
+            $from instanceof Tileset => new Tileset($user, $name, $from->getImage(), $from->getSolidity(), $from->getBehaviour(), $from->getStyle(), $from->getMasks(), $from->getAnimations()),
             $from instanceof SpriteSet => new SpriteSet($user, $name, $from->getSheets()),
             $from instanceof Sound => new Sound($user, $name, $from->getKind(), $from->getData()),
         };

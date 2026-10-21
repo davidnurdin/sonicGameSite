@@ -110,10 +110,12 @@ final class EditorData
      *
      * @return array{0: string, 1: list<int>, 2: list<int>}|null
      */
-    public static function blocks(mixed $image, mixed $solidity, mixed $behaviour = [], mixed $masks = []): ?array
+    public static function blocks(mixed $image, mixed $solidity, mixed $behaviour = [], mixed $masks = [], mixed $animations = []): ?array
     {
         $masks = self::masks($masks, count((array) $solidity));
         if ($masks === null) return null;
+        $animations = self::animations($animations, count((array) $solidity));
+        if ($animations === null) return null;
         if (!is_array($behaviour) || !array_is_list($behaviour) || count($behaviour) > count((array) $solidity)) return null;
         foreach ($behaviour as $value) {
             if (!is_int($value) || $value < 0 || $value > 31) return null;
@@ -129,7 +131,38 @@ final class EditorData
         $rows = intdiv($count + Tileset::COLUMNS - 1, Tileset::COLUMNS);
         if (self::pngSize($png) !== [Tileset::COLUMNS * Tileset::SIZE, $rows * Tileset::SIZE]) return null;
 
-        return [$png, $solidity, array_pad($behaviour, $count, 0), $masks];
+        return [$png, $solidity, array_pad($behaviour, $count, 0), $masks, $animations];
+    }
+
+    public const MAX_ANIMATIONS = 64;
+    public const MAX_FRAMES = 16;
+
+    /**
+     * The animated blocks of a set of $count blocks (see Tileset::$animations): {block: {f: [2-16 blocks], t: 1-240}}.
+     * Not the blocks of the rings (120-123: the game draws them itself). Null: not valid.
+     * @return array<int, array{f: list<int>, t: int}>|null
+     */
+    public static function animations(mixed $animations, int $count): ?array
+    {
+        if (!is_array($animations) || count($animations) > self::MAX_ANIMATIONS) return null;
+        $out = [];
+        foreach ($animations as $block => $animation) {
+            if ($animation === null) continue;
+            if (!is_int($block) && !ctype_digit((string) $block)) return null;
+            $block = (int) $block;
+            if ($block >= $count || ($block >= 120 && $block <= 123) || !is_array($animation)) return null;
+            $frames = $animation['f'] ?? null;
+            $ticks = $animation['t'] ?? null;
+            if (!is_array($frames) || !array_is_list($frames) || count($frames) < 2 || count($frames) > self::MAX_FRAMES
+                || !is_int($ticks) || $ticks < 1 || $ticks > 240) return null;
+            foreach ($frames as $frame) {
+                if (!is_int($frame) || $frame < 0 || $frame >= $count) return null;
+            }
+            $out[$block] = ['f' => $frames, 't' => $ticks];
+        }
+        ksort($out);
+
+        return $out;
     }
 
     /**

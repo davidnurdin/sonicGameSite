@@ -220,6 +220,11 @@ class EditorController extends AbstractController
             'solidity' => $tileset->getSolidity(),
             'behaviour' => $tileset->getBehaviour(),
             'masks' => (object) $tileset->getMasks(),
+            // its animated blocks: {block: {f: blocks shown in turn, t: frames each}} (Level::loadCustom)
+            'animations' => (object) $tileset->getAnimations(),
+            // a zone of the game (or a copy with its pictures untouched): the game takes that zone's own pictures,
+            // and their colour cycles (water...)
+            'zone' => $tileset->getGameZone(),
             'tiles' => base64_encode($tileset->getImage()),
             // its own sprites: {sheet: PNG in base64} (LevelManager::loadCustom)
             'sprites' => (object) ($level->getSpriteSet()?->getSheets() ?? []),
@@ -349,7 +354,7 @@ class EditorController extends AbstractController
         $from = $request->request->getInt('from') ? $this->tilesets->find($request->request->getInt('from')) : null;
         if ($from instanceof Tileset && $this->creations->canSee($from, $user)) {
             $tileset = new Tileset($user, mb_substr($from->getName(), 0, 33) . ' (copie)', $from->getImage(), $from->getSolidity(),
-                $from->getBehaviour(), $from->getStyle(), $from->getMasks());
+                $from->getBehaviour(), $from->getStyle(), $from->getMasks(), $from->getAnimations());
             $tileset->setForkedFrom($from);
         } else {
             $from = null;
@@ -420,7 +425,8 @@ class EditorController extends AbstractController
         $body = json_decode($request->getContent(), true);
         if ($conflict = $this->creations->conflict($tileset, $body)) return $this->json($conflict, 409);
         $name = is_array($body) ? EditorData::name($body['name'] ?? null) : null;
-        $blocks = is_array($body) ? EditorData::blocks($body['image'] ?? null, $body['solidity'] ?? null, $body['behaviour'] ?? [], $body['masks'] ?? []) : null;
+        $blocks = is_array($body) ? EditorData::blocks($body['image'] ?? null, $body['solidity'] ?? null, $body['behaviour'] ?? [], $body['masks'] ?? [],
+            $body['animations'] ?? []) : null;
         if ($name === null || $blocks === null) return $this->json(['error' => 'invalid'], 400);
         $tileset->setName($name);
         $tileset->setPublic(!empty($body['public']));
@@ -517,6 +523,7 @@ class EditorController extends AbstractController
             'solidity' => $tileset->getSolidity(),
             'behaviour' => $tileset->getBehaviour(),
             'masks' => (object) $tileset->getMasks(),
+            'animations' => (object) $tileset->getAnimations(),
             'image' => $this->generateUrl('tileset_png', ['id' => $tileset->getId(), 'v' => $tileset->getUpdatedAt()->getTimestamp()]),
         ];
     }

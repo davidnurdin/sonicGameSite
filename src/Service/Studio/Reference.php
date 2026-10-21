@@ -48,7 +48,8 @@ final class Reference
                 '1. whoami, then get_reference for "level", "tiles", "shapes" and "objects" (and "sprites", "music", "sfx" if you make them).',
                 '2. Tiles: start from a zone of the game (list_creations scope "zones", then fork) or create_tileset. Look at blocks with get_tileset '
                     . '(image) and get_tileset_block (pixels). Draw blocks with edit_tileset set_block (pixel art as text, 32x32, or scale 2 with 16x16); '
-                    . 'give each its collision shape (22 full, 16 lower half, 0 empty, slopes...). Keep blocks 120-123 for rings (see "tiles").',
+                    . 'give each its collision shape (22 full, 16 lower half, 0 empty, slopes...). Keep blocks 120-123 for rings (see "tiles"). '
+                    . 'Water, waterfalls, lava, lights: animate their blocks (edit_tileset animate, see "tiles" animations).',
                 '3. Level: create_level (a tileset, a size; or a copy of the act 1 of a zone with template), then edit_level with operations: fill rows '
                     . 'of ground, draw platforms, slopes, pits, put the start of Sonic, the objects (rings are blocks, monitors, badniks, springs are '
                     . 'blocks with a behaviour, the goal sign: object 7 at the end).',
@@ -139,6 +140,23 @@ final class Reference
             'style' => 'Use few colours (8-16), the Master System way: 2-3 shades by material, dark outlines; the same light from the top left.',
             'copy' => 'copy_block takes a block of any tileset you can see (the zones too): start from the game\'s rings, grass, rocks. The blocks of the zones are opaque (their sky is drawn): recolour that colour to "transparent" if your level has another background.',
             'limits' => 'Blocks used by levels: replace them rather than remove them (only the last blocks can be removed).',
+            'animations' => [
+                'what' => 'A block can be animated: in the game it shows other blocks of its set in turn (edit_tileset {"op":"animate","index","frames":[...],'
+                    . '"ticks"}), each for ticks frames (60 a second). Its collision and behaviour stay its own: put the animated block in the level, '
+                    . 'its frames are only pictures. Up to ' . EditorData::MAX_ANIMATIONS . ' animated blocks a set, 2-' . EditorData::MAX_FRAMES
+                    . ' frames each; not the ring blocks (120-123).',
+                'how' => 'Draw the frames as extra blocks (set_block at index = the number of blocks adds one; keep them after the blocks levels use), '
+                    . 'then animate the block with them. The block itself can be the first frame: frames [b, b+n, b+n+1, b+n+2]. Look with render_level '
+                    . 'times [0, 0.1, 0.2, 0.3] (one picture each).',
+                'waterfall' => 'A waterfall going down: 4 frames, the same stripes moved down by 8 pixels each (32 / 4), ticks 6. A column of blocks can '
+                    . 'share one animation: each block shows the same frames, so the stripes go on from block to block.',
+                'water' => 'Water or a river: 4 frames where the light ripples of the surface move right by 8 pixels (wrapping), ticks 8-10; under the '
+                    . 'surface, 2-3 frames of a few lighter pixels moving, ticks 12.',
+                'others' => 'Lava (2-4 frames of moving bright spots, ticks 10), lights or torches (2 frames, ticks 15-20), flowers swaying (2 frames, ticks 30).',
+                'zones' => 'The zones of the game animate their water, waterfalls and lights with their own colour cycles: a level made with a zone of the game '
+                    . '(or a fork of one whose pictures were not changed) keeps them in the game. Once the pictures of a fork change (a block drawn, '
+                    . 'added or removed), the game shows its own pictures, without these cycles: animate its blocks yourself (animate).',
+            ],
         ];
     }
 

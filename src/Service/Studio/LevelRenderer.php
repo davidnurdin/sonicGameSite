@@ -33,9 +33,11 @@ final class LevelRenderer
      * @param array{x?: int, y?: int, w?: int, h?: int} $region in blocks
      * @param list<array{0: float, 1: float}> $path points of a run (pixels of the level), drawn in magenta
      * @param list<array{0: float, 1: float, 2: string}> $marks [x, y, "rrggbb"]: crosses (deaths, where it got stuck)
+     * @param int $frame the moment, in frames of the game (60 a second): what the animated blocks show then
      */
-    public function render(array $level, array $tiles, int $px = 8, array $region = [], bool $collision = false, array $path = [], array $marks = [], bool $grid = false): Canvas
+    public function render(array $level, array $tiles, int $px = 8, array $region = [], bool $collision = false, array $path = [], array $marks = [], bool $grid = false, int $frame = 0): Canvas
     {
+        $animations = $tiles['animations'] ?? [];
         $x0 = max(0, min($level['width'] - 1, (int) ($region['x'] ?? 0)));
         $y0 = max(0, min($level['height'] - 1, (int) ($region['y'] ?? 0)));
         $w = max(1, min($level['width'] - $x0, (int) ($region['w'] ?? $level['width'])));
@@ -51,7 +53,9 @@ final class LevelRenderer
             for ($x = 0; $x < $w; $x++) {
                 $block = ord($level['blocks'][($y0 + $y) * $level['width'] + $x0 + $x]);
                 if (!isset($small[$block])) {
-                    $picture = $sheet?->crop(($block % Tileset::COLUMNS) * self::SIZE, intdiv($block, Tileset::COLUMNS) * self::SIZE, self::SIZE, self::SIZE)
+                    // an animated block: the picture it shows at that moment (its collision stays its own)
+                    $shown = isset($animations[$block]) ? self::frameOf($animations[$block], $frame) : $block;
+                    $picture = $sheet?->crop(($shown % Tileset::COLUMNS) * self::SIZE, intdiv($shown, Tileset::COLUMNS) * self::SIZE, self::SIZE, self::SIZE)
                         ?? Canvas::blank(self::SIZE, self::SIZE);
                     if ($collision && isset($blocks[$block])) $picture = $this->tint($picture, $blocks[$block]);
                     $tile = Canvas::blank($px, $px);
@@ -103,6 +107,12 @@ final class LevelRenderer
         }
 
         return $canvas;
+    }
+
+    /** The block an animation ({f, t}) shows at $frame, as the game does it (Level::animatedBlock). */
+    public static function frameOf(array $animation, int $frame): int
+    {
+        return $animation['f'][intdiv(max(0, $frame), max(1, $animation['t'])) % count($animation['f'])];
     }
 
     /** The thumbnail of the lists: 40 x 20 blocks at most around the start, 480 x 240 pixels at most (12 px a block). */

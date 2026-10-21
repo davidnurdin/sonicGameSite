@@ -96,6 +96,11 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
   ne peut pas être supprimé, et seul son dernier bloc peut être enlevé (les niveaux visent les blocs par leur
   numéro). La zone rouge (collision) d'un bloc peut aussi être dessinée au pixel, avec ses côtés (sol, murs,
   plafond) : `tileset.masks`, appliqué par le jeu (`Level::applyMask`).
+  Un bloc peut être animé (cascade, eau, lave) : il montre tour à tour les images d'autres blocs, chacune
+  `t` images du jeu (60 par seconde) : `tileset.animations` (`{bloc: {f: [blocs], t}}`), dessiné par le jeu
+  (`Level::animatedBlock`, `Scene::drawTiles`), réglé dans l'éditeur (Maj+clic) ou par MCP (`animate`). Un
+  niveau fait avec une zone du jeu (ou un fork dont l'image n'a pas changé) envoie `zone` dans `jeu.json` :
+  le jeu prend alors les images de la zone et ses cycles de couleurs (l'eau du Jungle...).
 - Un jeu de sprites (`SpriteSet`, éditeur `/sprites/{id}/editer`) : des planches du jeu redessinées (Sonic,
   badniks, objets, boss…, `SpriteSet::SHEETS`), chacune un PNG de la taille de celle du jeu, transparent là où
   le jeu a sa couleur de transparence. Un niveau qui le choisit se joue avec : le jeu met ces planches à la

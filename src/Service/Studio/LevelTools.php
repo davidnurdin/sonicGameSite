@@ -55,9 +55,11 @@ final class LevelTools implements ToolProvider
                 . 'settings. All or nothing: if one operation is wrong, nothing is changed. Saved in its history (taken back on the site if needed).',
                 ['properties' => ['id' => self::ID, 'ops' => $ops, 'set' => $set], 'required' => ['id']], $this->edit(...), write: true),
             new Tool('render_level', 'Picture of a level', 'A picture of a level as the game draws it (smaller: px pixels a block; 32 is the game\'s size), '
-                . 'with its objects and Sonic at his start. collision: tints what is solid (red: floor, orange: walls, violet: only a ceiling). grid: lines between blocks.',
+                . 'with its objects and Sonic at his start. collision: tints what is solid (red: floor, orange: walls, violet: only a ceiling). grid: lines between blocks. '
+                . 'times: the animated blocks (water, waterfalls) at these moments, in seconds: one picture each (4 at most), to see them move.',
                 ['properties' => ['id' => self::ID, 'px' => ['type' => 'integer', 'enum' => [4, 8, 16, 32], 'default' => 8], 'region' => self::REGION,
-                    'collision' => ['type' => 'boolean', 'default' => false], 'grid' => ['type' => 'boolean', 'default' => false]], 'required' => ['id']],
+                    'collision' => ['type' => 'boolean', 'default' => false], 'grid' => ['type' => 'boolean', 'default' => false],
+                    'times' => ['type' => 'array', 'items' => ['type' => 'number', 'minimum' => 0], 'maxItems' => 4, 'default' => [0]]], 'required' => ['id']],
                 $this->render(...), heavy: true),
             new Tool('test_level', 'Test a level', 'A fake game: a bot with the physics of the game plays the level (2 tries: fast, careful) and says if it reaches '
                 . 'the goal, where it got stuck or died, with its path on a picture; and checks the level (start, objects in walls or in the air, goal, rings). '
@@ -384,11 +386,20 @@ final class LevelTools implements ToolProvider
         // 4 million pixels at most: smaller blocks if needed
         while ($px > 4 && $w * $h * $px * $px > 4_000_000) $px = intdiv($px, 2);
         if ($w * $h * $px * $px > 4_000_000) throw new ToolError('Too big a picture: ask for a region.');
-        $picture = $this->renderer->render($this->levelData($level), $this->tilesData($level->getTileset()), $px, ['x' => $x, 'y' => $y, 'w' => $w, 'h' => $h],
-            $args->bool('collision', false), [], [], $args->bool('grid', false));
+        $times = $args->has('times') ? $args->list('times', 4) : [0];
+        if ($times === []) $times = [0];
+        if (count($times) > 1) while ($px > 4 && $w * $h * $px * $px * count($times) > 6_000_000) $px = intdiv($px, 2);
+        $images = [];
+        foreach ($times as $k => $time) {
+            if (!is_int($time) && !is_float($time) || $time < 0 || $time > 3600) throw new ToolError("times[$k]: seconds from 0 to 3600.");
+            $picture = $this->renderer->render($this->levelData($level), $this->tilesData($level->getTileset()), $px, ['x' => $x, 'y' => $y, 'w' => $w, 'h' => $h],
+                $args->bool('collision', false), [], [], $args->bool('grid', false), (int) round($time * 60));
+            $images[] = $picture->png();
+        }
 
         return new Result(['level' => $level->getId(), 'region' => ['x' => $x, 'y' => $y, 'w' => $w, 'h' => $h], 'px_per_block' => $px,
-            'size' => [$picture->width, $picture->height]], [$picture->png()]);
+            'size' => [$picture->width, $picture->height], 'times' => $times,
+            'animated_blocks' => array_keys($level->getTileset()->getAnimations())], $images);
     }
 
     private function test(Args $args, Context $c): Result
@@ -469,7 +480,7 @@ final class LevelTools implements ToolProvider
 
     private function tilesData(Tileset $tileset): array
     {
-        return ['image' => $tileset->getImage(), 'solidity' => $tileset->getSolidity(), 'masks' => $tileset->getMasks()];
+        return ['image' => $tileset->getImage(), 'solidity' => $tileset->getSolidity(), 'masks' => $tileset->getMasks(), 'animations' => $tileset->getAnimations()];
     }
 
     /** The thumbnail of the lists, as the editor makes it. */

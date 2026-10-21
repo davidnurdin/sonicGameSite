@@ -19,6 +19,7 @@
     let solidity = [];
     let behaviour = [];      // what each block does (springs, spikes...: the game's CollisionSystem::B_*)
     let masks = {};          // collisions drawn instead of a shape: block => {px: 1024 pixels (1 = solid), w: 1 floor, 2 walls, 4 ceiling}
+    let animations = {};     // animated blocks in the game: block => {f: the blocks shown in turn, t: frames (60 a second) each}
     let current = 0;
     let colour = [255, 255, 255, 255];
     let tool = 'pencil';
@@ -37,7 +38,7 @@
     // ---- undo: the blocks an action changes, and the collisions
 
     const remember = (blocks = [current]) => {
-        undo.push({ solidity: [...solidity], behaviour: [...behaviour], masks: structuredClone(masks), current, blocks: blocks.map((n) => [n, getBlock(n)]) });
+        undo.push({ solidity: [...solidity], behaviour: [...behaviour], masks: structuredClone(masks), animations: structuredClone(animations), current, blocks: blocks.map((n) => [n, getBlock(n)]) });
         if (undo.length > 100) undo.shift();
         redo.length = 0;
         changed();
@@ -45,10 +46,11 @@
     const restore = (from, to) => {
         if (!from.length) return;
         const step = from.pop();
-        to.push({ solidity: [...solidity], behaviour: [...behaviour], masks: structuredClone(masks), current, blocks: step.blocks.map(([n]) => [n, getBlock(n)]) });
+        to.push({ solidity: [...solidity], behaviour: [...behaviour], masks: structuredClone(masks), animations: structuredClone(animations), current, blocks: step.blocks.map(([n]) => [n, getBlock(n)]) });
         solidity = step.solidity;
         behaviour = step.behaviour;
         masks = step.masks;
+        animations = step.animations;
         for (const [n, data] of step.blocks) putBlock(n, data);
         current = Math.min(step.current, solidity.length - 1);
         changed();
@@ -70,6 +72,12 @@
         const last = solidity.length;
         listCtx.fillStyle = '#05091f';
         for (let n = last; n < rows * COLUMNS; n++) listCtx.fillRect(...at(n), SIZE, SIZE);
+        // the animated blocks: a corner
+        listCtx.fillStyle = '#3cf';
+        for (const n of Object.keys(animations)) {
+            const [x, y] = at(Number(n));
+            listCtx.beginPath(); listCtx.moveTo(x + SIZE - 10, y); listCtx.lineTo(x + SIZE, y); listCtx.lineTo(x + SIZE, y + 10); listCtx.fill();
+        }
         listCtx.strokeStyle = '#ffd400';
         listCtx.lineWidth = 2;
         listCtx.strokeRect(at(current)[0] + 1, at(current)[1] + 1, SIZE - 2, SIZE - 2);
@@ -88,7 +96,11 @@
             return;
         }
         const n = Math.floor((e.clientY - rect.top) * scale / SIZE) * COLUMNS + Math.floor((e.clientX - rect.left) * scale / SIZE);
-        if (n < solidity.length) { current = n; refresh(); }
+        if (n >= solidity.length) return;
+        // Shift+click: one more picture for the animation of the block being drawn
+        if (e.shiftKey) { setAnimation([...(animations[current]?.f || [current]), n]); return; }
+        current = n;
+        refresh();
     });
 
     // ---- the block being drawn, big
@@ -396,6 +408,40 @@
         solidity[current] = (solidity[current] & 0x3f) | (front.checked ? 0x80 : 0);
         refresh();
     });
+    // ---- the animation of a block: the blocks shown in turn in the game, each for ticks frames (60 a second)
+    const animFrames = $('[name="anim-frames"]');
+    const animTicks = $('[name="anim-ticks"]');
+    function setAnimation(frames) {
+        remember([]);
+        frames = frames.filter((b) => Number.isInteger(b) && b >= 0 && b < solidity.length).slice(0, 16);
+        const ticks = Math.min(240, Math.max(1, Math.round(Number(animTicks.value)) || 8));
+        // not the ring blocks: the game draws the rings itself
+        if (frames.length < 2 || (current >= 120 && current <= 123)) delete animations[current];
+        else animations[current] = { f: frames, t: ticks };
+        refresh();
+    }
+    animFrames.addEventListener('change', () => setAnimation(animFrames.value.split(/[^0-9]+/).filter(Boolean).map(Number)));
+    animTicks.addEventListener('change', () => { if (animations[current]) setAnimation(animations[current].f); });
+    $('.te-anim-next').addEventListener('click', () => {
+        const count = Math.min(16, Number($('[name="anim-count"]').value) || 4);
+        setAnimation(Array.from({ length: count }, (_, i) => current + i));
+    });
+    $('.te-anim-stop').addEventListener('click', () => setAnimation([]));
+    // the preview: as the game shows it (the same clock for every block)
+    const animCanvas = $('.te-anim');
+    const animCtx = animCanvas.getContext('2d');
+    animCtx.imageSmoothingEnabled = false;
+    (function animate() {
+        const a = animations[current];
+        const frame = Math.floor(performance.now() * 60 / 1000);
+        const shown = a ? a.f[Math.floor(frame / a.t) % a.f.length] : current;
+        animCtx.fillStyle = '#0a1440';
+        animCtx.fillRect(0, 0, animCanvas.width, animCanvas.height);
+        for (let y = 0; y < animCanvas.height; y += SIZE * 2) for (let x = 0; x < animCanvas.width; x += SIZE * 2) {
+            animCtx.drawImage(sheet, ...at(shown), SIZE, SIZE, x, y, SIZE * 2, SIZE * 2);
+        }
+        requestAnimationFrame(animate);
+    })();
     $('[data-toggle="shape"]').addEventListener('change', drawBig);
     const paintMask = $('[name="paint-mask"]');
     paintMask.addEventListener('change', refresh);
@@ -441,6 +487,11 @@
         solidity.pop();
         behaviour.length = Math.min(behaviour.length, solidity.length);
         delete masks[solidity.length];
+        // the animations showing it lose that picture
+        for (const [n, a] of Object.entries(animations)) {
+            const f = a.f.filter((b) => b < solidity.length);
+            if (n >= solidity.length || f.length < 2) delete animations[n]; else a.f = f;
+        }
         current = Math.min(current, solidity.length - 1);
         refresh();
     });
@@ -552,6 +603,10 @@
         const value = String(behaviour[current] || 0);
         if (![...behaviourSelect.options].some((o) => o.value === value)) behaviourSelect.add(new Option(`${T.other} (${value})`, value));
         behaviourSelect.value = value;
+        const animation = animations[current];
+        animFrames.value = animation ? animation.f.join(', ') : '';
+        animTicks.value = animation ? animation.t : animTicks.value || 8;
+        $('.te-anim-stop').hidden = !animation;
     }
 
     // ---- save
@@ -571,6 +626,7 @@
             solidity,
             behaviour: solidity.map((_, i) => behaviour[i] || 0),
             masks: Object.fromEntries(Object.entries(masks).filter(([n]) => n < solidity.length).map(([n, m]) => [n, { r: toHex(m.px), w: m.w }])),
+            animations: Object.fromEntries(Object.entries(animations).filter(([n, a]) => n < solidity.length && a.f.every((b) => b < solidity.length))),
         };
         try {
             const r = await fetch(root.dataset.save, { method: 'POST', body: JSON.stringify(EditorLive.body(root, body)),
@@ -615,6 +671,7 @@
         solidity = [...data.solidity];
         behaviour = [...(data.behaviour || [])];
         masks = Object.fromEntries(Object.entries(data.masks || {}).filter(([, m]) => m).map(([n, m]) => [n, { px: fromHex(m.r), w: m.w }]));
+        animations = Object.fromEntries(Object.entries(data.animations || {}).filter(([, a]) => a && Array.isArray(a.f)).map(([n, a]) => [n, { f: a.f.map(Number), t: Number(a.t) || 8 }]));
         sheetCtx.drawImage(await loadImage(data.image), 0, 0);
         drawShapes();
         setColour([255, 255, 255, 255]);

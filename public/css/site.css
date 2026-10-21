@@ -521,6 +521,7 @@ main.full { max-width: none; padding: 0 12px 24px; }
 .te-swatch { aspect-ratio: 1; border: 2px solid transparent; border-radius: 3px; padding: 0; cursor: pointer; }
 .te-swatch.on { border-color: var(--white); }
 .te-preview { display: block; width: 192px; height: 192px; image-rendering: pixelated; border-radius: 6px; }
+.te-anim { display: block; width: 128px; height: 64px; image-rendering: pixelated; border-radius: 6px; }
 .te-shapes { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; max-width: 320px; margin-bottom: 12px; }
 .te-shape { padding: 0; border: 2px solid transparent; border-radius: 4px; background: none; cursor: pointer; line-height: 0; }
 .te-shape canvas { width: 100%; image-rendering: pixelated; }

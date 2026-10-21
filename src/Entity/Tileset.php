@@ -64,6 +64,14 @@ class Tileset
     #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
     private array $masks = [];
 
+    /**
+     * Animated blocks: block => {f: the blocks shown in turn (2-16, pictures of this set), t: how long each is shown, in
+     * frames of the game (60 a second)}. The block keeps its own collision and behaviour (see EditorData::animations).
+     * @var array<int, array{f: list<int>, t: int}>
+     */
+    #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
+    private array $animations = [];
+
     /** The zone whose look its moving objects take (platforms...): the game's SP, 0 = Green Hill. */
     #[ORM\Column(type: Types::SMALLINT, options: ['default' => 0])]
     private int $style = 0;
@@ -77,7 +85,7 @@ class Tileset
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    public function __construct(?User $user, string $name, string $png, array $solidity, array $behaviour = [], int $style = 0, array $masks = [])
+    public function __construct(?User $user, string $name, string $png, array $solidity, array $behaviour = [], int $style = 0, array $masks = [], array $animations = [])
     {
         $this->user = $user;
         $this->name = $name;
@@ -86,6 +94,7 @@ class Tileset
         $this->behaviour = $behaviour;
         $this->style = $style;
         $this->masks = $masks;
+        $this->animations = $animations;
         $this->createdAt = $this->updatedAt = new \DateTimeImmutable();
     }
 
@@ -95,6 +104,16 @@ class Tileset
     public function getUser(): ?User { return $this->user; }
     public function getZone(): ?string { return $this->zone; }
     public function setZone(?string $zone): void { $this->zone = $zone; }
+    /** The zone of the game whose pictures these are: a zone, or a copy of one with its pictures untouched (the game keeps its colour cycles). */
+    public function getGameZone(): ?string
+    {
+        $from = $this;
+        for ($i = 0; $from !== null && $from->zone === null && $i < 20; $i++) $from = $from->forkedFrom;
+        if ($from === null || $from->zone === null) return null;
+
+        return $from === $this || $from->getImage() === $this->getImage() ? $from->zone : null;
+    }
+
     public function getName(): string { return $this->name; }
     public function setName(string $name): void { $this->name = $name; }
     public function isPublic(): bool { return $this->public; }
@@ -106,6 +125,14 @@ class Tileset
     public function getBehaviour(): array { return array_pad(array_slice($this->behaviour, 0, $this->getCount()), $this->getCount(), 0); }
     /** @return array<int, array{r: list<string>, w: int}> only the blocks there are */
     public function getMasks(): array { return array_filter($this->masks, fn($k) => $k < $this->getCount(), ARRAY_FILTER_USE_KEY); }
+    /** @return array<int, array{f: list<int>, t: int}> the animated blocks (none beyond the blocks of the set) */
+    public function getAnimations(): array
+    {
+        $count = $this->getCount();
+
+        return array_filter($this->animations, fn(array $a, $k) => $k < $count && max($a['f']) < $count, ARRAY_FILTER_USE_BOTH);
+    }
+
     public function getStyle(): int { return $this->style; }
     public function setStyle(int $style): void { $this->style = $style; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
@@ -116,12 +143,13 @@ class Tileset
         return is_resource($this->image) ? (string) stream_get_contents($this->image, -1, 0) : (string) $this->image;
     }
 
-    public function setBlocks(string $png, array $solidity, ?array $behaviour = null, ?array $masks = null): void
+    public function setBlocks(string $png, array $solidity, ?array $behaviour = null, ?array $masks = null, ?array $animations = null): void
     {
         $this->image = $png;
         $this->solidity = $solidity;
         if ($behaviour !== null) $this->behaviour = $behaviour;
         if ($masks !== null) $this->masks = $masks;
+        if ($animations !== null) $this->animations = $animations;
         $this->updatedAt = new \DateTimeImmutable();
     }
 
