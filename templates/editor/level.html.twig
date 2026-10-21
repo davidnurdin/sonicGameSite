@@ -52,7 +52,8 @@
              data-shapes="{{ asset('data/solidity-shapes.json') }}"
              data-icons="{{ asset('data/object-icons.json') }}" data-icons-image="{{ asset('img/objects.png') }}"
              data-objects="{{ objects|json_encode }}" data-play="{{ path('level_play', {id: level.id}) }}"
-             data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans, error: 'Erreur'|trans, block: 'bloc'|trans}|json_encode }}">
+             data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans, error: 'Erreur'|trans, block: 'bloc'|trans,
+                 selected: '%n% objets sélectionnés'|trans, source: 'Clic droit (ou Alt+clic) : choisis d\'abord la source à copier.'|trans}|json_encode }}">
         <div class="ed-bar">
             <input type="text" name="name" value="{{ level.name }}" maxlength="40" aria-label="{{ 'Nom'|trans }}">
             <label><input type="checkbox" name="public" {{ level.public ? 'checked' }}> {{ 'Public'|trans }}</label>
@@ -96,6 +97,26 @@
                     <button type="button" data-tool="picker" title="I">⌖ {{ 'Pipette'|trans }}</button>
                     <button type="button" data-tool="eraser" title="E">⌫ {{ 'Gomme'|trans }}</button>
                     <button type="button" data-tool="start" title="S">◉ {{ 'Départ'|trans }}</button>
+                    <button type="button" data-tool="select" title="V">⬚ {{ 'Sélection'|trans }}</button>
+                    <button type="button" data-tool="clone" title="K">⧉ {{ 'Clone'|trans }}</button>
+                </div>
+                <div class="ed-clone" hidden>
+                    <p class="small">{{ 'Clic droit (ou Alt+clic) : la source. Puis peins ailleurs : les blocs de la source (encadrée en bleu) sont recopiés.'|trans }}</p>
+                    <div class="ed-row">
+                        <label class="small">{{ 'Taille'|trans }} <select name="clone-size">
+                            {% for n in 1..5 %}<option value="{{ n }}">{{ n }}×{{ n }}</option>{% endfor %}
+                        </select></label>
+                        <label class="small" title="{{ 'Coché : la source garde la même distance d\'un trait à l\'autre. Décoché : chaque trait repart de la source.'|trans }}"><input type="checkbox" name="clone-aligned" checked> {{ 'Aligné'|trans }}</label>
+                        <label class="small"><input type="checkbox" name="clone-objects" checked> {{ 'avec les objets'|trans }}</label>
+                    </div>
+                </div>
+                <div class="ed-selection" hidden>
+                    <p class="small ed-selection-text"></p>
+                    <div class="ed-row">
+                        <button type="button" class="pill-button ed-selection-replace" title="{{ 'Remplacer par l\'objet choisi dans la liste'|trans }}">{{ 'Remplacer'|trans }}</button>
+                        <button type="button" class="pill-button danger ed-selection-delete" title="Suppr">{{ 'Supprimer'|trans }}</button>
+                    </div>
+                    <p class="small muted">{{ 'Glisser : déplacer (Ctrl : copier). Flèches : d\'un bloc. Ctrl+D : dupliquer. Suppr : enlever. Échap : désélectionner.'|trans }}</p>
                 </div>
                 <h3>{{ 'Tiles'|trans }} <small class="ed-block muted"></small></h3>
                 <div class="ed-row">
@@ -107,7 +128,7 @@
                 </div>
                 <div class="ed-palette-box"><canvas class="ed-palette"></canvas></div>
                 <details class="ed-objects-box">
-                    <summary><h3>{{ 'Objets'|trans }}</h3> <small class="muted">O · {{ 'Maj+clic : enlever'|trans }}</small></summary>
+                    <summary><h3>{{ 'Objets'|trans }}</h3> <small class="muted">O · {{ 'clic droit : enlever'|trans }}</small></summary>
                     <div class="ed-objects"></div>
                 </details>
                 <details class="ed-sfx">
@@ -144,6 +165,9 @@
                         <li>{{ 'Espace + glisser, ou bouton du milieu : déplacer la vue.'|trans }}</li>
                         <li>{{ 'Ctrl+Z / Ctrl+Y : annuler / refaire. Ctrl+S : enregistrer.'|trans }}</li>
                         <li>{{ 'Les collisions (C) montrent en rouge où Sonic marche ; un carré jaune : bloc devant Sonic.'|trans }}</li>
+                        <li>{{ 'Objets (O) : clic pour poser (on peut glisser aussitôt), clic sur un objet pour le déplacer, Maj+clic ou clic droit pour l\'enlever.'|trans }}</li>
+                        <li>{{ 'Sélection (V) : clic ou rectangle pour choisir des objets, puis glisser, flèches, Ctrl+D, Suppr.'|trans }}</li>
+                        <li>{{ 'Clone (K) : clic droit sur la source, puis peins ailleurs : la source suit le pinceau.'|trans }}</li>
                     </ul>
                     <form method="post" action="{{ path('level_delete', {id: level.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
                           data-confirm="{{ 'Supprimer ce niveau pour de bon ?'|trans }}">

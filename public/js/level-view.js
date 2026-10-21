@@ -73,6 +73,9 @@ window.LevelView = (() => {
             this.shapes = null;
             this.objects = options.objects || {};
             this.hover = null;         // the editor: the block under the mouse, a rectangle being drawn
+            this.selected = new Set(); // the editor: the objects selected (the arrays of level.objects)
+            this.ghost = null;         // the editor: the object about to be put {type, x, y}
+            this.source = null;        // the editor's clone tool: the block copied {x, y} (framed)
             this.sonic = null;
             this.icons = null;
             this.pending = false;
@@ -194,32 +197,94 @@ window.LevelView = (() => {
                 // the first picture of public/img/sonics.png (23x32, blue Sonic), where the game puts him
                 ctx.drawImage(this.sonic, 0, 0, 23, 32, level.start[0] * SIZE + 4, level.start[1] * SIZE, 23, 32);
             }
+            if (this.source) this.renderSource(ctx, scale);
             if (this.hover) this.renderHover(ctx, scale);
         }
 
-        renderObjects(ctx, x0, y0, x1, y1) {
+        // where an object is drawn: its picture (from the top left of its block), or its block
+        objectBounds([type, x, y]) {
+            const icon = this.icons?.index[type];
+            if (!icon) return { x: x * SIZE + 3, y: y * SIZE + 3, w: SIZE - 6, h: SIZE - 6 };
+            const [, , w, h, dx, dy] = icon;
+            return { x: x * SIZE + dx, y: y * SIZE + dy, w, h };
+        }
+
+        // the object drawn under a point of the level (pixels), the one on top first; or null
+        objectAt(px, py) {
+            if (!this.level) return null;
+            for (let i = this.level.objects.length - 1; i >= 0; i--) {
+                const o = this.level.objects[i];
+                const b = this.objectBounds(o);
+                const inBlock = Math.floor(px / SIZE) === o[1] && Math.floor(py / SIZE) === o[2];
+                if (inBlock || (px >= b.x - 2 && px < b.x + b.w + 2 && py >= b.y - 2 && py < b.y + b.h + 2)) return o;
+            }
+            return null;
+        }
+
+        drawObject(ctx, type, x, y) {
+            const icon = this.icons?.index[type];
+            if (icon) {
+                const [sx, sy, w, h, dx, dy] = icon;
+                ctx.drawImage(this.icons.img, sx, sy, w, h, x * SIZE + dx, y * SIZE + dy, w, h);
+                return;
+            }
+            const family = (this.objects[type] || [])[1] || 'other';
+            ctx.fillStyle = FAMILY_COLOURS[family];
+            ctx.strokeStyle = '#0a1440';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(x * SIZE + 3, y * SIZE + 3, SIZE - 6, SIZE - 6, 6);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = family === 'item' ? '#10183a' : '#fff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.font = 'bold 11px system-ui, sans-serif';
-            for (const [type, x, y] of this.level.objects) {
+            ctx.fillText(objectMark(type, this.objects), x * SIZE + SIZE / 2, y * SIZE + SIZE / 2 + 1);
+        }
+
+        renderObjects(ctx, x0, y0, x1, y1) {
+            const scale = ctx.getTransform().a;
+            for (const o of this.level.objects) {
+                const [type, x, y] = o;
                 if (x < x0 - 2 || y < y0 - 2 || x > x1 + 1 || y > y1 + 1) continue;
-                const icon = this.icons?.index[type];
-                if (icon) {
-                    const [sx, sy, w, h, dx, dy] = icon;
-                    ctx.drawImage(this.icons.img, sx, sy, w, h, x * SIZE + dx, y * SIZE + dy, w, h);
-                    continue;
-                }
-                const family = (this.objects[type] || [])[1] || 'other';
-                ctx.fillStyle = FAMILY_COLOURS[family];
-                ctx.strokeStyle = '#0a1440';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.roundRect(x * SIZE + 3, y * SIZE + 3, SIZE - 6, SIZE - 6, 6);
-                ctx.fill();
-                ctx.stroke();
-                ctx.fillStyle = family === 'item' ? '#10183a' : '#fff';
-                ctx.fillText(objectMark(type, this.objects), x * SIZE + SIZE / 2, y * SIZE + SIZE / 2 + 1);
+                this.drawObject(ctx, type, x, y);
             }
+            // the selection: a frame around each picture, and its block
+            ctx.lineWidth = 2 / scale;
+            for (const o of this.selected) {
+                const b = this.objectBounds(o);
+                ctx.setLineDash([4 / scale, 3 / scale]);
+                ctx.strokeStyle = '#ffd400';
+                ctx.strokeRect(b.x - 2, b.y - 2, b.w + 4, b.h + 4);
+                ctx.setLineDash([]);
+                ctx.strokeStyle = 'rgba(255, 212, 0, .45)';
+                ctx.strokeRect(o[1] * SIZE, o[2] * SIZE, SIZE, SIZE);
+            }
+            if (this.ghost) {
+                ctx.globalAlpha = 0.55;
+                this.drawObject(ctx, this.ghost.type, this.ghost.x, this.ghost.y);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // the clone tool's source: a framed block (or rectangle), with a cross
+        renderSource(ctx, scale) {
+            const { x, y, w = 1, h = 1 } = this.source;
+            ctx.lineWidth = 3 / scale;
+            ctx.strokeStyle = '#000';
+            ctx.strokeRect(x * SIZE, y * SIZE, w * SIZE, h * SIZE);
+            ctx.lineWidth = 2 / scale;
+            ctx.setLineDash([5 / scale, 4 / scale]);
+            ctx.strokeStyle = '#3fd0ff';
+            ctx.strokeRect(x * SIZE, y * SIZE, w * SIZE, h * SIZE);
+            ctx.setLineDash([]);
+            const cx = (x + w / 2) * SIZE;
+            const cy = (y + h / 2) * SIZE;
+            ctx.beginPath();
+            ctx.moveTo(cx - 7, cy); ctx.lineTo(cx + 7, cy);
+            ctx.moveTo(cx, cy - 7); ctx.lineTo(cx, cy + 7);
+            ctx.stroke();
         }
 
         renderHover(ctx, scale) {

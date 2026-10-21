@@ -462,6 +462,10 @@ main.full { max-width: none; padding: 0 12px 24px; }
 .ed-main { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 312px; gap: 8px; }
 .ed-main .lv-box { height: 100%; }
 .lv-box[data-tool] { cursor: crosshair; }
+.lv-box[data-tool=select] { cursor: default; }
+.lv-box[data-over="1"] { cursor: move; }
+.ed-clone, .ed-selection { margin: 8px 0; padding: 8px 10px; border-radius: 10px; background: rgba(63, 208, 255, .1); }
+.ed-selection { background: rgba(255, 212, 0, .1); }
 .lv-box[data-pan] { cursor: grab; }
 .ed-side { overflow: auto; padding: 10px 12px; border-radius: 12px; background: var(--panel); }
 .ed-side h3, .editor h3 { margin: 10px 0 6px; font-size: 15px; color: var(--yellow); display: inline; }

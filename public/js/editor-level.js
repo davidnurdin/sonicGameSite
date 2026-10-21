@@ -41,6 +41,7 @@
         to.push(snapshot());
         const s = from.pop();
         Object.assign(level, { width: s.width, height: s.height, blocks: s.blocks, start: s.start, objects: s.objects });
+        select([]);
         if (s.tileset !== tileset.id) useTileset(s.tileset, false);
         view.setLevel(level);
         sizeInputs();
@@ -134,6 +135,90 @@
         root.querySelectorAll('[data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === name));
         markObject();
         box.dataset.tool = name;
+        $('.ed-clone').hidden = name !== 'clone';
+        view.ghost = null;
+        view.source = name === 'clone' && clone.source ? sourceFrame(clone.source) : null;
+        if (name !== 'select' && name !== 'object') select([]);
+        view.draw();
+    }
+
+    // ---- objects: selection
+
+    const selectionBox = $('.ed-selection');
+    function select(list) {
+        view.selected = new Set(list);
+        const n = view.selected.size;
+        selectionBox.hidden = n === 0;
+        if (n) {
+            const [first] = view.selected;
+            $('.ed-selection-text').textContent = n === 1 ? `${(OBJECTS[first[0]] || ['?'])[0]} · ${first[1]}, ${first[2]}` : T.selected.replace('%n%', n);
+        }
+        view.draw();
+    }
+    const removeObjects = (list) => {
+        const gone = new Set(list);
+        level.objects = level.objects.filter((o) => !gone.has(o));
+        view.level.objects = level.objects;
+        select([]);
+    };
+    // moves the objects by (dx, dy) blocks, kept in the level
+    const moveObjects = (list, dx, dy) => {
+        for (const o of list) {
+            o[1] = Math.max(0, Math.min(level.width - 1, o[1] + dx));
+            o[2] = Math.max(0, Math.min(level.height - 1, o[2] + dy));
+        }
+    };
+    const copyObjects = (list) => {
+        const copies = list.filter(() => level.objects.length < 1000).map((o) => [...o]);
+        level.objects.push(...copies);
+        return copies;
+    };
+    $('.ed-selection-delete').addEventListener('click', () => { if (view.selected.size) { remember(); removeObjects([...view.selected]); } });
+    $('.ed-selection-replace').addEventListener('click', () => {
+        if (!view.selected.size) return;
+        remember();
+        for (const o of view.selected) o[0] = objectType;
+        select([...view.selected]);
+    });
+
+    // ---- the clone tool: blocks (and objects) copied from a source, at the same distance as the first block painted
+
+    const clone = { source: null, offset: null };
+    const cloneSize = () => Number($('[name="clone-size"]').value) || 1;
+    const sourceFrame = (at) => {
+        const n = cloneSize();
+        const half = Math.floor((n - 1) / 2);
+        return { x: at.x - half, y: at.y - half, w: n, h: n };
+    };
+    function setSource(at) {
+        clone.source = at;
+        clone.offset = null;
+        view.source = sourceFrame(at);
+        view.draw();
+    }
+    // the blocks of the brush at `at` take those at `at + offset` (as they were when the stroke began)
+    function stamp(at) {
+        const n = cloneSize();
+        const half = Math.floor((n - 1) / 2);
+        const objects = $('[name="clone-objects"]').checked;
+        for (let y = at.y - half; y < at.y - half + n; y++) {
+            for (let x = at.x - half; x < at.x - half + n; x++) {
+                const sx = x + clone.offset.x;
+                const sy = y + clone.offset.y;
+                if (x < 0 || y < 0 || x >= level.width || y >= level.height || sx < 0 || sy < 0 || sx >= level.width || sy >= level.height) continue;
+                if (stroke.done.has(y * level.width + x)) continue;
+                stroke.done.add(y * level.width + x);
+                const value = stroke.blocks[sy * level.width + sx];
+                if (level.blocks[y * level.width + x] !== value) { once(); setBlock(x, y, value); }
+                if (!objects) continue;
+                for (const [type, ox, oy] of stroke.objects) {
+                    if (ox !== sx || oy !== sy) continue;
+                    if (level.objects.some((o) => o[0] === type && o[1] === x && o[2] === y) || level.objects.length >= 1000) continue;
+                    once();
+                    level.objects.push([type, x, y]);
+                }
+            }
+        }
     }
     root.querySelectorAll('[data-tool]').forEach((b) => b.addEventListener('click', () => setTool(b.dataset.tool)));
 
@@ -160,6 +245,12 @@
         }
         const at = view.blockAt(e.clientX, e.clientY);
         if (!at) return;
+        const p = view.pixelAt(e.clientX, e.clientY);
+        const hit = tool === 'select' || tool === 'object' ? view.objectAt(p.x, p.y) : null;
+        // the clone tool: right click or Alt+click chooses the source
+        if (tool === 'clone' && (e.button === 2 || (e.button === 0 && e.altKey))) { setSource(at); return; }
+        // the objects: right click removes the one under the mouse
+        if (e.button === 2 && hit) { remember(); removeObjects([hit]); return; }
         if (e.button === 2) {
             block = level.blocks[at.y * level.width + at.x];
             drawPalette();
@@ -168,8 +259,47 @@
         }
         if (e.button !== 0) return;
         stroke = { start: at, last: null, remembered: false };
+        if (tool === 'select' || tool === 'object') { objectsDown(at, hit, e); return; }
+        if (tool === 'clone') {
+            if (!clone.source) { status(T.source, 'warn'); stroke = null; return; }
+            // aligned: the distance taken at the first stroke stays; otherwise each stroke starts from the source
+            if (!clone.offset || !$('[name="clone-aligned"]').checked) clone.offset = { x: clone.source.x - at.x, y: clone.source.y - at.y };
+            // copied from the level as it is before the stroke (painting over the source does not copy the copy)
+            Object.assign(stroke, { blocks: level.blocks.slice(), objects: level.objects.map((o) => [...o]), done: new Set() });
+        }
         apply(at, e);
     });
+
+    // the select and object tools: what a press does
+    function objectsDown(at, hit, e) {
+        if (hit) {
+            if (e.shiftKey && tool === 'object') { remember(); removeObjects([hit]); stroke = null; return; }
+            if (e.shiftKey && tool === 'select') {
+                const list = new Set(view.selected);
+                list.has(hit) ? list.delete(hit) : list.add(hit);
+                select([...list]);
+                stroke = null;
+                return;
+            }
+            if (!view.selected.has(hit)) select([hit]);
+            // dragged: moved (Ctrl: copied first)
+            stroke.move = { from: at, list: [...view.selected], copy: e.ctrlKey || e.metaKey };
+            return;
+        }
+        if (tool === 'object') {
+            if (level.objects.length >= 1000) { stroke = null; return; }
+            once();
+            const o = [objectType, at.x, at.y];
+            level.objects.push(o);
+            select([o]);
+            stroke.move = { from: at, list: [o], copy: false, remembered: true };
+            view.ghost = null;
+            return;
+        }
+        // the select tool on nothing: a rectangle of selection
+        if (!e.shiftKey) select([]);
+        stroke.marquee = { from: at, before: [...view.selected] };
+    }
     box.addEventListener('pointermove', (e) => {
         if (pan) {
             box.scrollLeft = pan.left - (e.clientX - pan.x);
@@ -178,10 +308,51 @@
         }
         const at = view.blockAt(e.clientX, e.clientY);
         $('.ed-pos').textContent = at ? `${at.x}, ${at.y} · ${T.block} ${level.blocks[at.y * level.width + at.x]}` : '';
-        if (stroke && at) apply(at, e);
-        if (!stroke) view.hover = at ? { ...at, colour: tool === 'eraser' ? '#ff5a5a' : '#ffd400' } : null;
+        if (stroke && at) {
+            if (stroke.move) moveDrag(at);
+            else if (stroke.marquee) marquee(at);
+            else apply(at, e);
+        }
+        if (!stroke) {
+            const p = view.pixelAt(e.clientX, e.clientY);
+            const over = at && (tool === 'select' || tool === 'object') ? view.objectAt(p.x, p.y) : null;
+            box.dataset.over = over ? '1' : '';
+            // the object tool: what would be put there; on an object: its frame (it would be taken)
+            view.ghost = tool === 'object' && at && !over ? { type: objectType, ...at } : null;
+            view.hover = at && tool !== 'select' && !(tool === 'object' && over) ? { ...brush(at), colour: tool === 'eraser' ? '#ff5a5a' : '#ffd400' } : null;
+        }
+        // the clone tool: the source follows the brush, framed
+        if (tool === 'clone' && clone.source) {
+            const follow = at && clone.offset ? { x: at.x + clone.offset.x, y: at.y + clone.offset.y } : clone.source;
+            view.source = sourceFrame(follow);
+        }
         view.draw();
     });
+    // the brush of the tool at a block (the clone tool: its size)
+    const brush = (at) => (tool === 'clone' ? sourceFrame(at) : at);
+
+    function moveDrag(at) {
+        const m = stroke.move;
+        const dx = at.x - m.from.x;
+        const dy = at.y - m.from.y;
+        if (!dx && !dy) return;
+        if (!m.remembered) { m.remembered = true; once(); }
+        if (m.copy) {
+            m.list = copyObjects(m.list);
+            m.copy = false;
+            select(m.list);
+        }
+        moveObjects(m.list, dx, dy);
+        m.from = at;
+        select(m.list);
+    }
+    function marquee(at) {
+        const r = rect(stroke.marquee.from, at);
+        view.hover = { ...r, colour: '#3fd0ff' };
+        const inside = level.objects.filter(([, x, y]) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
+        select([...new Set([...stroke.marquee.before, ...inside])]);
+    }
+
     const endStroke = () => {
         if (stroke && tool === 'rect' && stroke.last) {
             const r = rect(stroke.start, stroke.last);
@@ -233,18 +404,15 @@
                 block = level.blocks[at.y * level.width + at.x];
                 drawPalette();
                 break;
-            case 'object': {
-                if (stroke.start !== at) break;   // one object a click (the block of the press)
-                const i = objectAt(at.x, at.y);
-                once();
-                if (i >= 0 && (e.shiftKey || level.objects[i][0] === objectType)) level.objects.splice(i, 1);
-                else if (i >= 0) level.objects[i][0] = objectType;
-                else if (level.objects.length < 1000) level.objects.push([objectType, at.x, at.y]);
-                break;
-            }
             case 'start':
                 if (level.start[0] !== at.x || level.start[1] !== at.y) { once(); level.start = [at.x, at.y]; }
                 break;
+            case 'clone': {
+                // a line from the last block: a fast mouse leaves no hole
+                const steps = Math.max(Math.abs(at.x - from.x), Math.abs(at.y - from.y), 1);
+                for (let i = 0; i <= steps; i++) stamp({ x: Math.round(from.x + (at.x - from.x) * i / steps), y: Math.round(from.y + (at.y - from.y) * i / steps) });
+                break;
+            }
         }
         view.draw();
     }
@@ -383,13 +551,26 @@
 
     // ---- keyboard
 
-    const KEYS = { b: 'pencil', r: 'rect', f: 'fill', i: 'picker', e: 'eraser', o: 'object', s: 'start' };
+    const KEYS = { b: 'pencil', r: 'rect', f: 'fill', i: 'picker', e: 'eraser', o: 'object', s: 'start', v: 'select', k: 'clone' };
     addEventListener('keydown', (e) => {
         if (e.target.matches('input, select, textarea')) return;
         const key = e.key.toLowerCase();
         if ((e.ctrlKey || e.metaKey) && key === 's') { e.preventDefault(); save(); return; }
         if ((e.ctrlKey || e.metaKey) && key === 'z') { e.preventDefault(); restore(e.shiftKey ? redo : undo, e.shiftKey ? undo : redo); return; }
         if ((e.ctrlKey || e.metaKey) && key === 'y') { e.preventDefault(); restore(redo, undo); return; }
+        // the objects selected: duplicated (Ctrl+D), removed, moved a block, let go
+        if ((e.ctrlKey || e.metaKey) && key === 'd' && view.selected.size) {
+            e.preventDefault();
+            remember();
+            const copies = copyObjects([...view.selected]);
+            moveObjects(copies, 1, 0);
+            select(copies);
+            return;
+        }
+        if (view.selected.size && (key === 'delete' || key === 'backspace')) { e.preventDefault(); remember(); removeObjects([...view.selected]); return; }
+        const arrows = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] };
+        if (view.selected.size && arrows[key]) { e.preventDefault(); remember(); moveObjects([...view.selected], ...arrows[key]); select([...view.selected]); return; }
+        if (key === 'escape') { select([]); return; }
         if (e.ctrlKey || e.metaKey || e.altKey) return;
         if (key === ' ') { space = true; box.dataset.pan = '1'; e.preventDefault(); return; }
         if (KEYS[key]) setTool(KEYS[key]);
