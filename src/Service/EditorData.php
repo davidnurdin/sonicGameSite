@@ -33,6 +33,20 @@ final class EditorData
         23 => ['Porte vers la gauche', 'other'], 24 => ['Porte vers la droite', 'other'], 25 => ['Porte', 'other'],
     ];
 
+    /** The songs of the game a level can have (SoundManager::MUSIC_BY_INDEX). */
+    public const MUSICS = [0x00 => 'Green Hill', 0x01 => 'Bridge', 0x02 => 'Jungle', 0x03 => 'Labyrinth', 0x04 => 'Scrap Brain',
+        0x05 => 'Sky Base', 0x10 => 'Stage spécial', 0x0B => 'Boss', 0x06 => 'Titre', 0x0E => 'Fin'];
+
+    /**
+     * What a block does to Sonic (the game's CollisionSystem::B_*). The tile editor offers these; the zones of
+     * the game have others too (bridges, teleporters), kept as they are.
+     */
+    public const BEHAVIOURS = [0 => 'Rien', 1 => 'Pics', 23 => 'Électrique', 2 => 'Tremplin', 9 => 'Ressort vers le haut',
+        4 => 'Ressort vers le haut (moitié droite)', 3 => 'Ressort vers la gauche', 5 => 'Ressort vers la droite',
+        18 => 'Grand ressort', 6 => 'Tapis vers la gauche', 7 => 'Tapis vers la droite', 12 => 'Courant vers la gauche',
+        13 => 'Glissade vers la droite', 15 => 'Glissade vers la gauche', 8 => 'Eau', 17 => 'Bumper (vertical)',
+        21 => 'Bumper (horizontal)'];
+
     /** The zones in the order of the game. */
     private const ZONES = ['green-hill', 'bridge', 'jungle', 'labyrinth', 'scrap-brain', 'sky-base', 'bonus'];
 
@@ -92,12 +106,16 @@ final class EditorData
     }
 
     /**
-     * The blocks of a set from the tile editor: {image: base64 PNG, solidity: [byte...]}.
+     * The blocks of a set from the tile editor: {image: base64 PNG, solidity: [byte...], behaviour: [byte...]}.
      *
-     * @return array{0: string, 1: list<int>}|null
+     * @return array{0: string, 1: list<int>, 2: list<int>}|null
      */
-    public static function blocks(mixed $image, mixed $solidity): ?array
+    public static function blocks(mixed $image, mixed $solidity, mixed $behaviour = []): ?array
     {
+        if (!is_array($behaviour) || !array_is_list($behaviour) || count($behaviour) > count((array) $solidity)) return null;
+        foreach ($behaviour as $value) {
+            if (!is_int($value) || $value < 0 || $value > 31) return null;
+        }
         if (!is_string($image) || !is_array($solidity) || !array_is_list($solidity)) return null;
         $count = count($solidity);
         if ($count < 1 || $count > Tileset::MAX) return null;
@@ -109,7 +127,7 @@ final class EditorData
         $rows = intdiv($count + Tileset::COLUMNS - 1, Tileset::COLUMNS);
         if (self::pngSize($png) !== [Tileset::COLUMNS * Tileset::SIZE, $rows * Tileset::SIZE]) return null;
 
-        return [$png, $solidity];
+        return [$png, $solidity, array_pad($behaviour, $count, 0)];
     }
 
     /**

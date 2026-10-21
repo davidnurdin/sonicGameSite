@@ -59,6 +59,10 @@ class Level
     #[ORM\Column(type: Types::JSON)]
     private array $objects = [];
 
+    /** Its music: a song of the game (SoundManager::MUSIC_BY_INDEX, see EditorData::MUSICS). */
+    #[ORM\Column(type: Types::SMALLINT, options: ['default' => 0])]
+    private int $music = 0;
+
     /** A small picture of the whole level (PNG, made by the editor when it saves): lists, links. */
     #[ORM\Column(type: Types::BLOB, nullable: true)]
     private $thumb = null;
@@ -106,6 +110,9 @@ class Level
     {
         return is_resource($this->blocks) ? (string) stream_get_contents($this->blocks, -1, 0) : (string) $this->blocks;
     }
+
+    public function getMusic(): int { return $this->music; }
+    public function setMusic(int $music): void { $this->music = $music; }
 
     public function getThumb(): ?string
     {

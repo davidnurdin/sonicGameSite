@@ -306,7 +306,7 @@
     // ---- save
 
     async function save() {
-        if (saving) return;
+        if (saving) return false;
         saving = true;
         status(T.saving);
         const body = {
@@ -318,6 +318,7 @@
             blocks: encodeBlocks(level.blocks),
             start: level.start,
             objects: level.objects,
+            music: Number($('[name="music"]').value),
             thumb: view.sheet ? view.thumbnail() : undefined,
         };
         try {
@@ -326,13 +327,26 @@
             if (!r.ok) throw new Error(String(r.status));
             dirty = false;
             status(T.saved, 'ok');
+            return true;
         } catch (e) {
             status(`${T.error} (${e.message})`, 'error');
+            return false;
         } finally {
             saving = false;
         }
     }
     $('.ed-save').addEventListener('click', save);
+    // the game in a new tab, on this level as it is now (opened at once: a tab opened after the save is blocked)
+    $('.ed-test').addEventListener('click', async () => {
+        const tab = window.open('about:blank', '_blank');
+        if (await save()) {
+            if (tab) tab.location.href = root.dataset.play;
+            else location.href = root.dataset.play;
+        } else {
+            tab?.close();
+        }
+    });
+    $('[name="music"]').addEventListener('change', changed);
     $('[name="name"]').addEventListener('input', changed);
     $('[name="public"]').addEventListener('change', changed);
     $('.ed-undo').addEventListener('click', () => restore(undo, redo));

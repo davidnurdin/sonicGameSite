@@ -3,8 +3,9 @@
 
     python3 tools/game-data.py <game>
 
-- zone-<key>.png + zone-<key>.json: the blocks of each zone (32x32, 16 a row) and their collision byte (the
-  low 6 bits: a shape of shapes.json, bit 7: drawn in front of Sonic), from tileset<T>.png and level<N>.solidity;
+- zone-<key>.png + zone-<key>.json: the blocks of each zone (32x32, 16 a row), their collision byte (the
+  low 6 bits: a shape of shapes.json, bit 7: drawn in front of Sonic) and their behaviour (springs, spikes...,
+  blockBehaviour.data.php), from tileset<T>.png, level<N>.solidity and the level header (SP);
 - level-<key>.json: act 1 of each zone (blocks, Sonic's start, objects), to start a level from;
 - public/data/solidity-shapes.json: the 47 collision shapes (32 rows of 32 bits, hex), from tileCol.data.php.
 """
@@ -51,17 +52,20 @@ def main():
         for i in range(count):
             sheet.paste(strip.crop((i * 32, 0, i * 32 + 32, 32)), ((i % COLUMNS) * 32, (i // COLUMNS) * 32))
         sheet.save(os.path.join(OUT, f'zone-{key}.png'), optimize=True)
-        with open(os.path.join(OUT, f'zone-{key}.json'), 'w') as f:
-            json.dump({'name': name, 'count': count, 'solidity': solidity}, f, separators=(',', ':'))
 
         meta = php_json(game, f'echo json_encode(eval("return " . file_get_contents("assets/levels/level{level}.meta") . ";"));')
+        behaviour = php_json(game, f'echo json_encode((require "assets/levels/blockBehaviour.data.php")[{meta["SP"]}] ?? []);')
+        behaviour = (behaviour + [0] * count)[:count]
         objects = php_json(game, f'echo json_encode(array_map(fn($o) => [$o["type"], $o["x"], $o["y"]], require "assets/levels/level{level}.objects.php"));')
+        with open(os.path.join(OUT, f'zone-{key}.json'), 'w') as f:
+            json.dump({'name': name, 'count': count, 'solidity': solidity, 'behaviour': behaviour, 'sp': meta['SP']}, f,
+                      separators=(',', ':'))
         blocks = open(os.path.join(game, f'assets/levels/level{level}.bin'), 'rb').read()
         width, height = meta['FW'], meta['FH']
         with open(os.path.join(OUT, f'level-{key}.json'), 'w') as f:
             json.dump({'name': f'{name} 1', 'zone': key, 'width': width, 'height': height,
                        'blocks': base64.b64encode(blocks[:width * height]).decode(),
-                       'start': [meta['SX'], meta['SY']], 'objects': objects}, f, separators=(',', ':'))
+                       'start': [meta['SX'], meta['SY']], 'objects': objects, 'music': meta['MU']}, f, separators=(',', ':'))
         print(key, count, 'blocks', f'{width}x{height}', len(objects), 'objects')
 
 

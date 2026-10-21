@@ -19,6 +19,7 @@
             {% if mine %}<span class="badge{% if not level.public %} off{% endif %}">{{ level.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
         </div>
         <div class="ed-card-go">
+            <a class="pill-button play-pill" href="{{ path('level_play', {id: level.id}) }}">▶ {{ 'Jouer'|trans }}</a>
             {% if mine %}<a class="pill-button" href="{{ path('level_edit', {id: level.id}) }}">{{ 'Éditer'|trans }}</a>{% endif %}
             <a class="pill-button" href="{{ path('level', {id: level.id}) }}">{{ 'Voir'|trans }}</a>
         </div>
@@ -49,7 +50,7 @@
 <section class="panel wide">
     <h1>{{ 'Éditeur de niveau'|trans }}</h1>
     <p>{{ 'Dessine ta zone bloc par bloc avec les tiles des zones du jeu ou les tiennes, place les anneaux, les badniks, les moniteurs et le départ de Sonic. Publie-la : tout le monde pourra la voir, même sans compte.'|trans }}</p>
-    <p class="muted small">{{ 'Les niveaux ne se jouent pas encore dans le jeu : ça viendra.'|trans }}</p>
+    <p class="muted small">{{ 'Chaque niveau se joue dans le jeu : bouton Jouer, ou Tester pendant que tu le fais.'|trans }}</p>
     <p class="pc-only">{{ 'L\'éditeur se fait sur un ordinateur, avec une souris et un clavier. Sur ton téléphone, tu peux regarder les niveaux publics.'|trans }}</p>
     {% for flash in app.flashes('editor') %}<p class="flash error">{{ flash.m|trans({'%n%': flash.n}) }}</p>{% endfor %}
 </section>

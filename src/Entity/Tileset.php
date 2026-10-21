@@ -45,6 +45,14 @@ class Tileset
     #[ORM\Column(type: Types::JSON)]
     private array $solidity = [];
 
+    /** @var list<int> one byte a block: springs, spikes... (the game's CollisionSystem::B_*), 0 = nothing */
+    #[ORM\Column(type: Types::JSON, options: ['default' => '[]'])]
+    private array $behaviour = [];
+
+    /** The zone whose look its moving objects take (platforms...): the game's SP, 0 = Green Hill. */
+    #[ORM\Column(type: Types::SMALLINT, options: ['default' => 0])]
+    private int $style = 0;
+
     #[ORM\Column(type: Types::BLOB)]
     private $image;
 
@@ -54,12 +62,14 @@ class Tileset
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    public function __construct(?User $user, string $name, string $png, array $solidity)
+    public function __construct(?User $user, string $name, string $png, array $solidity, array $behaviour = [], int $style = 0)
     {
         $this->user = $user;
         $this->name = $name;
         $this->image = $png;
         $this->solidity = $solidity;
+        $this->behaviour = $behaviour;
+        $this->style = $style;
         $this->createdAt = $this->updatedAt = new \DateTimeImmutable();
     }
 
@@ -74,6 +84,10 @@ class Tileset
     /** @return list<int> */
     public function getSolidity(): array { return $this->solidity; }
     public function getCount(): int { return count($this->solidity); }
+    /** @return list<int> as many as the blocks */
+    public function getBehaviour(): array { return array_pad(array_slice($this->behaviour, 0, $this->getCount()), $this->getCount(), 0); }
+    public function getStyle(): int { return $this->style; }
+    public function setStyle(int $style): void { $this->style = $style; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function getUpdatedAt(): \DateTimeImmutable { return $this->updatedAt; }
 
@@ -82,10 +96,11 @@ class Tileset
         return is_resource($this->image) ? (string) stream_get_contents($this->image, -1, 0) : (string) $this->image;
     }
 
-    public function setBlocks(string $png, array $solidity): void
+    public function setBlocks(string $png, array $solidity, ?array $behaviour = null): void
     {
         $this->image = $png;
         $this->solidity = $solidity;
+        if ($behaviour !== null) $this->behaviour = $behaviour;
         $this->updatedAt = new \DateTimeImmutable();
     }
 

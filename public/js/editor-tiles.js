@@ -17,6 +17,7 @@
     sheet.height = (MAX / COLUMNS) * SIZE;
     const sheetCtx = sheet.getContext('2d', { willReadFrequently: true });
     let solidity = [];
+    let behaviour = [];      // what each block does (springs, spikes...: the game's CollisionSystem::B_*)
     let current = 0;
     let colour = [255, 255, 255, 255];
     let tool = 'pencil';
@@ -35,7 +36,7 @@
     // ---- undo: the blocks an action changes, and the collisions
 
     const remember = (blocks = [current]) => {
-        undo.push({ solidity: [...solidity], current, blocks: blocks.map((n) => [n, getBlock(n)]) });
+        undo.push({ solidity: [...solidity], behaviour: [...behaviour], current, blocks: blocks.map((n) => [n, getBlock(n)]) });
         if (undo.length > 100) undo.shift();
         redo.length = 0;
         changed();
@@ -43,8 +44,9 @@
     const restore = (from, to) => {
         if (!from.length) return;
         const step = from.pop();
-        to.push({ solidity: [...solidity], current, blocks: step.blocks.map(([n]) => [n, getBlock(n)]) });
+        to.push({ solidity: [...solidity], behaviour: [...behaviour], current, blocks: step.blocks.map(([n]) => [n, getBlock(n)]) });
         solidity = step.solidity;
+        behaviour = step.behaviour;
         for (const [n, data] of step.blocks) putBlock(n, data);
         current = Math.min(step.current, solidity.length - 1);
         changed();
@@ -235,6 +237,12 @@
             return b;
         }));
     }
+    const behaviourSelect = $('[name="behaviour"]');
+    behaviourSelect.addEventListener('change', () => {
+        remember([]);
+        behaviour[current] = Number(behaviourSelect.value);
+        refresh();
+    });
     const front = $('[name="front"]');
     front.addEventListener('change', () => {
         remember([]);
@@ -251,6 +259,7 @@
         remember([solidity.length]);
         putBlock(solidity.length, empty());
         solidity.push(0);
+        behaviour[solidity.length - 1] = 0;
         current = solidity.length - 1;
         refresh();
     });
@@ -259,6 +268,7 @@
         remember([solidity.length]);
         putBlock(solidity.length, getBlock(current));
         solidity.push(solidity[current]);
+        behaviour[solidity.length - 1] = behaviour[current] || 0;
         current = solidity.length - 1;
         refresh();
     });
@@ -269,6 +279,7 @@
         remember([solidity.length - 1]);
         putBlock(solidity.length - 1, empty());
         solidity.pop();
+        behaviour.length = Math.min(behaviour.length, solidity.length);
         current = Math.min(current, solidity.length - 1);
         refresh();
     });
@@ -287,12 +298,13 @@
     $('.te-flip-v').addEventListener('click', () => transform((x, y) => [x, SIZE - 1 - y]));
     $('.te-rotate').addEventListener('click', () => transform((x, y) => [y, SIZE - 1 - x]));
     let clipboard = null;
-    $('.te-copy').addEventListener('click', () => { clipboard = { data: getBlock(current), solidity: solidity[current] }; status(T.copied); });
+    $('.te-copy').addEventListener('click', () => { clipboard = { data: getBlock(current), solidity: solidity[current], behaviour: behaviour[current] || 0 }; status(T.copied); });
     $('.te-paste').addEventListener('click', () => {
         if (!clipboard) return;
         remember();
         putBlock(current, clipboard.data);
         solidity[current] = clipboard.solidity;
+        behaviour[current] = clipboard.behaviour;
         refresh();
     });
 
@@ -318,6 +330,7 @@
             g.drawImage(img, (i % cols) * SIZE, Math.floor(i / cols) * SIZE, SIZE, SIZE, 0, 0, SIZE, SIZE);
             putBlock(target, g.getImageData(0, 0, SIZE, SIZE));
             solidity.push(0);
+            behaviour[solidity.length - 1] = 0;
         });
         current = added[0];
         status(T.imported.replace('%n%', n), 'warn');
@@ -333,7 +346,7 @@
         if (!e.target.value) return;
         const data = await fetch(root.dataset.tilesetJson.replace('ID', e.target.value)).then((r) => r.json());
         const img = await loadImage(data.image);
-        otherSet = { img, solidity: data.solidity };
+        otherSet = { img, solidity: data.solidity, behaviour: data.behaviour || [] };
         other.width = img.width;
         other.height = img.height;
         otherCtx.fillStyle = '#0a1440';
@@ -353,6 +366,7 @@
         g.drawImage(otherSet.img, ...at(n), SIZE, SIZE, 0, 0, SIZE, SIZE);
         putBlock(solidity.length, g.getImageData(0, 0, SIZE, SIZE));
         solidity.push(otherSet.solidity[n]);
+        behaviour[solidity.length - 1] = otherSet.behaviour[n] || 0;
         current = solidity.length - 1;
         refresh();
     });
@@ -362,6 +376,10 @@
         drawBig();
         shapeList.querySelectorAll('.te-shape').forEach((b, i) => b.classList.toggle('on', i === (solidity[current] & 0x3f)));
         front.checked = (solidity[current] & 0x80) !== 0;
+        // a behaviour of the game's zones that the list does not offer (bridges...): shown as it is
+        const value = String(behaviour[current] || 0);
+        if (![...behaviourSelect.options].some((o) => o.value === value)) behaviourSelect.add(new Option(`${T.other} (${value})`, value));
+        behaviourSelect.value = value;
     }
 
     // ---- save
@@ -379,6 +397,7 @@
             public: $('[name="public"]').checked,
             image: out.toDataURL('image/png').split(',')[1],
             solidity,
+            behaviour: solidity.map((_, i) => behaviour[i] || 0),
         };
         try {
             const r = await fetch(root.dataset.save, { method: 'POST', body: JSON.stringify(body),
@@ -421,6 +440,7 @@
     Promise.all([fetch(root.dataset.json).then((r) => r.json()), loadShapes(root.dataset.shapes)]).then(async ([data, s]) => {
         shapes = s;
         solidity = [...data.solidity];
+        behaviour = [...(data.behaviour || [])];
         sheetCtx.drawImage(await loadImage(data.image), 0, 0);
         drawShapes();
         setColour([255, 255, 255, 255]);

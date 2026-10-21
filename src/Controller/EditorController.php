@@ -8,8 +8,11 @@ use App\Entity\User;
 use App\Repository\LevelRepository;
 use App\Repository\TilesetRepository;
 use App\Service\EditorData;
+use App\Service\LevelToken;
+use App\Service\StatsToken;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,6 +36,7 @@ class EditorController extends AbstractController
         private LevelRepository $levels,
         private TilesetRepository $tilesets,
         private TranslatorInterface $translator,
+        #[Autowire(env: 'GAME_URL')] private string $gameUrl,
     ) {
     }
 
@@ -71,6 +75,7 @@ class EditorController extends AbstractController
             $tileset = $this->tilesets->findOneBy(['zone' => $template['zone']]);
             $level = new Level($user, $tileset, $name, $template['width'], $template['height'], base64_decode($template['blocks']),
                 $template['start'], array_values(array_filter($template['objects'], fn($o) => isset(EditorData::OBJECTS[$o[0]]))));
+            $level->setMusic((int) ($template['music'] ?? 0));
         } else {
             $tileset = $this->tilesets->find($request->request->getInt('tileset'));
             if (!$tileset instanceof Tileset || !$tileset->canUse($user)) return $this->redirectToRoute('editor');
@@ -79,6 +84,8 @@ class EditorController extends AbstractController
             $ground = array_search(22, array_map(fn($v) => $v & 0x3F, $tileset->getSolidity()), true);
             $blocks = str_repeat("\0", $width * ($height - 3)) . str_repeat(chr($ground === false ? 0 : $ground), $width * 3);
             $level = new Level($user, $tileset, $name, $width, $height, $blocks, [3, $height - 5], []);
+            // the song of the zone of its tiles
+            $level->setMusic([0, 1, 2, 3, 4, 5, 0x10][$tileset->getStyle()] ?? 0);
         }
         $this->em->persist($level);
         $this->em->flush();
@@ -105,6 +112,7 @@ class EditorController extends AbstractController
             'edit' => true,
             'usable' => $this->tilesets->usable($this->user()),
             'objects' => $this->objectNames(),
+            'musics' => EditorData::MUSICS,
         ]);
     }
 
@@ -129,6 +137,54 @@ class EditorController extends AbstractController
         return $response;
     }
 
+    /** JOUER: the game, on this level (?level=, ?lt= its key), back to this page after. */
+    #[Route('/niveau/{id}/jouer', name: 'level_play', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function play(Level $level, Request $request, LevelToken $tokens, StatsToken $stats): Response
+    {
+        $user = $this->user();
+        if (!$level->canSee($user)) throw $this->createNotFoundException();
+        $query = [
+            'lang' => $request->getLocale(),
+            'site' => $request->getSchemeAndHttpHost(),
+            'back' => $this->generateUrl('level', ['id' => $level->getId()], 0),
+            'level' => $level->getId(),
+            'lt' => $tokens->create($level),
+        ];
+        if ($user !== null) $query += ['name' => $user->getUsername(), 'st' => $stats->create($user)];
+
+        return $this->redirect($this->gameUrl . (str_contains($this->gameUrl, '?') ? '&' : '?') . http_build_query($query));
+    }
+
+    /**
+     * What the game's page needs to play the level (another domain: CORS, no cookie): the level, the collision
+     * and behaviour of its blocks, its tiles (PNG, base64). Public, or with the key of a JOUER link.
+     */
+    #[Route('/niveau/{id}/jeu.json', name: 'level_game', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function game(Level $level, Request $request, LevelToken $tokens): JsonResponse
+    {
+        $response = new JsonResponse();
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        if (!$level->isPublic() && !$tokens->isValid($level, (string) $request->query->get('lt'))) {
+            return $response->setData(['error' => 'not found'])->setStatusCode(404);
+        }
+        $tileset = $level->getTileset();
+
+        return $response->setData([
+            'id' => $level->getId(),
+            'name' => $level->getName(),
+            'width' => $level->getWidth(),
+            'height' => $level->getHeight(),
+            'blocks' => base64_encode($level->getBlocks()),
+            'start' => $level->getStart(),
+            'objects' => $level->getObjects(),
+            'music' => $level->getMusic(),
+            'sp' => $tileset->getStyle(),
+            'solidity' => $tileset->getSolidity(),
+            'behaviour' => $tileset->getBehaviour(),
+            'tiles' => base64_encode($tileset->getImage()),
+        ]);
+    }
+
     #[Route('/niveau/{id}', name: 'level_save', requirements: ['id' => '\d+'], methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
     public function saveLevel(Level $level, Request $request): JsonResponse
@@ -143,6 +199,7 @@ class EditorController extends AbstractController
         if (!$tileset->canUse($this->user()) && $tileset !== $level->getTileset()) return $this->json(['error' => 'tileset'], 400);
         $level->setName($name);
         $level->setPublic(!empty($body['public']));
+        if (is_int($body['music'] ?? null) && isset(EditorData::MUSICS[$body['music']])) $level->setMusic($body['music']);
         $level->update($tileset, ...$parsed);
         if (isset($body['thumb'])) $level->setThumb(EditorData::thumb($body['thumb']));
         $this->em->flush();
@@ -162,6 +219,7 @@ class EditorController extends AbstractController
         $copy = new Level($user, $level->getTileset(), mb_substr($level->getName(), 0, 33) . ' (copie)', $level->getWidth(),
             $level->getHeight(), $level->getBlocks(), $level->getStart(), $level->getObjects());
         $copy->setThumb($level->getThumb());
+        $copy->setMusic($level->getMusic());
         $this->em->persist($copy);
         $this->em->flush();
 
@@ -191,7 +249,8 @@ class EditorController extends AbstractController
         if (count($this->tilesets->ofUser($user)) >= self::MAX_EACH) return $this->back('Tu as déjà %n% jeux de tiles.', self::MAX_EACH);
         $from = $request->request->getInt('from') ? $this->tilesets->find($request->request->getInt('from')) : null;
         if ($from instanceof Tileset && $from->canUse($user)) {
-            $tileset = new Tileset($user, mb_substr($from->getName(), 0, 33) . ' (copie)', $from->getImage(), $from->getSolidity());
+            $tileset = new Tileset($user, mb_substr($from->getName(), 0, 33) . ' (copie)', $from->getImage(), $from->getSolidity(),
+                $from->getBehaviour(), $from->getStyle());
         } else {
             // one empty block: the editor adds the others
             $tileset = new Tileset($user, EditorData::name($request->request->get('name')) ?? 'TILES', self::emptySheet(1), [0]);
@@ -221,6 +280,7 @@ class EditorController extends AbstractController
             'edit' => true,
             'used' => $this->tilesets->usedBy($tileset),
             'usable' => array_filter($this->tilesets->usable($this->user()), fn(Tileset $t) => $t !== $tileset),
+            'behaviours' => EditorData::BEHAVIOURS,
         ]);
     }
 
@@ -251,7 +311,7 @@ class EditorController extends AbstractController
         if (strlen($request->getContent()) > Tileset::MAX_PNG * 2) return $this->json(['error' => 'too big'], 413);
         $body = json_decode($request->getContent(), true);
         $name = is_array($body) ? EditorData::name($body['name'] ?? null) : null;
-        $blocks = is_array($body) ? EditorData::blocks($body['image'] ?? null, $body['solidity'] ?? null) : null;
+        $blocks = is_array($body) ? EditorData::blocks($body['image'] ?? null, $body['solidity'] ?? null, $body['behaviour'] ?? []) : null;
         if ($name === null || $blocks === null) return $this->json(['error' => 'invalid'], 400);
         $tileset->setName($name);
         $tileset->setPublic(!empty($body['public']));
@@ -319,6 +379,7 @@ class EditorController extends AbstractController
             'blocks' => base64_encode($level->getBlocks()),
             'start' => $level->getStart(),
             'objects' => $level->getObjects(),
+            'music' => $level->getMusic(),
             'tileset' => $this->tilesetData($level->getTileset()),
         ];
     }
@@ -331,6 +392,7 @@ class EditorController extends AbstractController
             'public' => $tileset->isPublic(),
             'zone' => $tileset->getZone(),
             'solidity' => $tileset->getSolidity(),
+            'behaviour' => $tileset->getBehaviour(),
             'image' => $this->generateUrl('tileset_png', ['id' => $tileset->getId(), 'v' => $tileset->getUpdatedAt()->getTimestamp()]),
         ];
     }

@@ -22,6 +22,7 @@
                 </p>
             </div>
             <div class="lv-actions">
+                <a class="play small lv-play" href="{{ path('level_play', {id: level.id}) }}">▶ {{ 'Jouer'|trans }}</a>
                 <button type="button" class="pill-button" data-zoom="0.5" aria-label="{{ 'Dézoomer'|trans }}">−</button>
                 <button type="button" class="pill-button" data-zoom="2" aria-label="{{ 'Zoomer'|trans }}">+</button>
                 <label class="small"><input type="checkbox" data-toggle="collisions"> {{ 'Collisions'|trans }}</label>
@@ -47,11 +48,14 @@
              data-tileset-page="{{ path('tileset', {id: 0})|replace({'/0': '/ID'}) }}"
              data-token="{{ csrf_token('editor') }}" data-sonic="{{ asset('img/sonics.png') }}"
              data-shapes="{{ asset('data/solidity-shapes.json') }}"
-             data-objects="{{ objects|json_encode }}"
+             data-objects="{{ objects|json_encode }}" data-play="{{ path('level_play', {id: level.id}) }}"
              data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans, error: 'Erreur'|trans, block: 'bloc'|trans}|json_encode }}">
         <div class="ed-bar">
             <input type="text" name="name" value="{{ level.name }}" maxlength="40" aria-label="{{ 'Nom'|trans }}">
             <label><input type="checkbox" name="public" {{ level.public ? 'checked' }}> {{ 'Public'|trans }}</label>
+            <label>♪ <select name="music" aria-label="{{ 'Musique'|trans }}">
+                {% for index, name in musics %}<option value="{{ index }}"{% if index == level.music %} selected{% endif %}>{{ name|trans }}</option>{% endfor %}
+            </select></label>
             <span class="ed-sep"></span>
             <button type="button" class="pill-button ed-undo" title="Ctrl+Z">↶</button>
             <button type="button" class="pill-button ed-redo" title="Ctrl+Y">↷</button>
@@ -63,6 +67,7 @@
             <span class="ed-sep"></span>
             <span class="ed-status" role="status"></span>
             <a class="pill-button" href="{{ path('level', {id: level.id}) }}" target="_blank">{{ 'Voir'|trans }}</a>
+            <button type="button" class="pill-button ed-test" title="{{ 'Enregistre, puis ouvre le jeu sur ce niveau'|trans }}">▶ {{ 'Tester'|trans }}</button>
             <button type="button" class="play small ed-save" title="Ctrl+S">{{ 'Enregistrer'|trans }}</button>
         </div>
         <div class="ed-main">

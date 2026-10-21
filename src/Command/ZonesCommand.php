@@ -23,11 +23,13 @@ final class ZonesCommand
             $png = (string) file_get_contents($zone['file']);
             $tileset = $this->tilesets->findOneBy(['zone' => $key]);
             if ($tileset === null) {
-                $this->em->persist($tileset = new Tileset(null, $zone['name'], $png, $zone['solidity']));
+                $this->em->persist($tileset = new Tileset(null, $zone['name'], $png, $zone['solidity'], $zone['behaviour'], $zone['sp']));
                 $tileset->setZone($key);
                 $tileset->setPublic(true);
-            } elseif ($tileset->getImage() !== $png || $tileset->getSolidity() !== $zone['solidity']) {
-                $tileset->setBlocks($png, $zone['solidity']);
+            } elseif ($tileset->getImage() !== $png || $tileset->getSolidity() !== $zone['solidity']
+                || $tileset->getBehaviour() !== $zone['behaviour'] || $tileset->getStyle() !== $zone['sp']) {
+                $tileset->setBlocks($png, $zone['solidity'], $zone['behaviour']);
+                $tileset->setStyle($zone['sp']);
             }
         }
         $this->em->flush();

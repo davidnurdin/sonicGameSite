@@ -497,3 +497,7 @@ main.full { max-width: none; padding: 0 12px 24px; }
 .te-shape.on { border-color: var(--yellow); }
 .te-props label { display: flex; align-items: center; gap: 6px; }
 @media (max-width: 1250px) { .te-main { grid-template-columns: 1fr 1fr; } .te-props { grid-column: 1 / -1; } }
+
+.lv-actions .play.small, .lv-play { margin: 0; padding: 8px 20px; font-size: 17px; border-radius: 10px; }
+.pill-button.play-pill { background: var(--yellow); color: var(--ink); }
+.ed-bar select { padding: 4px 6px; border-radius: 6px; border: 0; font-size: 14px; }

@@ -41,7 +41,7 @@
              data-token="{{ csrf_token('editor') }}" data-shapes="{{ asset('data/solidity-shapes.json') }}"
              data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans,
                  error: 'Erreur'|trans, block: 'Bloc'|trans, shape: 'Forme'|trans, copied: 'Bloc copié'|trans,
-                 full: '256 blocs au plus'|trans, imported: '%n% blocs ajoutés'|trans}|json_encode }}">
+                 full: '256 blocs au plus'|trans, imported: '%n% blocs ajoutés'|trans, other: 'autre'|trans}|json_encode }}">
         <div class="ed-bar">
             <input type="text" name="name" value="{{ tileset.name }}" maxlength="40" aria-label="{{ 'Nom'|trans }}">
             <label><input type="checkbox" name="public" {{ tileset.public ? 'checked' }}> {{ 'Public'|trans }}</label>
@@ -99,6 +99,11 @@
                 <h3>{{ 'Collision'|trans }}</h3>
                 <label class="small"><input type="checkbox" data-toggle="shape" checked> {{ 'montrer sur le dessin'|trans }}</label>
                 <label class="small"><input type="checkbox" name="front"> {{ 'Devant Sonic (Sonic passe derrière)'|trans }}</label>
+                <label class="small">{{ 'Comportement'|trans }}
+                    <select name="behaviour">
+                        {% for value, name in behaviours %}<option value="{{ value }}">{{ name|trans }}</option>{% endfor %}
+                    </select></label>
+                <p class="small muted">{{ 'Les blocs 121, 122 et 123 sont des anneaux (à gauche, à droite, les deux), dessinés sur le bloc 120.'|trans }}</p>
                 <p class="small muted">{{ 'En rouge : là où Sonic marche (les formes du jeu).'|trans }}</p>
                 <div class="te-shapes"></div>
                 <form method="post" action="{{ path('tileset_delete', {id: tileset.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
