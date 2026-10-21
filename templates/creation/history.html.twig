@@ -4,7 +4,7 @@
 {% set routes = constant('App\\Service\\Creations::ROUTES')[kind] %}
 {% set actions = {
     create: 'Création', fork: 'Fork', save: 'Enregistrement', restore: 'Version reprise',
-    forked: 'Forké', member: 'Participant ajouté', unmember: 'Participant retiré', delete: 'Suppression',
+    forked: 'Forké', member: 'Participant ajouté', unmember: 'Participant retiré', trash: 'Mis à la corbeille', untrash: 'Restauré', delete: 'Supprimé pour de bon',
 } %}
 {% block title %}{{ 'Historique'|trans }} · {{ name }} · Sonic PHP{% endblock %}
 {% block robots %}noindex{% endblock %}
@@ -18,7 +18,7 @@
             <a href="{{ path(routes[0], {id: id}) }}">{{ 'Voir'|trans }}</a>
             {% if canEdit %}· <a href="{{ path(routes[1], {id: id}) }}">{{ 'Ouvrir dans l\'éditeur'|trans }}</a>{% endif %}
         {% else %}
-            {{ 'Supprimé : il ne reste que son historique.'|trans }}
+            {{ 'Supprimé pour de bon : il ne reste que son historique.'|trans }}
         {% endif %}
     </p>
     {% if revisions is empty %}<p class="muted">{{ 'Rien dans l\'historique pour le moment.'|trans }}</p>{% endif %}

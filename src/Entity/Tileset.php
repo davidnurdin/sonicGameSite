@@ -16,6 +16,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'tileset')]
 class Tileset
 {
+    use Trashable;
+
     public const MAX = 256;
     public const COLUMNS = 16;
     public const SIZE = 32;
@@ -133,6 +135,6 @@ class Tileset
     /** Anyone may see it and build a level with it. */
     public function canUse(?User $user): bool
     {
-        return $this->public || $this->isOwnedBy($user);
+        return !$this->isTrashed() && ($this->public || $this->isOwnedBy($user));
     }
 }

@@ -30,6 +30,8 @@ final class Creations
     ];
     /** Someone is in an editor if it asked within these seconds (editor-live.js asks every 5). */
     private const PRESENT = 15;
+    /** How long a creation stays in its owner's trash before it is deleted for good. */
+    public const TRASH_DAYS = 30;
 
     public function __construct(
         private EntityManagerInterface $em,
@@ -57,7 +59,7 @@ final class Creations
     /** The owner, or a player he added. */
     public function canEdit(object $creation, ?User $user): bool
     {
-        if ($user === null || ($creation instanceof Tileset && $creation->getZone() !== null)) return false;
+        if ($user === null || $creation->isTrashed() || ($creation instanceof Tileset && $creation->getZone() !== null)) return false;
 
         return $creation->isOwnedBy($user) || $this->isMember($creation, $user);
     }
@@ -65,6 +67,8 @@ final class Creations
     /** Its page: public, or its owner and his players. */
     public function canSee(object $creation, ?User $user): bool
     {
+        // in the trash: only its owner (to take it out)
+        if ($creation->isTrashed()) return $creation->isOwnedBy($user);
         // tiles and sprites: also those of a public level (it shows them)
         $public = match (true) {
             $creation instanceof Level, $creation instanceof Sound => $creation->canSee($user),
@@ -80,6 +84,64 @@ final class Creations
         $forks = $this->em->getRepository($creation::class)->findBy(['forkedFrom' => $creation], ['id' => 'ASC']);
 
         return array_values(array_filter($forks, fn(object $fork) => $this->canSee($fork, $user)));
+    }
+
+    /** Its owner puts it in his trash: nobody else sees it, nobody can use it in a new level (those made with it keep it). */
+    public function trash(object $creation, User $user): void
+    {
+        $creation->setTrashedAt(new \DateTimeImmutable());
+        $this->record($creation, $user, 'trash');
+        $this->em->flush();
+    }
+
+    /** Back from the trash, as it was. */
+    public function untrash(object $creation, User $user): void
+    {
+        $creation->setTrashedAt(null);
+        $this->record($creation, $user, 'untrash');
+        $this->em->flush();
+    }
+
+    /**
+     * Deleted for good (its history stays; its forks stay, without the link to it). A set of tiles that levels
+     * use (even in a trash) cannot be: false.
+     */
+    public function purge(object $creation, ?User $user): bool
+    {
+        if ($creation instanceof Tileset && $this->em->getRepository(Tileset::class)->usedBy($creation) > 0) return false;
+        $this->record($creation, $user, 'delete');
+        $this->em->remove($creation);
+        $this->em->flush();
+
+        return true;
+    }
+
+    /** @return list<array{kind: string, creation: object}> what $user has in his trash, the latest put first */
+    public function trashOf(User $user): array
+    {
+        $out = [];
+        foreach (self::KINDS as $kind => $class) {
+            $list = $this->em->getRepository($class)->createQueryBuilder('c')->where('c.user = :user AND c.trashedAt IS NOT NULL')
+                ->setParameter('user', $user)->getQuery()->getResult();
+            foreach ($list as $creation) $out[] = ['kind' => $kind, 'creation' => $creation];
+        }
+        usort($out, fn(array $a, array $b) => $b['creation']->getTrashedAt() <=> $a['creation']->getTrashedAt());
+
+        return $out;
+    }
+
+    /** What has been in a trash for more than TRASH_DAYS days ($user: only his), deleted: how many. */
+    public function purgeOld(?User $user = null): int
+    {
+        $before = new \DateTimeImmutable('-' . self::TRASH_DAYS . ' days');
+        $deleted = 0;
+        foreach (self::KINDS as $class) {
+            $qb = $this->em->getRepository($class)->createQueryBuilder('c')->where('c.trashedAt < :before')->setParameter('before', $before);
+            if ($user !== null) $qb->andWhere('c.user = :user')->setParameter('user', $user);
+            foreach ($qb->getQuery()->getResult() as $creation) $deleted += (int) $this->purge($creation, null);
+        }
+
+        return $deleted;
     }
 
     /** @return list<Member> */

@@ -138,6 +138,11 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
   l'éditeur (cache, 15 s). Il dit quand quelqu'un d'autre a enregistré. Chaque enregistrement envoie la version
   dont l'éditeur est parti : si quelqu'un a enregistré depuis, le site répond 409, et le joueur choisit de
   recharger ou d'écraser (`force` ; l'autre version reste dans l'historique).
+- **Corbeille** (`/corbeille`, `Trashable`) : supprimer une création la met dans la corbeille de son créateur
+  (`trashed_at`). Personne d'autre ne la voit, on ne peut plus la mettre dans un nouveau niveau ; les niveaux
+  déjà faits avec la gardent, ses forks restent. Le créateur la restaure ou la supprime pour de bon (des tiles
+  qui servent encore à des niveaux ne peuvent pas l'être). Au bout de 30 jours, `app:trash` (au démarrage du
+  conteneur, et à l'ouverture d'une corbeille) la supprime pour de bon ; son historique reste.
 - **Historique complet** (`Revision`, `/niveau|tiles|sprites|son/{id}/historique`) : chaque action (création,
   fork, enregistrement, version reprise, joueur ajouté ou retiré, suppression), qui, quand, ce qui a changé en
   mots (`Creations::changes` : blocs, objets, dessin des blocs lu dans le PNG par `Png`, notes…) et, pour

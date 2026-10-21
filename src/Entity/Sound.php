@@ -16,6 +16,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'sound')]
 class Sound
 {
+    use Trashable;
+
     public const MUSIC = 'music';
     public const SFX = 'sfx';
 
@@ -88,6 +90,6 @@ class Sound
 
     public function canSee(?User $user): bool
     {
-        return $this->public || $this->isOwnedBy($user);
+        return !$this->isTrashed() && ($this->public || $this->isOwnedBy($user));
     }
 }

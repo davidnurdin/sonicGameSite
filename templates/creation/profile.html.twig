@@ -5,7 +5,7 @@
 {% set kinds = {level: 'Niveau', tileset: 'Tiles', sprites: 'Sprites', sound: 'Son'} %}
 {% set actions = {
     create: 'a créé', fork: 'a forké', save: 'a enregistré', restore: 'a repris une version de',
-    forked: 'a forké', member: 'a ajouté un participant à', unmember: 'a retiré un participant de', delete: 'a supprimé',
+    forked: 'a forké', member: 'a ajouté un participant à', unmember: 'a retiré un participant de', trash: 'a mis à la corbeille', untrash: 'a restauré', delete: 'a supprimé',
 } %}
 {% block title %}{{ player.username }} · Sonic PHP{% endblock %}
 {% block description %}{{ 'Les niveaux, tiles, sprites et sons de %name% sur Sonic PHP.'|trans({'%name%': player.username}) }}{% endblock %}

@@ -133,9 +133,10 @@ class SoundController extends AbstractController
     public function delete(Sound $sound, Request $request): Response
     {
         if ($sound->isOwnedBy($this->user()) && $this->isCsrfTokenValid('editor', (string) $request->request->get('_token'))) {
-            $this->creations->record($sound, $this->user(), 'delete');
-            $this->em->remove($sound);
-            $this->em->flush();
+            $this->creations->trash($sound, $this->user());
+            $this->addFlash('trash', 'Mis à la corbeille.');
+
+            return $this->redirectToRoute('trash');
         }
 
         return $this->redirectToRoute('editor');

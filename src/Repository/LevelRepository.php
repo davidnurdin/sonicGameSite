@@ -18,7 +18,7 @@ class LevelRepository extends ServiceEntityRepository
     /** @return list<Level> */
     public function ofUser(User $user): array
     {
-        return $this->createQueryBuilder('l')->addSelect('t')->join('l.tileset', 't')->where('l.user = :user')
+        return $this->createQueryBuilder('l')->addSelect('t')->join('l.tileset', 't')->where('l.user = :user AND l.trashedAt IS NULL')
             ->setParameter('user', $user)->orderBy('l.updatedAt', 'DESC')->getQuery()->getResult();
     }
 
@@ -29,10 +29,10 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function publicPage(int $page, int $perPage): array
     {
-        $count = (int) $this->createQueryBuilder('l')->select('COUNT(l.id)')->where('l.public = true')
+        $count = (int) $this->createQueryBuilder('l')->select('COUNT(l.id)')->where('l.public = true AND l.trashedAt IS NULL')
             ->getQuery()->getSingleScalarResult();
         $list = $this->createQueryBuilder('l')->addSelect('u', 't')->join('l.user', 'u')->join('l.tileset', 't')
-            ->where('l.public = true')->orderBy('l.updatedAt', 'DESC')
+            ->where('l.public = true AND l.trashedAt IS NULL')->orderBy('l.updatedAt', 'DESC')
             ->setFirstResult(($page - 1) * $perPage)->setMaxResults($perPage)->getQuery()->getResult();
 
         return [$list, $count];
@@ -46,7 +46,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function gamePage(?User $user, int $page, int $perPage): array
     {
-        $where = $user !== null ? 'l.public = true OR l.user = :me' : 'l.public = true';
+        $where = ($user !== null ? '(l.public = true OR l.user = :me)' : 'l.public = true') . ' AND l.trashedAt IS NULL';
         $count = $this->createQueryBuilder('l')->select('COUNT(l.id)')->where($where);
         $list = $this->createQueryBuilder('l')->addSelect('u')->join('l.user', 'u')->where($where);
         if ($user !== null) {

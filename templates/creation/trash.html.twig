@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+{% import '_parts/people.html.twig' as people %}
+
+{% set kinds = {level: 'Niveau', tileset: 'Tiles', sprites: 'Sprites', sound: 'Son'} %}
+{% block title %}{{ 'Corbeille'|trans }} · Sonic PHP{% endblock %}
+{% block robots %}noindex{% endblock %}
+{% block main_class %}wide{% endblock %}
+
+{% block body %}
+<section class="panel wide">
+    <h1>{{ 'Corbeille'|trans }}</h1>
+    <p class="muted">{{ 'Ce que tu as supprimé : personne d\'autre ne le voit, et on ne peut plus le mettre dans un nouveau niveau. Les niveaux déjà faits avec le gardent, et les forks des autres restent. Au bout de %n% jours, c\'est supprimé pour de bon (l\'historique reste).'|trans({'%n%': days}) }}</p>
+    {% if items is empty %}
+        <p class="muted">{{ 'Ta corbeille est vide.'|trans }}</p>
+    {% else %}
+        <ul class="cr-trash-list">
+            {% for item in items %}
+                {% set c = item.creation %}
+                <li>
+                    <div>
+                        <b>{{ c.name }}</b> <span class="muted small">{{ kinds[item.kind]|trans }}</span><br>
+                        <small class="muted">{{ 'Mis à la corbeille le %date%'|trans({'%date%': c.trashedAt|date(app.request.locale == 'fr' ? 'd/m/Y H:i' : 'Y-m-d H:i', 'Europe/Paris')}) }}
+                            · {{ 'supprimé pour de bon le %date%'|trans({'%date%': c.trashedAt|date_modify('+' ~ days ~ ' days')|date(app.request.locale == 'fr' ? 'd/m/Y' : 'Y-m-d')}) }}</small>
+                    </div>
+                    <form method="post" action="{{ path('trash_action', {kind: item.kind, id: c.id}) }}" onsubmit="return event.submitter.value !== 'purge' || confirm(this.dataset.confirm)"
+                          data-confirm="{{ 'Supprimer « %name% » pour de bon ? On ne pourra plus le restaurer.'|trans({'%name%': c.name}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('trash') }}">
+                        <a class="pill-button" href="{{ path(constant('App\\Service\\Creations::ROUTES')[item.kind][0], {id: c.id}) }}">{{ 'Voir'|trans }}</a>
+                        <button class="play small" type="submit" name="do" value="restore">{{ 'Restaurer'|trans }}</button>
+                        <button class="pill-button danger" type="submit" name="do" value="purge">{{ 'Supprimer pour de bon'|trans }}</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+        <form method="post" action="{{ path('trash_empty') }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ 'Tout supprimer pour de bon ?'|trans }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('trash') }}">
+            <button class="pill-button danger" type="submit">{{ 'Vider la corbeille'|trans }}</button>
+        </form>
+    {% endif %}
+</section>
+{% endblock %}

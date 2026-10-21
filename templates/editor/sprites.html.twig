@@ -8,6 +8,7 @@
 {% import '_parts/people.html.twig' as people %}
 {% block body %}
 {% if not edit %}
+    {% include '_parts/trashed.html.twig' with {creation: set} only %}
     <section class="panel wide">
         <div class="lv-head">
             <div>
@@ -111,9 +112,9 @@
                 <p class="sp-pos small muted"></p>
                 {% if set.isOwnedBy(app.user) %}
                 <form method="post" action="{{ path('sprites_delete', {id: set.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
-                      data-confirm="{{ 'Supprimer ces sprites pour de bon ? Les niveaux qui les utilisent reprendront ceux du jeu.'|trans }}">
+                      data-confirm="{{ 'Mettre ces sprites à la corbeille ? Tu pourras les restaurer pendant 30 jours. Les niveaux qui les utilisent les gardent.'|trans }}">
                     <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
-                    <button class="pill-button danger" type="submit">{{ 'Supprimer ces sprites'|trans }}</button>
+                    <button class="pill-button danger" type="submit">{{ 'Mettre à la corbeille'|trans }}</button>
                 </form>
                 {% endif %}
             </aside>

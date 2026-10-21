@@ -1,0 +1,12 @@
+{# The page of a creation in its owner's trash (only he sees it): take it back, or delete it for good. #}
+{% if creation.trashed %}
+    {% set kind = creation_info(creation).kind %}
+    <section class="panel wide trashed">
+        <p><b>{{ 'Dans ta corbeille'|trans }}</b> — {{ 'personne d\'autre ne la voit. Elle sera supprimée pour de bon le %date%.'|trans({'%date%': creation.trashedAt|date_modify('+' ~ constant('App\\Service\\Creations::TRASH_DAYS') ~ ' days')|date(app.request.locale == 'fr' ? 'd/m/Y' : 'Y-m-d')}) }}</p>
+        <form method="post" action="{{ path('trash_action', {kind: kind, id: creation.id}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('trash') }}">
+            <button class="play small" type="submit" name="do" value="restore">{{ 'Restaurer'|trans }}</button>
+            <a class="pill-button" href="{{ path('trash') }}">{{ 'La corbeille'|trans }}</a>
+        </form>
+    </section>
+{% endif %}

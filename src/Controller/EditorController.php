@@ -196,7 +196,7 @@ class EditorController extends AbstractController
     {
         $response = new JsonResponse();
         $response->headers->set('Access-Control-Allow-Origin', '*');
-        if (!$level->isPublic() && !$tokens->isValid($level, (string) $request->query->get('lt'))) {
+        if ($level->isTrashed() || (!$level->isPublic() && !$tokens->isValid($level, (string) $request->query->get('lt')))) {
             return $response->setData(['error' => 'not found'])->setStatusCode(404);
         }
         $tileset = $level->getTileset();
@@ -327,9 +327,9 @@ class EditorController extends AbstractController
     public function deleteLevel(Level $level, Request $request): Response
     {
         if ($level->isOwnedBy($this->user()) && $this->isCsrfTokenValid('editor', (string) $request->request->get('_token'))) {
-            $this->creations->record($level, $this->user(), 'delete');
-            $this->em->remove($level);
-            $this->em->flush();
+            $this->creations->trash($level, $this->user());
+
+            return $this->toTrash();
         }
 
         return $this->redirectToRoute('editor');
@@ -436,13 +436,10 @@ class EditorController extends AbstractController
         if (!$tileset->isOwnedBy($this->user()) || !$this->isCsrfTokenValid('editor', (string) $request->request->get('_token'))) {
             return $this->redirectToRoute('editor');
         }
-        // the levels made with it (even other players') need it
-        if ($this->tilesets->usedBy($tileset) > 0) return $this->back('Ces tiles servent à des niveaux : elles ne peuvent pas être supprimées.');
-        $this->creations->record($tileset, $this->user(), 'delete');
-        $this->em->remove($tileset);
-        $this->em->flush();
+        // in the trash: the levels made with it (even other players') keep it
+        $this->creations->trash($tileset, $this->user());
 
-        return $this->redirectToRoute('editor');
+        return $this->toTrash();
     }
 
     // ----
@@ -471,7 +468,7 @@ class EditorController extends AbstractController
         $out = [];
         foreach ($this->em->getRepository(\App\Entity\Member::class)->findBy(['user' => $user], ['id' => 'DESC']) as $member) {
             $creation = $this->creations->find($member->getKind(), $member->getCreationId());
-            if ($creation !== null) $out[] = ['kind' => $member->getKind(), 'creation' => $creation];
+            if ($creation !== null && !$creation->isTrashed()) $out[] = ['kind' => $member->getKind(), 'creation' => $creation];
         }
 
         return $out;
@@ -480,6 +477,13 @@ class EditorController extends AbstractController
     private function apiToken(Request $request): bool
     {
         return $this->isCsrfTokenValid('editor', (string) $request->headers->get('X-CSRF-Token'));
+    }
+
+    private function toTrash(): Response
+    {
+        $this->addFlash('trash', 'Mis à la corbeille.');
+
+        return $this->redirectToRoute('trash');
     }
 
     private function back(string $message, ?int $n = null): Response

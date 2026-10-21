@@ -18,7 +18,7 @@ class SoundRepository extends ServiceEntityRepository
     /** @return list<Sound> */
     public function ofUser(User $user): array
     {
-        return $this->createQueryBuilder('s')->where('s.user = :user')->setParameter('user', $user)
+        return $this->createQueryBuilder('s')->where('s.user = :user AND s.trashedAt IS NULL')->setParameter('user', $user)
             ->orderBy('s.updatedAt', 'DESC')->getQuery()->getResult();
     }
 
@@ -34,7 +34,7 @@ class SoundRepository extends ServiceEntityRepository
     /** @return list<Sound> the public ones, the latest first */
     public function publicOnes(int $max = 60): array
     {
-        return $this->createQueryBuilder('s')->addSelect('u')->join('s.user', 'u')->where('s.public = true')
+        return $this->createQueryBuilder('s')->addSelect('u')->join('s.user', 'u')->where('s.public = true AND s.trashedAt IS NULL')
             ->orderBy('s.updatedAt', 'DESC')->setMaxResults($max)->getQuery()->getResult();
     }
 }

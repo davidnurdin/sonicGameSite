@@ -16,6 +16,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'sprite_set')]
 class SpriteSet
 {
+    use Trashable;
+
     /** The sheets of the game a set may draw again: name => [width, height, label] (the game's LevelManager::SPRITE_SHEETS). */
     public const SHEETS = [
         'sonic' => [435, 128, 'Sonic'],
@@ -102,7 +104,7 @@ class SpriteSet
     /** Anyone may see it and use it in a level. */
     public function canUse(?User $user): bool
     {
-        return $this->public || $this->isOwnedBy($user);
+        return !$this->isTrashed() && ($this->public || $this->isOwnedBy($user));
     }
 
     /** A PNG of exactly $width x $height pixels (its header: there is no GD in the image of the site). */

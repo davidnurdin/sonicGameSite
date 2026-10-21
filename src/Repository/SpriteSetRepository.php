@@ -19,14 +19,14 @@ class SpriteSetRepository extends ServiceEntityRepository
     /** @return list<SpriteSet> */
     public function ofUser(User $user): array
     {
-        return $this->createQueryBuilder('s')->where('s.user = :user')->setParameter('user', $user)
+        return $this->createQueryBuilder('s')->where('s.user = :user AND s.trashedAt IS NULL')->setParameter('user', $user)
             ->orderBy('s.updatedAt', 'DESC')->getQuery()->getResult();
     }
 
     /** @return list<SpriteSet> the public sets, the latest first */
     public function publicOnes(int $max = 60): array
     {
-        return $this->createQueryBuilder('s')->addSelect('u')->join('s.user', 'u')->where('s.public = true')
+        return $this->createQueryBuilder('s')->addSelect('u')->join('s.user', 'u')->where('s.public = true AND s.trashedAt IS NULL')
             ->orderBy('s.updatedAt', 'DESC')->setMaxResults($max)->getQuery()->getResult();
     }
 
@@ -43,7 +43,7 @@ class SpriteSetRepository extends ServiceEntityRepository
     public function inPublicLevel(SpriteSet $set): bool
     {
         return (bool) $this->getEntityManager()->createQueryBuilder()->select('COUNT(l.id)')->from(Level::class, 'l')
-            ->where('l.spriteSet = :s')->andWhere('l.public = true')->setParameter('s', $set)
+            ->where('l.spriteSet = :s')->andWhere('l.public = true AND l.trashedAt IS NULL')->setParameter('s', $set)
             ->getQuery()->getSingleScalarResult();
     }
 

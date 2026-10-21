@@ -16,6 +16,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'level_public', columns: ['public', 'updated_at'])]
 class Level
 {
+    use Trashable;
+
     public const MIN_WIDTH = 8;
     public const MIN_HEIGHT = 6;
     public const MAX_SIDE = 256;
@@ -159,6 +161,6 @@ class Level
 
     public function canSee(?User $user): bool
     {
-        return $this->public || $this->isOwnedBy($user);
+        return !$this->isTrashed() && ($this->public || $this->isOwnedBy($user));
     }
 }

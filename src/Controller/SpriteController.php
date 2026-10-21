@@ -137,11 +137,12 @@ class SpriteController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function delete(SpriteSet $set, Request $request): Response
     {
-        // the levels using it go back to the game's sprites
+        // in the trash: the levels using it keep it (deleted for good: they go back to the game's sprites)
         if ($set->isOwnedBy($this->user()) && $this->isCsrfTokenValid('editor', (string) $request->request->get('_token'))) {
-            $this->creations->record($set, $this->user(), 'delete');
-            $this->em->remove($set);
-            $this->em->flush();
+            $this->creations->trash($set, $this->user());
+            $this->addFlash('trash', 'Mis à la corbeille.');
+
+            return $this->redirectToRoute('trash');
         }
 
         return $this->redirectToRoute('editor');

@@ -558,3 +558,9 @@ main.full { max-width: none; padding: 0 12px 24px; }
 .cr-history ul { margin: 4px 0 0; padding-left: 18px; }
 .ed-live { margin: 6px 0; padding: 8px 12px; border-radius: 8px; background: rgba(255, 212, 0, .16); border: 1px solid var(--yellow); }
 .ed-live-line { display: flex; justify-content: space-between; gap: 12px; margin: 2px 0 6px; min-height: 1.2em; }
+.trashed { border: 2px dashed var(--yellow); }
+.trashed form { display: flex; gap: 8px; flex-wrap: wrap; }
+.cr-trash { margin-top: 14px; }
+.cr-trash-list { list-style: none; margin: 0 0 16px; padding: 0; }
+.cr-trash-list li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, .12); }
+.cr-trash-list form { display: flex; gap: 6px; flex-wrap: wrap; }

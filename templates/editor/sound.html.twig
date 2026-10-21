@@ -9,6 +9,7 @@
 {% import '_parts/people.html.twig' as people %}
 {% block body %}
 {% if not edit %}
+    {% include '_parts/trashed.html.twig' with {creation: sound} only %}
     <section class="panel wide" data-sound-player data-kind="{{ sound.kind }}" data-sound="{{ sound.data|json_encode }}" data-name="{{ sound.name }}">
         <div class="lv-head">
             <div>
@@ -127,9 +128,9 @@
 {% macro delete_form(sound) %}
     {% if sound.isOwnedBy(app.user) %}
     <form method="post" action="{{ path('sound_delete', {id: sound.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
-          data-confirm="{{ 'Supprimer ce son pour de bon ?'|trans }}">
+          data-confirm="{{ 'Mettre ce son à la corbeille ? Tu pourras le restaurer pendant 30 jours. Les niveaux qui l\'utilisent le gardent.'|trans }}">
         <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
-        <button class="pill-button danger" type="submit">{{ 'Supprimer'|trans }}</button>
+        <button class="pill-button danger" type="submit">{{ 'Mettre à la corbeille'|trans }}</button>
     </form>
     {% endif %}
 {% endmacro %}

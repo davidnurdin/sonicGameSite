@@ -19,7 +19,7 @@ class Revision
 {
     /** Its content changed: create (new, or forked from another), save, restore (an old version saved again). */
     public const CONTENT = ['create', 'fork', 'save', 'restore'];
-    public const ACTIONS = ['create', 'fork', 'save', 'restore', 'forked', 'member', 'unmember', 'delete'];
+    public const ACTIONS = ['create', 'fork', 'save', 'restore', 'forked', 'member', 'unmember', 'trash', 'untrash', 'delete'];
 
     #[ORM\Id]
     #[ORM\GeneratedValue]

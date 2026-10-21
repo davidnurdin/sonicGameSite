@@ -25,14 +25,14 @@ class TilesetRepository extends ServiceEntityRepository
     /** @return list<Tileset> */
     public function ofUser(User $user): array
     {
-        return $this->createQueryBuilder('t')->where('t.user = :user')->setParameter('user', $user)
+        return $this->createQueryBuilder('t')->where('t.user = :user AND t.trashedAt IS NULL')->setParameter('user', $user)
             ->orderBy('t.updatedAt', 'DESC')->getQuery()->getResult();
     }
 
     /** @return list<Tileset> the public sets of the players (not the zones), the latest first */
     public function publicOnes(int $max = 60): array
     {
-        return $this->createQueryBuilder('t')->addSelect('u')->join('t.user', 'u')->where('t.public = true')
+        return $this->createQueryBuilder('t')->addSelect('u')->join('t.user', 'u')->where('t.public = true AND t.trashedAt IS NULL')
             ->orderBy('t.updatedAt', 'DESC')->setMaxResults($max)->getQuery()->getResult();
     }
 
@@ -49,7 +49,7 @@ class TilesetRepository extends ServiceEntityRepository
     public function inPublicLevel(Tileset $tileset): bool
     {
         return (bool) $this->getEntityManager()->createQueryBuilder()->select('COUNT(l.id)')->from(Level::class, 'l')
-            ->where('l.tileset = :t')->andWhere('l.public = true')->setParameter('t', $tileset)
+            ->where('l.tileset = :t')->andWhere('l.public = true AND l.trashedAt IS NULL')->setParameter('t', $tileset)
             ->getQuery()->getSingleScalarResult();
     }
 

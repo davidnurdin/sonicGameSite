@@ -12,5 +12,6 @@ done
 php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 php bin/console app:zones
 php bin/console app:history
+php bin/console app:trash
 php bin/console cache:warmup
 exec "$@"

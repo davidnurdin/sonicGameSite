@@ -9,6 +9,7 @@
 {% import '_parts/people.html.twig' as people %}
 {% block body %}
 {% if not edit %}
+    {% include '_parts/trashed.html.twig' with {creation: level} only %}
     <section class="panel wide" data-level-viewer data-json="{{ path('level_json', {id: level.id}) }}"
              data-sonic="{{ asset('img/sonics.png') }}" data-shapes="{{ asset('data/solidity-shapes.json') }}"
              data-icons="{{ asset('data/object-icons.json') }}" data-icons-image="{{ asset('img/objects.png') }}"
@@ -173,9 +174,9 @@
                     </ul>
                     {% if level.isOwnedBy(app.user) %}
                     <form method="post" action="{{ path('level_delete', {id: level.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
-                          data-confirm="{{ 'Supprimer ce niveau pour de bon ?'|trans }}">
+                          data-confirm="{{ 'Mettre ce niveau à la corbeille ? Tu pourras le restaurer pendant 30 jours. Ses forks restent.'|trans }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
-                        <button class="pill-button danger" type="submit">{{ 'Supprimer le niveau'|trans }}</button>
+                        <button class="pill-button danger" type="submit">{{ 'Mettre à la corbeille'|trans }}</button>
                     </form>
                     {% endif %}
                 </details>
