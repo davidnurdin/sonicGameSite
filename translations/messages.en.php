@@ -742,4 +742,9 @@ return [
     'Mettre « %name% » à la corbeille ? Tu pourras le restaurer pendant 30 jours. Les forks et les niveaux qui l\'utilisent ne changent pas.' => 'Put “%name%” in the trash? You can restore it for 30 days. Its forks and the levels using it do not change.',
     'Tous mes niveaux (%n%)' => 'All my levels (%n%)',
     'Musiques' => 'Musics',
+    'Meilleurs temps' => 'Best times',
+    'Pas encore de temps : termine-le dans le jeu (connecté à ton compte) pour être le premier.' => 'No time yet: complete it in the game (signed in to your account) to be the first.',
+    'Ton meilleur temps : %t%' => 'Your best time: %t%',
+    'Les temps comptent sur le niveau tel qu\'il est : quand son créateur change ses blocs ou ses objets, le classement repart de zéro. Le fantôme du record court avec toi dans le jeu (option Fantôme).' => 'Times count on the level as it is: when its maker changes its blocks or objects, the ranking starts again. The ghost of the record runs with you in the game (Ghost option).',
+    'Ligne d\'eau' => 'Water line',
 ];

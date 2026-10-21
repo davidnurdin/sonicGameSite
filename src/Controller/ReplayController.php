@@ -9,6 +9,7 @@ use App\Repository\LevelRepository;
 use App\Repository\ReplayRepository;
 use App\Repository\UserRepository;
 use App\Service\Game;
+use App\Service\LevelRecords;
 use App\Service\StatsToken;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -83,6 +84,7 @@ class ReplayController extends AbstractController
         ReplayRepository $replays,
         EntityManagerInterface $em,
         #[Autowire(service: 'limiter.replay')] RateLimiterFactoryInterface $limiter,
+        LevelRecords $records,
     ): Response {
         $response = $this->cors($request, new Response('', Response::HTTP_NO_CONTENT));
         if ($request->isMethod('OPTIONS')) return $response;
@@ -106,6 +108,10 @@ class ReplayController extends AbstractController
             $em->flush();
         } catch (UniqueConstraintViolationException) {
             return $response;   // this match, sent again
+        }
+        // a level of the site completed alone: a best time, if it is his best on the level as it is now
+        if ($replay->getKind() === 'solo' && $replay->getSiteLevel() !== null && ($time = $this->completedTime($gzip)) !== null) {
+            $records->completed($replay->getSiteLevel(), $user, $time[1], $time[0], $replay);
         }
         $replays->keepLatest($user, self::KEEP);
 
@@ -143,6 +149,25 @@ class ReplayController extends AbstractController
         }
 
         return $replay;
+    }
+
+    /**
+     * The time of a level of the site completed alone (the game's timer: "time", or its tally "m:ss.cc") and the
+     * version of the level it was played on (site.version), or null.
+     *
+     * @return array{0: float, 1: string}|null
+     */
+    private function completedTime(string $gzip): ?array
+    {
+        $data = json_decode((string) @gzdecode($gzip, 64 * 1024 * 1024), true);
+        $version = is_array($data) ? ($data['site']['version'] ?? null) : null;
+        if (!is_string($version) || !preg_match('/^[0-9a-f]{16}$/', $version)) return null;
+        $time = $data['time'] ?? null;
+        if (!is_float($time) && !is_int($time) && preg_match('/^(\d{1,2}):(\d\d(?:\.\d{1,2})?)$/', (string) ($data['result'][0][1] ?? ''), $m)) {
+            $time = (int) $m[1] * 60 + (float) $m[2];
+        }
+
+        return is_float($time) || is_int($time) ? [round((float) $time, 2), $version] : null;
     }
 
     /** The game's page may read the answer (it is on another domain): see StatsController. */

@@ -7,6 +7,7 @@ use App\Service\Creations;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use Twig\Attribute\AsTwigFilter;
 use Twig\Attribute\AsTwigFunction;
 
 /** For the pages of the creations of the editors: who made them, where they come from, who works on them (Creations). */
@@ -36,6 +37,13 @@ class CreationExtension
             'canEdit' => $this->creations->canEdit($creation, $user),
             'routes' => Creations::ROUTES[Creations::kind($creation)],
         ];
+    }
+
+    /** A best time: "1:02.35". */
+    #[AsTwigFilter('record_time')]
+    public function recordTime(float $time): string
+    {
+        return \App\Service\LevelRecords::format($time);
     }
 
     /** The level is in the viewer's favourites (one query for the whole page). */

@@ -164,6 +164,15 @@ class Level
         return is_resource($this->blocks) ? (string) stream_get_contents($this->blocks, -1, 0) : (string) $this->blocks;
     }
 
+    /**
+     * What a time is set on: its blocks, start, objects and tiles (not its name, its music...). The best times
+     * (LevelRecord) and the ghosts of the game are those of this version.
+     */
+    public function getContentVersion(): string
+    {
+        return substr(hash('sha256', $this->getBlocks() . '|' . json_encode([$this->width, $this->height, $this->start, $this->objects, $this->tileset->getId()])), 0, 16);
+    }
+
     public function getPlays(): int { return $this->plays; }
     public function addPlay(): void { $this->plays++; }
     public function getVoteCount(): int { return $this->voteCount; }

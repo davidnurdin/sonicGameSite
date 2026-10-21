@@ -28,7 +28,7 @@ final class EditorData
         59 => ['Plateforme haut-bas', 'platform'], 69 => ['Plateforme qui monte', 'platform'],
         22 => ['Lance-flammes', 'hazard'], 26 => ['Sphère électrique', 'hazard'], 61 => ['Boule à pointes', 'hazard'],
         62 => ['Lance', 'hazard'], 63 => ['Lanceur de boules de feu', 'hazard'], 57 => ['Mur à pointes', 'hazard'],
-        33 => ['Bumper', 'other'], 76 => ['Flipper', 'other'], 78 => ['Balance', 'other'], 65 => ['Bulles', 'other'],
+        64 => ['Ligne d\'eau', 'other'], 33 => ['Bumper', 'other'], 76 => ['Flipper', 'other'], 78 => ['Balance', 'other'], 65 => ['Bulles', 'other'],
         29 => ['Interrupteur', 'other'], 30 => ['Porte à interrupteur', 'other'], 19 => ['Porte de téléport', 'other'],
         23 => ['Porte vers la gauche', 'other'], 24 => ['Porte vers la droite', 'other'], 25 => ['Porte', 'other'],
     ];

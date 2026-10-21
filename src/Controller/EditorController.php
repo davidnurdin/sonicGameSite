@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Level;
+use App\Entity\LevelRecord;
 use App\Entity\Sound;
 use App\Entity\SoundAudio;
 use App\Entity\SpriteSet;
@@ -15,10 +16,12 @@ use App\Repository\TilesetRepository;
 use App\Repository\UserRepository;
 use App\Service\Creations;
 use App\Service\LevelRatings;
+use App\Service\LevelRecords;
 use App\Service\EditorData;
 use App\Service\LevelToken;
 use App\Service\SoundData;
 use App\Service\StatsToken;
+use App\Service\TileVariants;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -113,11 +116,12 @@ class EditorController extends AbstractController
     }
 
     #[Route('/niveau/{id}', name: 'level', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function level(Level $level): Response
+    public function level(Level $level, LevelRecords $records, Request $request): Response
     {
         if (!$this->creations->canSee($level, $this->user())) throw $this->createNotFoundException();
 
-        return $this->render('editor/level.html.twig', ['level' => $level, 'edit' => false, 'objects' => $this->objectNames()]);
+        return $this->render('editor/level.html.twig', ['level' => $level, 'edit' => false, 'objects' => $this->objectNames(),
+            'records' => $records->top($level), 'myRecord' => $records->of($level, $this->user()), 'watch' => $this->watchUrl($request)]);
     }
 
     #[Route('/niveau/{id}/editer', name: 'level_edit', requirements: ['id' => '\d+'], methods: ['GET'])]
@@ -192,7 +196,7 @@ class EditorController extends AbstractController
      * and behaviour of its blocks, its tiles (PNG, base64). Public, or with the key of a JOUER link.
      */
     #[Route('/niveau/{id}/jeu.json', name: 'level_game', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function game(Level $level, Request $request, LevelToken $tokens, LevelRatings $ratings): JsonResponse
+    public function game(Level $level, Request $request, LevelToken $tokens, LevelRatings $ratings, LevelRecords $records, TileVariants $variants): JsonResponse
     {
         $response = new JsonResponse();
         $response->headers->set('Access-Control-Allow-Origin', '*');
@@ -215,6 +219,10 @@ class EditorController extends AbstractController
             'blocks' => base64_encode($level->getBlocks()),
             'start' => $level->getStart(),
             'objects' => $level->getObjects(),
+            // what its best times are set on (LevelRecord), and the 5 best: the game shows the first and its ghost
+            'version' => $level->getContentVersion(),
+            'records' => array_map(fn(LevelRecord $r) => ['name' => $r->getUser()->getUsername(), 'time' => $r->getTime(),
+                'replay' => $r->getReplay()?->getId()], $records->top($level, 5)),
             'music' => $level->getMusic(),
             'sp' => $tileset->getStyle(),
             'solidity' => $tileset->getSolidity(),
@@ -223,9 +231,11 @@ class EditorController extends AbstractController
             // its animated blocks: {block: {f: blocks shown in turn, t: frames each}} (Level::loadCustom)
             'animations' => (object) $tileset->getAnimations(),
             // a zone of the game (or a copy with its pictures untouched): the game takes that zone's own pictures,
-            // and their colour cycles (water...)
-            'zone' => $tileset->getGameZone(),
+            // and their colour cycles (water...); else the same made from its picture (TileVariants): cycle
+            // {count, speed, lightning} and tile_variants {"-cycle0": PNG in base64...}
+            'zone' => $variants->gameZone($level),
             'tiles' => base64_encode($tileset->getImage()),
+            ...(fn(array $v) => ['cycle' => $v['cycle'] ?? null, 'tile_variants' => (object) array_map('base64_encode', $v['variants'] ?? [])])($variants->of($level)),
             // its own sprites: {sheet: PNG in base64} (LevelManager::loadCustom)
             'sprites' => (object) ($level->getSpriteSet()?->getSheets() ?? []),
             // its own music and sound effects, as the sound editor rendered them: WAV in base64
@@ -478,6 +488,13 @@ class EditorController extends AbstractController
     }
 
     /** @return array<int, array{0: string, 1: string}> type => name in the page's language, family */
+    /** The game's address that shows a replay again (its id to add), back to this page after. */
+    private function watchUrl(Request $request): string
+    {
+        return $this->gameUrl . (str_contains($this->gameUrl, '?') ? '&' : '?') . http_build_query([
+            'lang' => $request->getLocale(), 'site' => $request->getSchemeAndHttpHost(), 'back' => $request->getUri()]) . '&replay=';
+    }
+
     private function objectNames(): array
     {
         return array_map(fn(array $o) => [$this->translator->trans($o[0]), $o[1]], EditorData::OBJECTS);

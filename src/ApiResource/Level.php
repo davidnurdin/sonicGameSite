@@ -119,6 +119,19 @@ final class Level
     #[ApiProperty(description: 'Combien de joueurs l\'ont mis dans leurs favoris.', example: 7)]
     public int $favourites;
 
+    /** @var list<array{rank: int, player: string, time: float, date: \DateTimeImmutable}> */
+    #[ApiProperty(description: 'Ses 10 meilleurs temps (un par joueur), sur le niveau tel qu\'il est : le classement repart de zéro quand ses blocs '
+        . 'ou ses objets changent.', schema: [
+        'type' => 'array',
+        'items' => ['type' => 'object', 'properties' => [
+            'rank' => ['type' => 'integer', 'example' => 1],
+            'player' => ['type' => 'string', 'example' => 'SONIC'],
+            'time' => ['type' => 'number', 'description' => 'En secondes, comme le chrono du jeu.', 'example' => 62.35],
+            'date' => ['type' => 'string', 'format' => 'date-time'],
+        ]],
+    ])]
+    public array $bestTimes = [];
+
     #[ApiProperty(description: 'Quand il a été créé.')]
     public \DateTimeImmutable $createdAt;
 

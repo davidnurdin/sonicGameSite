@@ -123,7 +123,10 @@ final class Reference
                 'enemy' => 'Badniks: they walk, fly or shoot in the game. Sonic destroys them by jumping on them.',
                 'platform' => 'Platforms that move, swing or fall (the bot of test_level takes them as still).',
                 'hazard' => 'Things that hurt (fire, electric spheres, spiked balls, spears).',
+                'water' => '64 is the water line (only its y counts): everything below it is under water in the game, as in the Labyrinth (Sonic '
+                    . 'must come up or breathe air bubbles, 65, or he drowns; the colours turn underwater). One per level; it bobs up and down slowly.',
             ],
+            'best_times' => 'The players\' best times on a level (its page, the public API) start again when its blocks or objects change.',
         ];
     }
 
@@ -157,8 +160,9 @@ final class Reference
                     . 'surface, 2-3 frames of a few lighter pixels moving, ticks 12.',
                 'others' => 'Lava (2-4 frames of moving bright spots, ticks 10), lights or torches (2 frames, ticks 15-20), flowers swaying (2 frames, ticks 30).',
                 'zones' => 'The zones of the game animate their water, waterfalls and lights with their own colour cycles: a level made with a zone of the game '
-                    . '(or a fork of one whose pictures were not changed) keeps them in the game. Once the pictures of a fork change (a block drawn, '
-                    . 'added or removed), the game shows its own pictures, without these cycles: animate its blocks yourself (animate).',
+                    . 'keeps them in the game, and a fork of one too: its picture is recoloured as the game recolours the zone, so its colours '
+                    . 'that cycle in the zone cycle too (the new blocks too, where they use them). Sky Base keeps its lightning. A tileset made from '
+                    . 'nothing has no cycles: animate its blocks (animate).',
             ],
         ];
     }

@@ -644,3 +644,12 @@ main.full { max-width: none; padding: 0 12px 24px; }
 /* a group of cards inside a section (the musics, the sound effects) */
 .ed-sub { margin: 14px 0 8px; font-size: 16px; }
 .ed-sub:first-of-type { margin-top: 4px; }
+
+/* the best times of a level */
+.lv-records { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-width: 560px; }
+.lv-records li { display: grid; grid-template-columns: 28px 1fr auto auto auto; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 8px; background: rgba(255, 255, 255, .06); }
+.lv-records li.me { background: rgba(255, 212, 0, .16); }
+.lv-records li:first-child .lv-rank { color: var(--yellow); }
+.lv-rank { font-weight: 800; text-align: right; }
+.lv-who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lv-time { font-variant-numeric: tabular-nums; }

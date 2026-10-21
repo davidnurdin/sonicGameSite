@@ -245,6 +245,14 @@ window.LevelView = (() => {
 
         renderObjects(ctx, x0, y0, x1, y1) {
             const scale = ctx.getTransform().a;
+            // the water line (object 64): the game draws all below it under water
+            for (const [type, , y] of this.level.objects) {
+                if (type !== 64) continue;
+                ctx.fillStyle = 'rgba(40, 110, 255, .28)';
+                ctx.fillRect(0, y * SIZE, this.level.width * SIZE, (this.level.height - y) * SIZE);
+                ctx.fillStyle = 'rgba(160, 210, 255, .9)';
+                ctx.fillRect(0, y * SIZE - 1, this.level.width * SIZE, 2);
+            }
             for (const o of this.level.objects) {
                 const [type, x, y] = o;
                 if (x < x0 - 2 || y < y0 - 2 || x > x1 + 1 || y > y1 + 1) continue;

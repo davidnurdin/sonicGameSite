@@ -6,7 +6,7 @@ use App\Service\Creations;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-/** What has been in a trash for more than Creations::TRASH_DAYS days, deleted for good (at each start of the site, and when a trash is opened). */
+/** What has been in a trash for more than Creations::TRASH_DAYS days, deleted for good (at each start of the site, once a day by TrashPurgeSubscriber, and when a trash is opened). */
 #[AsCommand(name: 'app:trash', description: 'Supprime pour de bon ce qui est dans une corbeille depuis trop longtemps')]
 final class TrashCommand
 {

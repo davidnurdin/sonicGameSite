@@ -35,6 +35,7 @@ final class PublicView
         private UrlGeneratorInterface $urls,
         private TranslatorInterface $translator,
         #[Autowire(env: 'GAME_URL')] private string $gameUrl,
+        private \App\Service\LevelRecords $records,
     ) {
     }
 
@@ -77,6 +78,8 @@ final class PublicView
         $dto->score = $level->getScore();
         $dto->plays = $level->getPlays();
         $dto->favourites = $level->getFavourites();
+        $dto->bestTimes = array_map(fn(Entity\LevelRecord $r, int $i) => ['rank' => $i + 1, 'player' => $r->getUser()->getUsername(),
+            'time' => $r->getTime(), 'date' => $r->getCreatedAt()->format(DATE_ATOM)], $top = $this->records->top($level), array_keys($top));
         $dto->createdAt = $level->getCreatedAt();
         $dto->updatedAt = $level->getUpdatedAt();
         $id = ['id' => $level->getId()];

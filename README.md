@@ -34,7 +34,7 @@ Le site de [Sonic PHP](https://github.com/davidnurdin/sonicGamePhp), en ligne su
   après la souris (sur téléphone : là où on touche l'écran). Les nuages sont ceux de Green Hill ;
 - les **éditeurs** : niveaux, tiles (dessin et collisions), sprites, sons et musiques, publics ou privés. Les niveaux se
   jouent dans le jeu (bouton Jouer, ou menu NIVEAUX DU SITE du jeu). Ce qui reste à faire est dans
-  [`TODO-editeur-de-niveau.md`](TODO-editeur-de-niveau.md).
+  [`TODO.md`](TODO.md).
 
 Symfony 8.1, PHP 8.4, MariaDB 11.4, FrankenPHP (avec son hub Mercure). Pas de framework JavaScript : un seul
 script, `public/js/sonics.js`.
@@ -100,7 +100,15 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
   `t` images du jeu (60 par seconde) : `tileset.animations` (`{bloc: {f: [blocs], t}}`), dessiné par le jeu
   (`Level::animatedBlock`, `Scene::drawTiles`), réglé dans l'éditeur (Maj+clic) ou par MCP (`animate`). Un
   niveau fait avec une zone du jeu (ou un fork dont l'image n'a pas changé) envoie `zone` dans `jeu.json` :
-  le jeu prend alors les images de la zone et ses cycles de couleurs (l'eau du Jungle...).
+  le jeu prend alors les images de la zone et ses cycles de couleurs (l'eau du Jungle...). Un fork modifié
+  garde ces cycles : `TileVariants` recolore son image comme le jeu recolore la zone d'origine (les
+  correspondances de couleurs de chaque image du jeu, `-cycleK`, `-lightL-cycleK` des éclairs de Sky Base,
+  `-flash`, `-water`, calculées par `tools/game-data.py` dans `data/game/zone-*.json`) ; `jeu.json` envoie
+  `cycle` (`count`, `speed`, `lightning`) et `tile_variants` (`{"-cycle0": PNG en base64...}`, gardés en cache
+  par image dans `var/cache/*/tile-variants`).
+- La ligne d'eau (objet 64, celui du Labyrinth) se place dans tout niveau : tout passe sous l'eau en dessous
+  (air, bulles, palette). Sans zone Labyrinth d'origine, l'image `-water` est une teinte sous-marine générique
+  (`TileVariants::underwater`).
 - Un jeu de sprites (`SpriteSet`, éditeur `/sprites/{id}/editer`) : des planches du jeu redessinées (Sonic,
   badniks, objets, boss…, `SpriteSet::SHEETS`), chacune un PNG de la taille de celle du jeu, transparent là où
   le jeu a sa couleur de transparence. Un niveau qui le choisit se joue avec : le jeu met ces planches à la
@@ -145,6 +153,19 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
 - API publique : `rating`, `votes`, `score`, `plays`, `favourites` dans `/levels`, `order=top|plays|favourites`.
   MCP : `list_creations` (`sort`, `search`, scope `favourites`). L'API et le MCP ne votent pas.
 
+## Comment marchent les meilleurs temps des niveaux
+
+- Quand un joueur connecté termine seul un niveau du site, la page du jeu envoie son replay (`POST /api/replay`)
+  avec `time` (le chrono du jeu) et `site.version` (la version du niveau joué, `Level::getContentVersion` : ses
+  blocs, son départ, ses objets, ses tiles). `LevelRecords` garde son meilleur temps (`LevelRecord`, un par
+  joueur et par version) et le replay qui va avec : `ReplayRepository::keepLatest` ne l'efface pas.
+- Le classement repart de zéro quand le créateur change les blocs ou les objets (pas pour un nouveau nom).
+- La page du niveau montre les 10 meilleurs (avec « Revoir »), l'API publique `bestTimes`, et `jeu.json` les 5
+  meilleurs (`records`) et `version`. Le jeu affiche le record au début du niveau et télécharge son replay
+  (`/api/replay/{id}`, `record.json.gz`) : son fantôme court avec le joueur (option Fantôme) s'il est plus
+  rapide que le sien. Les fantômes du joueur sont gardés par niveau et par version (`site<id>-<version>`).
+- Les temps viennent du jeu, sans contrôle côté serveur : un joueur qui trafique sa page peut tricher.
+
 ## Comment marchent les forks, le travail à plusieurs et l'historique
 
 - Chaque création (niveau, tiles, sprites, son) montre son créateur, avec un lien vers sa page, et sous la page
@@ -176,6 +197,9 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
   travaillé. `bin/console app:history` (au démarrage du conteneur) donne une première version aux créations
   faites avant l'historique.
 
+- La corbeille garde 30 jours (`Creations::TRASH_DAYS`) ; après, tout est supprimé pour de bon : au démarrage du
+  conteneur (`app:trash`), à l'ouverture d'une corbeille, et une fois par jour après la première requête du jour
+  (`TrashPurgeSubscriber`, sans cron).
 ## Comment marche le serveur MCP (créer avec une IA)
 
 Une IA connectée au compte d'un joueur crée tout un environnement de jeu : tiles, niveau, sprites, musique,

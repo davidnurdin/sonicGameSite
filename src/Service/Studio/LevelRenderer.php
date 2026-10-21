@@ -76,6 +76,11 @@ final class LevelRenderer
         // the objects and Sonic: their pictures from the top left of their block, made smaller like the blocks
         [$sheetIcons, $index] = $this->icons();
         foreach ($level['objects'] as [$type, $ox, $oy]) {
+            // the water line (object 64): a line across the level, all is under water below it in the game
+            if ((int) $type === \App\Service\TileVariants::WATER && $oy >= $y0 && $oy < $y0 + $h) {
+                $canvas->fill(0, ($oy - $y0) * $px, $w * $px, max(1, intdiv($px, 8)), "\x60\xb0\xff\xff");
+                continue;
+            }
             if ($ox < $x0 || $oy < $y0 || $ox >= $x0 + $w || $oy >= $y0 + $h) continue;
             $icon = $index[(string) $type] ?? null;
             if ($icon === null) {

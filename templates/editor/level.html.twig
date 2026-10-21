@@ -66,6 +66,26 @@
         <div class="lv-box view"></div>
         <p class="small muted">{{ 'Fais glisser pour te déplacer dans le niveau.'|trans }} <a href="{{ path('levels') }}">{{ 'Tous les niveaux'|trans }}</a></p>
     </section>
+    <section class="panel wide">
+        <h2>{{ 'Meilleurs temps'|trans }}</h2>
+        {% if records is empty %}
+            <p class="muted">{{ 'Pas encore de temps : termine-le dans le jeu (connecté à ton compte) pour être le premier.'|trans }}</p>
+        {% else %}
+            <ol class="lv-records">
+                {% for record in records %}
+                    <li{% if app.user and record.user == app.user %} class="me"{% endif %}>
+                        <span class="lv-rank">{{ loop.index }}</span>
+                        <span class="lv-who">{{ people.user(record.user) }}</span>
+                        <b class="lv-time">{{ record.time|record_time }}</b>
+                        <small class="muted">{{ record.createdAt|date('d/m/Y') }}</small>
+                        {% if record.replay %}<a class="small" href="{{ watch ~ record.replay.id }}">{{ 'Revoir'|trans }}</a>{% endif %}
+                    </li>
+                {% endfor %}
+            </ol>
+        {% endif %}
+        {% if myRecord and myRecord not in records %}<p class="small">{{ 'Ton meilleur temps : %t%'|trans({'%t%': myRecord.time|record_time}) }}</p>{% endif %}
+        <p class="small muted">{{ 'Les temps comptent sur le niveau tel qu\'il est : quand son créateur change ses blocs ou ses objets, le classement repart de zéro. Le fantôme du record court avec toi dans le jeu (option Fantôme).'|trans }}</p>
+    </section>
     {% include '_parts/credits.html.twig' with {creation: level} only %}
 {% else %}
     <p class="pc-only panel wide">{{ 'L\'éditeur se fait sur un ordinateur, avec une souris et un clavier.'|trans }}
