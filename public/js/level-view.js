@@ -17,9 +17,8 @@ window.LevelView = (() => {
         img.src = src;
     });
 
-    // the 47 collision shapes of the game: a 32x32 canvas each, the solid pixels in red
-    let shapesPromise = null;
-    const loadShapes = (url) => shapesPromise ??= fetch(url).then((r) => r.json()).then((list) => list.map((rows) => {
+    // a collision (32 rows of 8 hex digits, bit 31 = the left pixel): a 32x32 canvas, the solid pixels in red
+    const maskCanvas = (rows) => {
         const c = document.createElement('canvas');
         c.width = c.height = SIZE;
         const g = c.getContext('2d');
@@ -32,7 +31,12 @@ window.LevelView = (() => {
         });
         g.putImageData(data, 0, 0);
         return c;
-    }));
+    };
+    // the 47 collision shapes of the game
+    let shapesPromise = null;
+    const loadShapes = (url) => shapesPromise ??= fetch(url).then((r) => r.json()).then((list) => list.map(maskCanvas));
+    // the collisions drawn in the tile editor (Tileset::$masks): block => canvas
+    const maskCanvases = (masks) => Object.fromEntries(Object.entries(masks || {}).filter(([, m]) => m).map(([n, m]) => [n, maskCanvas(m.r)]));
 
     const decodeBlocks = (base64) => Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
     const encodeBlocks = (bytes) => {
@@ -40,6 +44,11 @@ window.LevelView = (() => {
         for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
         return btoa(s);
     };
+
+    // the objects' pictures, taken from the game (tools/object-icons.py): {img, index: {type: [x, y, w, h, dx, dy]}}
+    let iconsPromise = null;
+    const loadIcons = (json, image) => iconsPromise ??= Promise.all([fetch(json).then((r) => r.json()), loadImage(image)])
+        .then(([index, img]) => ({ img, index }));
 
     const objectMark = (type, objects) => MARKS[type] || String((objects[type] || ['?'])[0]).replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase();
 
@@ -60,15 +69,18 @@ window.LevelView = (() => {
             this.level = null;
             this.sheet = null;
             this.solidity = [];
+            this.masks = {};
             this.shapes = null;
             this.objects = options.objects || {};
             this.hover = null;         // the editor: the block under the mouse, a rectangle being drawn
             this.sonic = null;
+            this.icons = null;
             this.pending = false;
             box.addEventListener('scroll', () => this.draw(), { passive: true });
             new ResizeObserver(() => this.resize()).observe(box);
             if (options.sonic) loadImage(options.sonic).then((img) => { this.sonic = img; this.draw(); });
             if (options.shapes) loadShapes(options.shapes).then((s) => { this.shapes = s; this.draw(); });
+            if (options.icons) loadIcons(options.icons, options.iconsImage).then((i) => { this.icons = i; this.draw(); }, () => {});
         }
 
         setLevel(level) {
@@ -81,6 +93,7 @@ window.LevelView = (() => {
         async setTileset(tileset) {
             this.sheet = await loadImage(tileset.image);
             this.solidity = tileset.solidity;
+            this.masks = maskCanvases(tileset.masks);
             this.draw();
         }
 
@@ -159,7 +172,8 @@ window.LevelView = (() => {
                     }
                     if (this.collisions) {
                         const value = this.solidity[block] || 0;
-                        if (this.shapes && this.shapes[value & 0x3f]) ctx.drawImage(this.shapes[value & 0x3f], x * SIZE, y * SIZE);
+                        const shape = this.masks[block] || (this.shapes && this.shapes[value & 0x3f]);
+                        if (shape) ctx.drawImage(shape, x * SIZE, y * SIZE);
                         if (value & 0x80) {
                             ctx.fillStyle = '#ffd400';
                             ctx.fillRect(x * SIZE + 26, y * SIZE + 1, 5, 5);
@@ -188,7 +202,13 @@ window.LevelView = (() => {
             ctx.textBaseline = 'middle';
             ctx.font = 'bold 11px system-ui, sans-serif';
             for (const [type, x, y] of this.level.objects) {
-                if (x < x0 - 1 || y < y0 - 1 || x > x1 || y > y1) continue;
+                if (x < x0 - 2 || y < y0 - 2 || x > x1 + 1 || y > y1 + 1) continue;
+                const icon = this.icons?.index[type];
+                if (icon) {
+                    const [sx, sy, w, h, dx, dy] = icon;
+                    ctx.drawImage(this.icons.img, sx, sy, w, h, x * SIZE + dx, y * SIZE + dy, w, h);
+                    continue;
+                }
                 const family = (this.objects[type] || [])[1] || 'other';
                 ctx.fillStyle = FAMILY_COLOURS[family];
                 ctx.strokeStyle = '#0a1440';
@@ -240,7 +260,8 @@ window.LevelView = (() => {
     // the level page: just looking (drag with the mouse to move, zoom buttons)
     function viewer(root) {
         const box = root.querySelector('.lv-box');
-        const view = new View(box, { sonic: root.dataset.sonic, shapes: root.dataset.shapes, objects: JSON.parse(root.dataset.objects || '{}') });
+        const view = new View(box, { sonic: root.dataset.sonic, shapes: root.dataset.shapes, icons: root.dataset.icons,
+            iconsImage: root.dataset.iconsImage, objects: JSON.parse(root.dataset.objects || '{}') });
         fetch(root.dataset.json).then((r) => r.json()).then(async (data) => {
             await view.setTileset(data.tileset);
             view.setLevel({ ...data, blocks: decodeBlocks(data.blocks) });
@@ -268,5 +289,5 @@ window.LevelView = (() => {
 
     document.querySelectorAll('[data-level-viewer]').forEach(viewer);
 
-    return { View, SIZE, COLUMNS, loadImage, loadShapes, decodeBlocks, encodeBlocks, objectMark, FAMILY_COLOURS };
+    return { View, SIZE, COLUMNS, loadImage, loadShapes, loadIcons, maskCanvas, decodeBlocks, encodeBlocks, objectMark, FAMILY_COLOURS };
 })();

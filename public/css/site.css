@@ -478,6 +478,7 @@ main.full { max-width: none; padding: 0 12px 24px; }
 .ed-objects { display: flex; flex-direction: column; gap: 3px; max-height: 260px; overflow: auto; }
 .ed-object { display: flex; align-items: center; gap: 8px; }
 .ed-object span { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 22px; border-radius: 5px; font: 800 11px system-ui, sans-serif; }
+.ed-object-icon { width: 30px; height: 28px; flex: none; image-rendering: pixelated; }
 .ed-help { padding-left: 18px; }
 .ed-pos { min-height: 1.5em; }
 

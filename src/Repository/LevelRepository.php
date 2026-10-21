@@ -37,4 +37,25 @@ class LevelRepository extends ServiceEntityRepository
 
         return [$list, $count];
     }
+
+    /**
+     * What the game's menu of the site's levels shows: those of $user (private ones too) first, then the public
+     * levels of the others, the latest changed first.
+     *
+     * @return array{0: list<Level>, 1: int}
+     */
+    public function gamePage(?User $user, int $page, int $perPage): array
+    {
+        $where = $user !== null ? 'l.public = true OR l.user = :me' : 'l.public = true';
+        $count = $this->createQueryBuilder('l')->select('COUNT(l.id)')->where($where);
+        $list = $this->createQueryBuilder('l')->addSelect('u')->join('l.user', 'u')->where($where);
+        if ($user !== null) {
+            $count->setParameter('me', $user);
+            $list->setParameter('me', $user)->addSelect('CASE WHEN l.user = :me THEN 0 ELSE 1 END AS HIDDEN mine')->orderBy('mine');
+        }
+        $list = $list->addOrderBy('l.updatedAt', 'DESC')->setFirstResult(($page - 1) * $perPage)->setMaxResults($perPage)
+            ->getQuery()->getResult();
+
+        return [$list, (int) $count->getQuery()->getSingleScalarResult()];
+    }
 }

@@ -7,6 +7,7 @@ use App\Entity\Tileset;
 use App\Entity\User;
 use App\Repository\LevelRepository;
 use App\Repository\TilesetRepository;
+use App\Repository\UserRepository;
 use App\Service\EditorData;
 use App\Service\LevelToken;
 use App\Service\StatsToken;
@@ -30,6 +31,8 @@ class EditorController extends AbstractController
     private const PER_PAGE = 24;
     /** Levels and sets an account may have. */
     private const MAX_EACH = 100;
+    /** Levels a page of the game's menu NIVEAUX DU SITE. */
+    private const GAME_PAGE = 6;
 
     public function __construct(
         private EntityManagerInterface $em,
@@ -181,8 +184,40 @@ class EditorController extends AbstractController
             'sp' => $tileset->getStyle(),
             'solidity' => $tileset->getSolidity(),
             'behaviour' => $tileset->getBehaviour(),
+            'masks' => (object) $tileset->getMasks(),
             'tiles' => base64_encode($tileset->getImage()),
         ]);
+    }
+
+    /**
+     * The game's menu NIVEAUX DU SITE: a page of levels to play ({st: the token of the account, or none, page}, as
+     * text: no CORS preflight). The player's own levels first (with the key of the private ones), then the public ones.
+     */
+    #[Route('/api/niveaux', name: 'api_levels', methods: ['POST'])]
+    public function gameLevels(Request $request, LevelToken $tokens, StatsToken $stats, UserRepository $users): JsonResponse
+    {
+        $body = json_decode(substr($request->getContent(), 0, 1024), true);
+        $body = is_array($body) ? $body : [];
+        $id = is_string($body['st'] ?? null) ? $stats->userId($body['st']) : null;
+        $user = $id !== null ? $users->find($id) : null;
+        $page = max(1, min(1000, (int) ($body['page'] ?? 1)));
+        [$list, $count] = $this->levels->gamePage($user, $page, self::GAME_PAGE);
+        $response = new JsonResponse([
+            'page' => $page,
+            'pages' => max(1, (int) ceil($count / self::GAME_PAGE)),
+            'account' => $user?->getUsername(),
+            'levels' => array_map(fn(Level $level) => [
+                'id' => $level->getId(),
+                'name' => $level->getName(),
+                'author' => $level->getUser()->getUsername(),
+                'mine' => $user !== null && $level->isOwnedBy($user),
+                'public' => $level->isPublic(),
+                'lt' => $level->isPublic() ? '' : $tokens->create($level),
+            ], $list),
+        ]);
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+
+        return $response;
     }
 
     #[Route('/niveau/{id}', name: 'level_save', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -250,7 +285,7 @@ class EditorController extends AbstractController
         $from = $request->request->getInt('from') ? $this->tilesets->find($request->request->getInt('from')) : null;
         if ($from instanceof Tileset && $from->canUse($user)) {
             $tileset = new Tileset($user, mb_substr($from->getName(), 0, 33) . ' (copie)', $from->getImage(), $from->getSolidity(),
-                $from->getBehaviour(), $from->getStyle());
+                $from->getBehaviour(), $from->getStyle(), $from->getMasks());
         } else {
             // one empty block: the editor adds the others
             $tileset = new Tileset($user, EditorData::name($request->request->get('name')) ?? 'TILES', self::emptySheet(1), [0]);
@@ -311,7 +346,7 @@ class EditorController extends AbstractController
         if (strlen($request->getContent()) > Tileset::MAX_PNG * 2) return $this->json(['error' => 'too big'], 413);
         $body = json_decode($request->getContent(), true);
         $name = is_array($body) ? EditorData::name($body['name'] ?? null) : null;
-        $blocks = is_array($body) ? EditorData::blocks($body['image'] ?? null, $body['solidity'] ?? null, $body['behaviour'] ?? []) : null;
+        $blocks = is_array($body) ? EditorData::blocks($body['image'] ?? null, $body['solidity'] ?? null, $body['behaviour'] ?? [], $body['masks'] ?? []) : null;
         if ($name === null || $blocks === null) return $this->json(['error' => 'invalid'], 400);
         $tileset->setName($name);
         $tileset->setPublic(!empty($body['public']));
@@ -393,6 +428,7 @@ class EditorController extends AbstractController
             'zone' => $tileset->getZone(),
             'solidity' => $tileset->getSolidity(),
             'behaviour' => $tileset->getBehaviour(),
+            'masks' => (object) $tileset->getMasks(),
             'image' => $this->generateUrl('tileset_png', ['id' => $tileset->getId(), 'v' => $tileset->getUpdatedAt()->getTimestamp()]),
         ];
     }

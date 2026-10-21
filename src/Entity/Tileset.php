@@ -49,6 +49,14 @@ class Tileset
     #[ORM\Column(type: Types::JSON, options: ['default' => '[]'])]
     private array $behaviour = [];
 
+    /**
+     * Collisions drawn in the editor instead of a shape of the game, by block: {r: 32 rows of 8 hex digits (bit 31 = the
+     * left pixel), w: 1 floor, 2 walls, 4 ceiling} (see the game's Level::applyMask).
+     * @var array<int, array{r: list<string>, w: int}>
+     */
+    #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
+    private array $masks = [];
+
     /** The zone whose look its moving objects take (platforms...): the game's SP, 0 = Green Hill. */
     #[ORM\Column(type: Types::SMALLINT, options: ['default' => 0])]
     private int $style = 0;
@@ -62,7 +70,7 @@ class Tileset
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    public function __construct(?User $user, string $name, string $png, array $solidity, array $behaviour = [], int $style = 0)
+    public function __construct(?User $user, string $name, string $png, array $solidity, array $behaviour = [], int $style = 0, array $masks = [])
     {
         $this->user = $user;
         $this->name = $name;
@@ -70,6 +78,7 @@ class Tileset
         $this->solidity = $solidity;
         $this->behaviour = $behaviour;
         $this->style = $style;
+        $this->masks = $masks;
         $this->createdAt = $this->updatedAt = new \DateTimeImmutable();
     }
 
@@ -86,6 +95,8 @@ class Tileset
     public function getCount(): int { return count($this->solidity); }
     /** @return list<int> as many as the blocks */
     public function getBehaviour(): array { return array_pad(array_slice($this->behaviour, 0, $this->getCount()), $this->getCount(), 0); }
+    /** @return array<int, array{r: list<string>, w: int}> only the blocks there are */
+    public function getMasks(): array { return array_filter($this->masks, fn($k) => $k < $this->getCount(), ARRAY_FILTER_USE_KEY); }
     public function getStyle(): int { return $this->style; }
     public function setStyle(int $style): void { $this->style = $style; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
@@ -96,11 +107,12 @@ class Tileset
         return is_resource($this->image) ? (string) stream_get_contents($this->image, -1, 0) : (string) $this->image;
     }
 
-    public function setBlocks(string $png, array $solidity, ?array $behaviour = null): void
+    public function setBlocks(string $png, array $solidity, ?array $behaviour = null, ?array $masks = null): void
     {
         $this->image = $png;
         $this->solidity = $solidity;
         if ($behaviour !== null) $this->behaviour = $behaviour;
+        if ($masks !== null) $this->masks = $masks;
         $this->updatedAt = new \DateTimeImmutable();
     }
 

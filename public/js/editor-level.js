@@ -6,13 +6,14 @@
 
     const root = document.getElementById('level-editor');
     if (!root) return;
-    const { View, SIZE, COLUMNS, decodeBlocks, encodeBlocks, objectMark, FAMILY_COLOURS } = window.LevelView;
+    const { View, SIZE, COLUMNS, decodeBlocks, encodeBlocks, objectMark, loadIcons, FAMILY_COLOURS } = window.LevelView;
     const T = JSON.parse(root.dataset.i18n);
     const OBJECTS = JSON.parse(root.dataset.objects);
     const $ = (sel) => root.querySelector(sel);
 
     const box = $('.lv-box');
-    const view = new View(box, { sonic: root.dataset.sonic, shapes: root.dataset.shapes, objects: OBJECTS });
+    const view = new View(box, { sonic: root.dataset.sonic, shapes: root.dataset.shapes, icons: root.dataset.icons,
+        iconsImage: root.dataset.iconsImage, objects: OBJECTS });
     view.grid = true;
 
     let level = null;          // {width, height, blocks: Uint8Array, start, objects}
@@ -107,6 +108,23 @@
         b.addEventListener('click', () => { objectType = Number(type); setTool('object'); markObject(); });
         objectList.append(b);
     }
+    // the objects' pictures instead of their letters
+    loadIcons(root.dataset.icons, root.dataset.iconsImage).then(({ img, index }) => {
+        for (const b of objectList.querySelectorAll('.ed-object')) {
+            const icon = index[b.dataset.type];
+            if (!icon) continue;
+            const [sx, sy, w, h] = icon;
+            const c = document.createElement('canvas');
+            const scale = Math.min(1, 28 / w, 28 / h);
+            c.width = 28;
+            c.height = 28;
+            c.className = 'ed-object-icon';
+            const g = c.getContext('2d');
+            g.imageSmoothingEnabled = false;
+            g.drawImage(img, sx, sy, w, h, (28 - w * scale) / 2, (28 - h * scale) / 2, w * scale, h * scale);
+            b.firstElementChild.replaceWith(c);
+        }
+    }, () => {});
     const markObject = () => objectList.querySelectorAll('.ed-object').forEach((b) => b.classList.toggle('on', Number(b.dataset.type) === objectType && tool === 'object'));
 
     // ---- tools

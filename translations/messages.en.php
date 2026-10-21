@@ -285,7 +285,6 @@ return [
     'Collision' => 'Collision',
     'montrer sur le dessin' => 'show on the drawing',
     'Devant Sonic (Sonic passe derrière)' => 'In front of Sonic (Sonic goes behind)',
-    'En rouge : là où Sonic marche (les formes du jeu).' => 'In red: where Sonic walks (the shapes of the game).',
     'Supprimer ces tiles pour de bon ?' => 'Delete these tiles for good?',
     'Ces tiles servent à des niveaux : elles ne peuvent pas être supprimées.' => 'Levels use these tiles: they can\'t be deleted.',
     'Supprimer ces tiles' => 'Delete these tiles',
@@ -352,4 +351,12 @@ return [
     'Titre' => 'Title',
     'Fin' => 'Ending',
     'Boss' => 'Boss',
+    // Tile editor: drawn collisions
+    'En rouge : là où Sonic marche. Choisis une forme du jeu, ou dessine la tienne.' => 'In red: where Sonic walks. Pick a shape of the game, or draw your own.',
+    'Dessiner la collision : le crayon, le remplissage et la gomme changent les zones rouges' => 'Draw the collision: the pencil, the fill and the eraser change the red areas',
+    'Collision dessinée' => 'Drawn collision',
+    'Revenir à une forme du jeu' => 'Back to a shape of the game',
+    'Sol : Sonic marche dessus' => 'Floor: Sonic walks on it',
+    'Murs : bloque Sonic sur les côtés' => 'Walls: stops Sonic on the sides',
+    'Plafond : bloque Sonic par en dessous' => 'Ceiling: stops Sonic from below',
 ];

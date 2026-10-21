@@ -10,6 +10,7 @@
 {% if not edit %}
     <section class="panel wide" data-level-viewer data-json="{{ path('level_json', {id: level.id}) }}"
              data-sonic="{{ asset('img/sonics.png') }}" data-shapes="{{ asset('data/solidity-shapes.json') }}"
+             data-icons="{{ asset('data/object-icons.json') }}" data-icons-image="{{ asset('img/objects.png') }}"
              data-objects="{{ objects|json_encode }}">
         <div class="lv-head">
             <div>
@@ -48,6 +49,7 @@
              data-tileset-page="{{ path('tileset', {id: 0})|replace({'/0': '/ID'}) }}"
              data-token="{{ csrf_token('editor') }}" data-sonic="{{ asset('img/sonics.png') }}"
              data-shapes="{{ asset('data/solidity-shapes.json') }}"
+             data-icons="{{ asset('data/object-icons.json') }}" data-icons-image="{{ asset('img/objects.png') }}"
              data-objects="{{ objects|json_encode }}" data-play="{{ path('level_play', {id: level.id}) }}"
              data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans, error: 'Erreur'|trans, block: 'bloc'|trans}|json_encode }}">
         <div class="ed-bar">

@@ -110,8 +110,10 @@ final class EditorData
      *
      * @return array{0: string, 1: list<int>, 2: list<int>}|null
      */
-    public static function blocks(mixed $image, mixed $solidity, mixed $behaviour = []): ?array
+    public static function blocks(mixed $image, mixed $solidity, mixed $behaviour = [], mixed $masks = []): ?array
     {
+        $masks = self::masks($masks, count((array) $solidity));
+        if ($masks === null) return null;
         if (!is_array($behaviour) || !array_is_list($behaviour) || count($behaviour) > count((array) $solidity)) return null;
         foreach ($behaviour as $value) {
             if (!is_int($value) || $value < 0 || $value > 31) return null;
@@ -127,7 +129,32 @@ final class EditorData
         $rows = intdiv($count + Tileset::COLUMNS - 1, Tileset::COLUMNS);
         if (self::pngSize($png) !== [Tileset::COLUMNS * Tileset::SIZE, $rows * Tileset::SIZE]) return null;
 
-        return [$png, $solidity, array_pad($behaviour, $count, 0)];
+        return [$png, $solidity, array_pad($behaviour, $count, 0), $masks];
+    }
+
+    /**
+     * The collisions drawn in the editor, by block (see Tileset::$masks): {block: {r: 32 rows of 8 hex digits, w: 0-7}}.
+     * Null: not valid.
+     * @return array<int, array{r: list<string>, w: int}>|null
+     */
+    public static function masks(mixed $masks, int $count): ?array
+    {
+        if (!is_array($masks)) return null;
+        $out = [];
+        foreach ($masks as $block => $mask) {
+            if ($mask === null) continue;
+            if (!is_int($block) && !ctype_digit((string) $block)) return null;
+            $block = (int) $block;
+            if ($block >= $count || !is_array($mask) || !is_array($mask['r'] ?? null) || !array_is_list($mask['r'])
+                || count($mask['r']) !== Tileset::SIZE || !is_int($mask['w'] ?? null) || $mask['w'] < 0 || $mask['w'] > 7) return null;
+            foreach ($mask['r'] as $row) {
+                if (!is_string($row) || !preg_match('/^[0-9a-f]{8}$/i', $row)) return null;
+            }
+            $out[$block] = ['r' => array_map('strtolower', $mask['r']), 'w' => $mask['w']];
+        }
+        ksort($out);
+
+        return $out;
     }
 
     /**

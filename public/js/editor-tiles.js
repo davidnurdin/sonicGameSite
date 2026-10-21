@@ -1,12 +1,12 @@
 // The tile editor (/tiles/{id}/editer): the blocks of a set (32x32 pixels, 16 a row in one PNG, up to 256) and
-// the collision of each (one of the game's 47 shapes, "in front of Sonic"). Draws pixel by pixel, imports a
+// the collision of each (one of the game's 47 shapes, or drawn: the masks, "in front of Sonic"). Draws pixel by pixel, imports a
 // PNG or the blocks of another set. Saves with POST /tiles/{id} (JSON, see EditorData::blocks).
 (() => {
     'use strict';
 
     const root = document.getElementById('tile-editor');
     if (!root) return;
-    const { SIZE, COLUMNS, loadImage, loadShapes } = window.LevelView;
+    const { SIZE, COLUMNS, loadImage, loadShapes, maskCanvas } = window.LevelView;
     const MAX = 256;
     const T = JSON.parse(root.dataset.i18n);
     const $ = (sel) => root.querySelector(sel);
@@ -18,6 +18,7 @@
     const sheetCtx = sheet.getContext('2d', { willReadFrequently: true });
     let solidity = [];
     let behaviour = [];      // what each block does (springs, spikes...: the game's CollisionSystem::B_*)
+    let masks = {};          // collisions drawn instead of a shape: block => {px: 1024 pixels (1 = solid), w: 1 floor, 2 walls, 4 ceiling}
     let current = 0;
     let colour = [255, 255, 255, 255];
     let tool = 'pencil';
@@ -36,7 +37,7 @@
     // ---- undo: the blocks an action changes, and the collisions
 
     const remember = (blocks = [current]) => {
-        undo.push({ solidity: [...solidity], behaviour: [...behaviour], current, blocks: blocks.map((n) => [n, getBlock(n)]) });
+        undo.push({ solidity: [...solidity], behaviour: [...behaviour], masks: structuredClone(masks), current, blocks: blocks.map((n) => [n, getBlock(n)]) });
         if (undo.length > 100) undo.shift();
         redo.length = 0;
         changed();
@@ -44,9 +45,10 @@
     const restore = (from, to) => {
         if (!from.length) return;
         const step = from.pop();
-        to.push({ solidity: [...solidity], behaviour: [...behaviour], current, blocks: step.blocks.map(([n]) => [n, getBlock(n)]) });
+        to.push({ solidity: [...solidity], behaviour: [...behaviour], masks: structuredClone(masks), current, blocks: step.blocks.map(([n]) => [n, getBlock(n)]) });
         solidity = step.solidity;
         behaviour = step.behaviour;
+        masks = step.masks;
         for (const [n, data] of step.blocks) putBlock(n, data);
         current = Math.min(step.current, solidity.length - 1);
         changed();
@@ -96,9 +98,10 @@
             bigCtx.fillRect(x * PIXEL, y * PIXEL, PIXEL * 2, PIXEL * 2);
         }
         bigCtx.drawImage(sheet, ...at(current), SIZE, SIZE, 0, 0, SIZE * PIXEL, SIZE * PIXEL);
-        if ($('[data-toggle="shape"]').checked && shapes[solidity[current] & 0x3f]) {
+        const shape = masks[current] ? maskCanvas(toHex(masks[current].px)) : shapes[solidity[current] & 0x3f];
+        if ((paintMask.checked || $('[data-toggle="shape"]').checked) && shape) {
             bigCtx.globalAlpha = 0.9;
-            bigCtx.drawImage(shapes[solidity[current] & 0x3f], 0, 0, SIZE * PIXEL, SIZE * PIXEL);
+            bigCtx.drawImage(shape, 0, 0, SIZE * PIXEL, SIZE * PIXEL);
             bigCtx.globalAlpha = 1;
         }
         bigCtx.strokeStyle = 'rgba(255,255,255,.08)';
@@ -130,7 +133,7 @@
         const p = pixelAt(e);
         if (!p) return;
         big.setPointerCapture(e.pointerId);
-        if (e.button === 2 || tool === 'picker') { pick(p); return; }
+        if (e.button === 2 || tool === 'picker') { if (!paintMask.checked) pick(p); return; }
         stroke = { remembered: false, last: null };
         paint(p);
     });
@@ -147,6 +150,7 @@
         const from = stroke.last || p;
         stroke.last = p;
         if (!stroke.remembered) { stroke.remembered = true; remember(); }
+        if (paintMask.checked) { paintCollision(from, p); return; }
         const data = getBlock(current);
         const value = tool === 'eraser' ? [0, 0, 0, 0] : colour;
         if (tool === 'fill') {
@@ -163,6 +167,54 @@
         putBlock(current, data);
         drawBig();
         if (!stroke) drawList();
+    }
+
+    // ---- the collision drawn (masks): the pencil and the fill make solid pixels, the eraser takes them away
+
+    const toHex = (px) => Array.from({ length: SIZE }, (_, y) => {
+        let bits = 0;
+        for (let x = 0; x < SIZE; x++) if (px[y * SIZE + x]) bits = (bits | (1 << (31 - x))) >>> 0;
+        return bits.toString(16).padStart(8, '0');
+    });
+    const fromHex = (rows) => {
+        const px = new Uint8Array(SIZE * SIZE);
+        rows.forEach((hex, y) => { const bits = parseInt(hex, 16); for (let x = 0; x < SIZE; x++) px[y * SIZE + x] = (bits >>> (31 - x)) & 1; });
+        return px;
+    };
+    // the sides of a shape of the game (Level::applySolidity of the game)
+    const shapeWays = (v) => {
+        v &= 0x3f;
+        return (v >= 0x18 && v <= 0x26 ? 0 : 1) | (v === 22 || v === 30 ? 2 : 0) | (v === 0x16 || (v >= 0x18 && v <= 0x28) ? 4 : 0);
+    };
+    // drawing starts from the block's shape
+    const ownMask = () => {
+        if (!masks[current]) {
+            const shape = shapes[solidity[current] & 0x3f];
+            const d = shape.getContext('2d').getImageData(0, 0, SIZE, SIZE).data;
+            masks[current] = { px: Uint8Array.from({ length: SIZE * SIZE }, (_, i) => d[i * 4 + 3] ? 1 : 0), w: shapeWays(solidity[current]) };
+        }
+        return masks[current];
+    };
+    function paintCollision(from, p) {
+        const px = ownMask().px;
+        const value = tool === 'eraser' ? 0 : 1;
+        if (tool === 'fill') {
+            const old = px[p.y * SIZE + p.x];
+            const stack = [[p.x, p.y]];
+            if (old !== value) while (stack.length) {
+                const [x, y] = stack.pop();
+                if (x < 0 || y < 0 || x >= SIZE || y >= SIZE || px[y * SIZE + x] !== old) continue;
+                px[y * SIZE + x] = value;
+                stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+            }
+            stroke = null;
+        } else {
+            const steps = Math.max(Math.abs(p.x - from.x), Math.abs(p.y - from.y), 1);
+            for (let i = 0; i <= steps; i++) {
+                px[Math.round(from.y + (p.y - from.y) * i / steps) * SIZE + Math.round(from.x + (p.x - from.x) * i / steps)] = value;
+            }
+        }
+        refresh();
     }
 
     function floodFill(data, x0, y0, value) {
@@ -232,6 +284,7 @@
             b.addEventListener('click', () => {
                 remember([]);
                 solidity[current] = (solidity[current] & 0x80) | i;
+                delete masks[current];
                 refresh();
             });
             return b;
@@ -250,6 +303,18 @@
         refresh();
     });
     $('[data-toggle="shape"]').addEventListener('change', drawBig);
+    const paintMask = $('[name="paint-mask"]');
+    paintMask.addEventListener('change', refresh);
+    const WAYS = { floor: 1, walls: 2, ceiling: 4 };
+    for (const [name, bit] of Object.entries(WAYS)) {
+        $(`[name="w-${name}"]`).addEventListener('change', (e) => {
+            remember([]);
+            const mask = ownMask();
+            mask.w = e.target.checked ? mask.w | bit : mask.w & ~bit;
+            refresh();
+        });
+    }
+    $('.te-mask-reset').addEventListener('click', () => { remember([]); delete masks[current]; refresh(); });
 
     // ---- blocks: add, copy, empty, the last one away, flip, move
 
@@ -269,6 +334,7 @@
         putBlock(solidity.length, getBlock(current));
         solidity.push(solidity[current]);
         behaviour[solidity.length - 1] = behaviour[current] || 0;
+        if (masks[current]) masks[solidity.length - 1] = structuredClone(masks[current]);
         current = solidity.length - 1;
         refresh();
     });
@@ -280,6 +346,7 @@
         putBlock(solidity.length - 1, empty());
         solidity.pop();
         behaviour.length = Math.min(behaviour.length, solidity.length);
+        delete masks[solidity.length];
         current = Math.min(current, solidity.length - 1);
         refresh();
     });
@@ -292,19 +359,24 @@
             out.data.set(src.data.subarray((sy * SIZE + sx) * 4, (sy * SIZE + sx) * 4 + 4), (y * SIZE + x) * 4);
         }
         putBlock(current, out);
+        if (masks[current]) {
+            const px = masks[current].px;
+            masks[current].px = Uint8Array.from({ length: SIZE * SIZE }, (_, i) => { const [sx, sy] = fn(i % SIZE, Math.floor(i / SIZE)); return px[sy * SIZE + sx]; });
+        }
         refresh();
     };
     $('.te-flip-h').addEventListener('click', () => transform((x, y) => [SIZE - 1 - x, y]));
     $('.te-flip-v').addEventListener('click', () => transform((x, y) => [x, SIZE - 1 - y]));
     $('.te-rotate').addEventListener('click', () => transform((x, y) => [y, SIZE - 1 - x]));
     let clipboard = null;
-    $('.te-copy').addEventListener('click', () => { clipboard = { data: getBlock(current), solidity: solidity[current], behaviour: behaviour[current] || 0 }; status(T.copied); });
+    $('.te-copy').addEventListener('click', () => { clipboard = { data: getBlock(current), solidity: solidity[current], behaviour: behaviour[current] || 0, mask: structuredClone(masks[current]) }; status(T.copied); });
     $('.te-paste').addEventListener('click', () => {
         if (!clipboard) return;
         remember();
         putBlock(current, clipboard.data);
         solidity[current] = clipboard.solidity;
         behaviour[current] = clipboard.behaviour;
+        if (clipboard.mask) masks[current] = structuredClone(clipboard.mask); else delete masks[current];
         refresh();
     });
 
@@ -346,7 +418,7 @@
         if (!e.target.value) return;
         const data = await fetch(root.dataset.tilesetJson.replace('ID', e.target.value)).then((r) => r.json());
         const img = await loadImage(data.image);
-        otherSet = { img, solidity: data.solidity, behaviour: data.behaviour || [] };
+        otherSet = { img, solidity: data.solidity, behaviour: data.behaviour || [], masks: data.masks || {} };
         other.width = img.width;
         other.height = img.height;
         otherCtx.fillStyle = '#0a1440';
@@ -367,6 +439,8 @@
         putBlock(solidity.length, g.getImageData(0, 0, SIZE, SIZE));
         solidity.push(otherSet.solidity[n]);
         behaviour[solidity.length - 1] = otherSet.behaviour[n] || 0;
+        const mask = otherSet.masks[n];
+        if (mask) masks[solidity.length - 1] = { px: fromHex(mask.r), w: mask.w };
         current = solidity.length - 1;
         refresh();
     });
@@ -374,7 +448,11 @@
     function refresh() {
         drawList();
         drawBig();
-        shapeList.querySelectorAll('.te-shape').forEach((b, i) => b.classList.toggle('on', i === (solidity[current] & 0x3f)));
+        const mask = masks[current];
+        shapeList.querySelectorAll('.te-shape').forEach((b, i) => b.classList.toggle('on', !mask && i === (solidity[current] & 0x3f)));
+        $('.te-mask').hidden = !mask;
+        const w = mask ? mask.w : shapeWays(solidity[current]);
+        for (const [name, bit] of Object.entries(WAYS)) $(`[name="w-${name}"]`).checked = (w & bit) !== 0;
         front.checked = (solidity[current] & 0x80) !== 0;
         // a behaviour of the game's zones that the list does not offer (bridges...): shown as it is
         const value = String(behaviour[current] || 0);
@@ -398,6 +476,7 @@
             image: out.toDataURL('image/png').split(',')[1],
             solidity,
             behaviour: solidity.map((_, i) => behaviour[i] || 0),
+            masks: Object.fromEntries(Object.entries(masks).filter(([n]) => n < solidity.length).map(([n, m]) => [n, { r: toHex(m.px), w: m.w }])),
         };
         try {
             const r = await fetch(root.dataset.save, { method: 'POST', body: JSON.stringify(body),
@@ -441,6 +520,7 @@
         shapes = s;
         solidity = [...data.solidity];
         behaviour = [...(data.behaviour || [])];
+        masks = Object.fromEntries(Object.entries(data.masks || {}).filter(([, m]) => m).map(([n, m]) => [n, { px: fromHex(m.r), w: m.w }]));
         sheetCtx.drawImage(await loadImage(data.image), 0, 0);
         drawShapes();
         setColour([255, 255, 255, 255]);
