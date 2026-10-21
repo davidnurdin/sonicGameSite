@@ -512,9 +512,9 @@
             thumb: view.sheet ? view.thumbnail() : undefined,
         };
         try {
-            const r = await fetch(root.dataset.save, { method: 'POST', body: JSON.stringify(body),
+            const r = await fetch(root.dataset.save, { method: 'POST', body: JSON.stringify(EditorLive.body(root, body)),
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': root.dataset.token } });
-            if (!r.ok) throw new Error(String(r.status));
+            if (!await EditorLive.answer(root, r, save)) { status(T.unsaved, 'warn'); return false; }
             dirty = false;
             status(T.saved, 'ok');
             return true;

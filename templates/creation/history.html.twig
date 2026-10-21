@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+{% import '_parts/people.html.twig' as people %}
+
+{% set routes = constant('App\\Service\\Creations::ROUTES')[kind] %}
+{% set actions = {
+    create: 'Création', fork: 'Fork', save: 'Enregistrement', restore: 'Version reprise',
+    forked: 'Forké', member: 'Participant ajouté', unmember: 'Participant retiré', delete: 'Suppression',
+} %}
+{% block title %}{{ 'Historique'|trans }} · {{ name }} · Sonic PHP{% endblock %}
+{% block robots %}noindex{% endblock %}
+{% block main_class %}wide{% endblock %}
+
+{% block body %}
+<section class="panel wide">
+    <h1>{{ 'Historique de %name%'|trans({'%name%': name}) }}</h1>
+    <p class="muted">
+        {% if creation %}
+            <a href="{{ path(routes[0], {id: id}) }}">{{ 'Voir'|trans }}</a>
+            {% if canEdit %}· <a href="{{ path(routes[1], {id: id}) }}">{{ 'Ouvrir dans l\'éditeur'|trans }}</a>{% endif %}
+        {% else %}
+            {{ 'Supprimé : il ne reste que son historique.'|trans }}
+        {% endif %}
+    </p>
+    {% if revisions is empty %}<p class="muted">{{ 'Rien dans l\'historique pour le moment.'|trans }}</p>{% endif %}
+    <ol class="cr-history">
+        {% for revision in revisions %}
+            <li class="cr-{{ revision.action }}{% if revision.id == current %} current{% endif %}">
+                <div class="cr-line">
+                    <time datetime="{{ revision.createdAt|date(constant('DATE_ATOM')) }}">{{ revision.createdAt|date(app.request.locale == 'fr' ? 'd/m/Y H:i' : 'Y-m-d H:i', 'Europe/Paris') }}</time>
+                    <b>{{ actions[revision.action]|trans }}</b>
+                    {{ 'par'|trans }} {{ people.user(revision.user) }}
+                    {% if revision.otherId and others[revision.otherId] is defined %}
+                        · {{ people.creation(kind, others[revision.otherId]) }}
+                    {% endif %}
+                    {% if revision.id == current %}<span class="badge">{{ 'Version actuelle'|trans }}</span>{% endif %}
+                    {% if revision.hasData and creation and canEdit and revision.id != current %}
+                        <a class="pill-button small" href="{{ path(routes[1], {id: id, version: revision.id}) }}">{{ 'Ouvrir cette version'|trans }}</a>
+                    {% endif %}
+                </div>
+                {% if revision.changes is not empty %}
+                    <ul class="small muted">
+                        {% for change in revision.changes %}<li>{{ change[0]|trans(change[1] ?? {}) }}</li>{% endfor %}
+                    </ul>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ol>
+    {% if pages > 1 %}
+        <nav class="pager" aria-label="{{ 'Pages'|trans }}">
+            {% if page > 1 %}<a class="pill-button" href="{{ path(kind ~ '_history', {id: id, page: page - 1}) }}" rel="prev">← {{ 'Plus récents'|trans }}</a>{% endif %}
+            <span>{{ 'Page %page% sur %pages%'|trans({'%page%': page, '%pages%': pages}) }}</span>
+            {% if page < pages %}<a class="pill-button" href="{{ path(kind ~ '_history', {id: id, page: page + 1}) }}" rel="next">{{ 'Plus anciens'|trans }} →</a>{% endif %}
+        </nav>
+    {% endif %}
+    {% if canEdit %}<p class="small muted">{{ '« Ouvrir cette version » la charge dans l\'éditeur : en l\'enregistrant, elle redevient la version actuelle (l\'historique garde tout).'|trans }}</p>{% endif %}
+</section>
+{% endblock %}

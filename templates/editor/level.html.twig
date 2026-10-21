@@ -6,6 +6,7 @@
 {% block robots %}{{ level.public and not edit ? 'index, follow' : 'noindex' }}{% endblock %}
 {% block main_class %}{{ edit ? 'full' : 'wide' }}{% endblock %}
 
+{% import '_parts/people.html.twig' as people %}
 {% block body %}
 {% if not edit %}
     <section class="panel wide" data-level-viewer data-json="{{ path('level_json', {id: level.id}) }}"
@@ -16,7 +17,7 @@
             <div>
                 <h1>{{ level.name }}</h1>
                 <p class="muted">
-                    {{ 'par %name%'|trans({'%name%': level.user.username}) }} · {{ level.width }}×{{ level.height }} {{ 'blocs'|trans }} ·
+                    {{ 'par'|trans }} {{ people.user(level.user) }} · {{ level.width }}×{{ level.height }} {{ 'blocs'|trans }} ·
                     {{ 'tiles'|trans }} <a href="{{ path('tileset', {id: level.tileset.id}) }}">{{ level.tileset.name }}</a> ·
                     {{ level.objects|length }} {{ 'objets'|trans }}
                     {% if level.spriteSet %}· {{ 'sprites'|trans }} <a href="{{ path('sprites', {id: level.spriteSet.id}) }}">{{ level.spriteSet.name }}</a>{% endif %}
@@ -28,12 +29,12 @@
                 <button type="button" class="pill-button" data-zoom="0.5" aria-label="{{ 'Dézoomer'|trans }}">−</button>
                 <button type="button" class="pill-button" data-zoom="2" aria-label="{{ 'Zoomer'|trans }}">+</button>
                 <label class="small"><input type="checkbox" data-toggle="collisions"> {{ 'Collisions'|trans }}</label>
-                {% if level.isOwnedBy(app.user) %}
+                {% if creation_info(level).canEdit %}
                     <a class="pill-button" href="{{ path('level_edit', {id: level.id}) }}">{{ 'Éditer'|trans }}</a>
                 {% elseif app.user %}
                     <form method="post" action="{{ path('level_copy', {id: level.id}) }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
-                        <button class="pill-button pc-hide" type="submit">{{ 'Copier pour l\'éditer'|trans }}</button>
+                        <button class="pill-button pc-hide" type="submit" title="{{ 'Faire ta propre copie, que tu modifies comme tu veux. Le créateur reste cité.'|trans }}">{{ 'Forker'|trans }}</button>
                     </form>
                 {% endif %}
             </div>
@@ -41,11 +42,12 @@
         <div class="lv-box view"></div>
         <p class="small muted">{{ 'Fais glisser pour te déplacer dans le niveau.'|trans }} <a href="{{ path('editor') }}">{{ 'Tous les niveaux'|trans }}</a></p>
     </section>
+    {% include '_parts/credits.html.twig' with {creation: level} only %}
 {% else %}
     <p class="pc-only panel wide">{{ 'L\'éditeur se fait sur un ordinateur, avec une souris et un clavier.'|trans }}
         <a href="{{ path('level', {id: level.id}) }}">{{ 'Voir le niveau'|trans }}</a></p>
-    <section id="level-editor" class="editor pc-hide"
-             data-json="{{ path('level_json', {id: level.id}) }}" data-save="{{ path('level_save', {id: level.id}) }}"
+    <section id="level-editor" class="editor pc-hide" {{ live_attributes(level, restored) }}
+             data-json="{{ path('level_json', {id: level.id, version: restored}) }}" data-save="{{ path('level_save', {id: level.id}) }}"
              data-tileset-json="{{ path('tileset_json', {id: 0})|replace({'/0.json': '/ID.json'}) }}"
              data-tileset-page="{{ path('tileset', {id: 0})|replace({'/0': '/ID'}) }}"
              data-token="{{ csrf_token('editor') }}" data-sonic="{{ asset('img/sonics.png') }}"
@@ -169,11 +171,13 @@
                         <li>{{ 'Sélection (V) : clic ou rectangle pour choisir des objets, puis glisser, flèches, Ctrl+D, Suppr.'|trans }}</li>
                         <li>{{ 'Clone (K) : clic droit sur la source, puis peins ailleurs : la source suit le pinceau.'|trans }}</li>
                     </ul>
+                    {% if level.isOwnedBy(app.user) %}
                     <form method="post" action="{{ path('level_delete', {id: level.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
                           data-confirm="{{ 'Supprimer ce niveau pour de bon ?'|trans }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
                         <button class="pill-button danger" type="submit">{{ 'Supprimer le niveau'|trans }}</button>
                     </form>
+                    {% endif %}
                 </details>
                 <p class="ed-pos small muted"></p>
             </aside>
@@ -184,5 +188,6 @@
 
 {% block scripts %}
     <script src="{{ asset('js/level-view.js') }}" defer></script>
+    {% if edit %}<script src="{{ asset('js/editor-live.js') }}" defer></script>{% endif %}
     {% if edit %}<script src="{{ asset('js/editor-level.js') }}" defer></script>{% endif %}
 {% endblock %}

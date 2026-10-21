@@ -542,3 +542,19 @@ main.full { max-width: none; padding: 0 12px 24px; }
 /* the level's sound effects: one per line, the game's sound on the left, the editor's on the right */
 .ed-sfx label.small { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; }
 .ed-sfx label.small select { flex: 0 1 60%; min-width: 0; }
+
+/* creations: credits, history, profiles, editors open by several players (editor-live.js) */
+.author { font-weight: 700; }
+.credits h3 { margin: 14px 0 6px; }
+.cr-members, .cr-forks { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.cr-members li { display: flex; align-items: center; gap: 6px; }
+.cr-members form, .cr-add { display: inline-flex; gap: 6px; margin: 8px 0 0; }
+.cr-add input { max-width: 160px; }
+.cr-history { list-style: none; margin: 0; padding: 0; }
+.cr-history > li { padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, .12); }
+.cr-history > li.current { border-left: 3px solid var(--yellow); padding-left: 8px; }
+.cr-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.cr-line time { font-variant-numeric: tabular-nums; opacity: .75; }
+.cr-history ul { margin: 4px 0 0; padding-left: 18px; }
+.ed-live { margin: 6px 0; padding: 8px 12px; border-radius: 8px; background: rgba(255, 212, 0, .16); border: 1px solid var(--yellow); }
+.ed-live-line { display: flex; justify-content: space-between; gap: 12px; margin: 2px 0 6px; min-height: 1.2em; }

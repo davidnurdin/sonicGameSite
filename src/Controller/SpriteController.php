@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\SpriteSet;
 use App\Entity\User;
 use App\Repository\SpriteSetRepository;
+use App\Service\Creations;
 use App\Service\EditorData;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Asset\Packages;
@@ -25,7 +26,8 @@ class SpriteController extends AbstractController
     /** Sets an account may have. */
     private const MAX_EACH = 50;
 
-    public function __construct(private EntityManagerInterface $em, private SpriteSetRepository $sets, private Packages $assets)
+    public function __construct(private EntityManagerInterface $em, private SpriteSetRepository $sets, private Packages $assets,
+        private Creations $creations)
     {
     }
 
@@ -41,11 +43,14 @@ class SpriteController extends AbstractController
             return $this->redirectToRoute('editor');
         }
         $from = $request->request->getInt('from') ? $this->sets->find($request->request->getInt('from')) : null;
-        $set = $from instanceof SpriteSet && $this->canSee($from)
+        if (!$from instanceof SpriteSet || !$this->canSee($from)) $from = null;
+        $set = $from !== null
             ? new SpriteSet($user, mb_substr($from->getName(), 0, 33) . ' (copie)', $from->getSheets())
             : new SpriteSet($user, EditorData::name($request->request->get('name')) ?? 'SPRITES');
+        $set->setForkedFrom($from);
         $this->em->persist($set);
         $this->em->flush();
+        $this->creations->created($set, $user, $from);
 
         return $this->redirectToRoute('sprites_edit', ['id' => $set->getId()]);
     }
@@ -61,30 +66,34 @@ class SpriteController extends AbstractController
 
     #[Route('/sprites/{id}/editer', name: 'sprites_edit', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
-    public function edit(SpriteSet $set): Response
+    public function edit(SpriteSet $set, Request $request): Response
     {
-        if (!$set->isOwnedBy($this->user())) return $this->redirectToRoute('sprites', ['id' => $set->getId()]);
+        if (!$this->creations->canEdit($set, $this->user())) return $this->redirectToRoute('sprites', ['id' => $set->getId()]);
 
         return $this->render('editor/sprites.html.twig', ['set' => $set, 'edit' => true, 'sheets' => SpriteSet::SHEETS,
-            'used' => $this->sets->usedBy($set)]);
+            'used' => $this->sets->usedBy($set), 'restored' => $this->creations->revision($set, $request->query->getInt('version'))?->getId()]);
     }
 
     #[Route('/sprites/{id}.json', name: 'sprites_json', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function data(SpriteSet $set): JsonResponse
+    public function data(SpriteSet $set, Request $request): JsonResponse
     {
         if (!$this->canSee($set)) throw $this->createNotFoundException();
+        // a version of its history (to open it in the editor)
+        $old = $this->creations->revision($set, $request->query->getInt('version'))?->getSnapshot();
         $sheets = [];
         foreach (SpriteSet::SHEETS as $sheet => [$width, $height]) {
+            $png = $old !== null ? ($old['sheets'][$sheet] ?? null) : null;
             $sheets[$sheet] = [
                 'width' => $width,
                 'height' => $height,
-                'own' => $set->getSheet($sheet) !== null,
-                'image' => $this->sheetUrl($set, $sheet),
+                'own' => $old !== null ? $png !== null : $set->getSheet($sheet) !== null,
+                'image' => $png !== null ? 'data:image/png;base64,' . $png
+                    : ($old !== null ? $this->assets->getUrl('img/sheets/' . $sheet . '.png') : $this->sheetUrl($set, $sheet)),
                 'game' => $this->assets->getUrl('img/sheets/' . $sheet . '.png'),
             ];
         }
 
-        return $this->json(['id' => $set->getId(), 'name' => $set->getName(), 'public' => $set->isPublic(), 'sheets' => $sheets]);
+        return $this->json(['id' => $set->getId(), 'name' => $old['name'] ?? $set->getName(), 'public' => $old['public'] ?? $set->isPublic(), 'sheets' => $sheets]);
     }
 
     /** A sheet of the set: its own picture, or the game's. */
@@ -106,11 +115,12 @@ class SpriteController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function save(SpriteSet $set, Request $request): JsonResponse
     {
-        if (!$set->isOwnedBy($this->user()) || !$this->isCsrfTokenValid('editor', (string) $request->headers->get('X-CSRF-Token'))) {
+        if (!$this->creations->canEdit($set, $this->user()) || !$this->isCsrfTokenValid('editor', (string) $request->headers->get('X-CSRF-Token'))) {
             return $this->json(['error' => 'forbidden'], 403);
         }
         if (strlen($request->getContent()) > SpriteSet::MAX_PNG * 2 * count(SpriteSet::SHEETS)) return $this->json(['error' => 'too big'], 413);
         $body = json_decode($request->getContent(), true);
+        if ($conflict = $this->creations->conflict($set, $body)) return $this->json($conflict, 409);
         $name = is_array($body) ? EditorData::name($body['name'] ?? null) : null;
         $sheets = is_array($body) ? self::sheets($body['sheets'] ?? null) : null;
         if ($name === null || $sheets === null) return $this->json(['error' => 'invalid'], 400);
@@ -118,8 +128,9 @@ class SpriteController extends AbstractController
         $set->setPublic(!empty($body['public']));
         $set->setSheets($sheets);
         $this->em->flush();
+        $this->creations->saved($set, $this->user(), $body);
 
-        return $this->json(['ok' => true, 'updated' => $set->getUpdatedAt()->format(DATE_ATOM)]);
+        return $this->json(['ok' => true, 'updated' => $set->getUpdatedAt()->format(DATE_ATOM), 'version' => $this->creations->version($set)]);
     }
 
     #[Route('/sprites/{id}/supprimer', name: 'sprites_delete', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -128,6 +139,7 @@ class SpriteController extends AbstractController
     {
         // the levels using it go back to the game's sprites
         if ($set->isOwnedBy($this->user()) && $this->isCsrfTokenValid('editor', (string) $request->request->get('_token'))) {
+            $this->creations->record($set, $this->user(), 'delete');
             $this->em->remove($set);
             $this->em->flush();
         }
@@ -159,7 +171,7 @@ class SpriteController extends AbstractController
 
     private function canSee(SpriteSet $set): bool
     {
-        return $set->canUse($this->user()) || $this->sets->inPublicLevel($set);
+        return $this->creations->canSee($set, $this->user());
     }
 
     private function user(): ?User

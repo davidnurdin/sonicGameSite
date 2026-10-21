@@ -13,6 +13,7 @@ use App\Repository\SoundRepository;
 use App\Repository\SpriteSetRepository;
 use App\Repository\TilesetRepository;
 use App\Repository\UserRepository;
+use App\Service\Creations;
 use App\Service\EditorData;
 use App\Service\LevelToken;
 use App\Service\SoundData;
@@ -48,6 +49,7 @@ class EditorController extends AbstractController
         private SoundRepository $sounds,
         private TranslatorInterface $translator,
         #[Autowire(env: 'GAME_URL')] private string $gameUrl,
+        private Creations $creations,
     ) {
     }
 
@@ -72,6 +74,7 @@ class EditorController extends AbstractController
             'publicTilesets' => $this->tilesets->publicOnes(),
             'usable' => $this->tilesets->usable($user),
             'templates' => $data->templates(),
+            'shared' => $user ? $this->shared($user) : [],
         ]);
     }
 
@@ -104,6 +107,7 @@ class EditorController extends AbstractController
         }
         $this->em->persist($level);
         $this->em->flush();
+        $this->creations->created($level, $user);
 
         return $this->redirectToRoute('level_edit', ['id' => $level->getId()]);
     }
@@ -111,20 +115,21 @@ class EditorController extends AbstractController
     #[Route('/niveau/{id}', name: 'level', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function level(Level $level): Response
     {
-        if (!$level->canSee($this->user())) throw $this->createNotFoundException();
+        if (!$this->creations->canSee($level, $this->user())) throw $this->createNotFoundException();
 
         return $this->render('editor/level.html.twig', ['level' => $level, 'edit' => false, 'objects' => $this->objectNames()]);
     }
 
     #[Route('/niveau/{id}/editer', name: 'level_edit', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
-    public function editLevel(Level $level): Response
+    public function editLevel(Level $level, Request $request): Response
     {
-        if (!$level->isOwnedBy($this->user())) return $this->redirectToRoute('level', ['id' => $level->getId()]);
+        if (!$this->creations->canEdit($level, $this->user())) return $this->redirectToRoute('level', ['id' => $level->getId()]);
 
         return $this->render('editor/level.html.twig', [
             'level' => $level,
             'edit' => true,
+            'restored' => $this->creations->revision($level, $request->query->getInt('version'))?->getId(),
             'usable' => $this->tilesets->usable($this->user()),
             'objects' => $this->objectNames(),
             'musics' => EditorData::MUSICS,
@@ -136,9 +141,17 @@ class EditorController extends AbstractController
     }
 
     #[Route('/niveau/{id}.json', name: 'level_json', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function levelJson(Level $level): JsonResponse
+    public function levelJson(Level $level, Request $request): JsonResponse
     {
-        if (!$level->canSee($this->user())) throw $this->createNotFoundException();
+        if (!$this->creations->canSee($level, $this->user())) throw $this->createNotFoundException();
+        // a version of its history (to open it in the editor)
+        $old = $this->creations->revision($level, $request->query->getInt('version'))?->getSnapshot();
+        if ($old !== null) {
+            $tileset = $this->tilesets->find($old['tileset']) ?? $level->getTileset();
+
+            return $this->json(['id' => $level->getId(), 'blocks' => $old['blocks'], 'sfx' => (object) $old['sfx'],
+                'tileset' => $this->tilesetData($tileset)] + $old);
+        }
 
         return $this->json($this->levelData($level));
     }
@@ -146,7 +159,7 @@ class EditorController extends AbstractController
     #[Route('/niveau/{id}.png', name: 'level_png', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function levelPng(Level $level): Response
     {
-        if (!$level->canSee($this->user())) throw $this->createNotFoundException();
+        if (!$this->creations->canSee($level, $this->user())) throw $this->createNotFoundException();
         $png = $level->getThumb();
         // not saved by the editor yet: the zone's blocks
         $response = new Response($png ?? $level->getTileset()->getImage(), 200, ['Content-Type' => 'image/png', 'X-Content-Type-Options' => 'nosniff']);
@@ -161,7 +174,7 @@ class EditorController extends AbstractController
     public function play(Level $level, Request $request, LevelToken $tokens, StatsToken $stats): Response
     {
         $user = $this->user();
-        if (!$level->canSee($user)) throw $this->createNotFoundException();
+        if (!$this->creations->canSee($level, $user)) throw $this->createNotFoundException();
         $query = [
             'lang' => $request->getLocale(),
             'site' => $request->getSchemeAndHttpHost(),
@@ -191,6 +204,8 @@ class EditorController extends AbstractController
         return $response->setData([
             'id' => $level->getId(),
             'name' => $level->getName(),
+            // who made it: the game shows it
+            'author' => $level->getUser()->getUsername(),
             // its key (a private level): the game puts it in the replays and the matches played on it
             'lt' => $level->isPublic() ? '' : $tokens->create($level),
             'width' => $level->getWidth(),
@@ -247,8 +262,9 @@ class EditorController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function saveLevel(Level $level, Request $request): JsonResponse
     {
-        if (!$level->isOwnedBy($this->user()) || !$this->apiToken($request)) return $this->json(['error' => 'forbidden'], 403);
+        if (!$this->creations->canEdit($level, $this->user()) || !$this->apiToken($request)) return $this->json(['error' => 'forbidden'], 403);
         $body = json_decode($request->getContent(), true);
+        if ($conflict = $this->creations->conflict($level, $body)) return $this->json($conflict, 409);
         $name = is_array($body) ? EditorData::name($body['name'] ?? null) : null;
         $parsed = is_array($body) ? EditorData::level($body) : null;
         $tileset = is_array($body) && is_int($body['tileset'] ?? null) ? $this->tilesets->find($body['tileset']) : null;
@@ -277,8 +293,9 @@ class EditorController extends AbstractController
         $level->setSfx($sfx);
         if (isset($body['thumb'])) $level->setThumb(EditorData::thumb($body['thumb']));
         $this->em->flush();
+        $this->creations->saved($level, $this->user(), $body);
 
-        return $this->json(['ok' => true, 'updated' => $level->getUpdatedAt()->format(DATE_ATOM)]);
+        return $this->json(['ok' => true, 'updated' => $level->getUpdatedAt()->format(DATE_ATOM), 'version' => $this->creations->version($level)]);
     }
 
     #[Route('/niveau/{id}/copier', name: 'level_copy', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -286,7 +303,7 @@ class EditorController extends AbstractController
     public function copyLevel(Level $level, Request $request): Response
     {
         $user = $this->user();
-        if (!$level->canSee($user) || !$this->isCsrfTokenValid('editor', (string) $request->request->get('_token'))) {
+        if (!$this->creations->canSee($level, $user) || !$this->isCsrfTokenValid('editor', (string) $request->request->get('_token'))) {
             return $this->redirectToRoute('editor');
         }
         if (count($this->levels->ofUser($user)) >= self::MAX_EACH) return $this->back('Tu as déjà %n% niveaux.', self::MAX_EACH);
@@ -297,8 +314,10 @@ class EditorController extends AbstractController
         if ($level->getSpriteSet()?->canUse($user)) $copy->setSpriteSet($level->getSpriteSet());
         if ($level->getMusicSound()?->canSee($user)) $copy->setMusicSound($level->getMusicSound());
         $copy->setSfx(array_filter($level->getSfx(), fn(int $id) => $this->sounds->find($id)?->canSee($user) ?? false));
+        $copy->setForkedFrom($level);
         $this->em->persist($copy);
         $this->em->flush();
+        $this->creations->created($copy, $user, $level);
 
         return $this->redirectToRoute('level_edit', ['id' => $copy->getId()]);
     }
@@ -308,6 +327,7 @@ class EditorController extends AbstractController
     public function deleteLevel(Level $level, Request $request): Response
     {
         if ($level->isOwnedBy($this->user()) && $this->isCsrfTokenValid('editor', (string) $request->request->get('_token'))) {
+            $this->creations->record($level, $this->user(), 'delete');
             $this->em->remove($level);
             $this->em->flush();
         }
@@ -325,15 +345,18 @@ class EditorController extends AbstractController
         if (!$this->isCsrfTokenValid('editor', (string) $request->request->get('_token'))) return $this->redirectToRoute('editor');
         if (count($this->tilesets->ofUser($user)) >= self::MAX_EACH) return $this->back('Tu as déjà %n% jeux de tiles.', self::MAX_EACH);
         $from = $request->request->getInt('from') ? $this->tilesets->find($request->request->getInt('from')) : null;
-        if ($from instanceof Tileset && $from->canUse($user)) {
+        if ($from instanceof Tileset && $this->creations->canSee($from, $user)) {
             $tileset = new Tileset($user, mb_substr($from->getName(), 0, 33) . ' (copie)', $from->getImage(), $from->getSolidity(),
                 $from->getBehaviour(), $from->getStyle(), $from->getMasks());
+            $tileset->setForkedFrom($from);
         } else {
+            $from = null;
             // one empty block: the editor adds the others
             $tileset = new Tileset($user, EditorData::name($request->request->get('name')) ?? 'TILES', self::emptySheet(1), [0]);
         }
         $this->em->persist($tileset);
         $this->em->flush();
+        $this->creations->created($tileset, $user, $from);
 
         return $this->redirectToRoute('tileset_edit', ['id' => $tileset->getId()]);
     }
@@ -348,13 +371,14 @@ class EditorController extends AbstractController
 
     #[Route('/tiles/{id}/editer', name: 'tileset_edit', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
-    public function editTileset(Tileset $tileset): Response
+    public function editTileset(Tileset $tileset, Request $request): Response
     {
-        if (!$tileset->isOwnedBy($this->user())) return $this->redirectToRoute('tileset', ['id' => $tileset->getId()]);
+        if (!$this->creations->canEdit($tileset, $this->user())) return $this->redirectToRoute('tileset', ['id' => $tileset->getId()]);
 
         return $this->render('editor/tileset.html.twig', [
             'tileset' => $tileset,
             'edit' => true,
+            'restored' => $this->creations->revision($tileset, $request->query->getInt('version'))?->getId(),
             'used' => $this->tilesets->usedBy($tileset),
             'usable' => array_filter($this->tilesets->usable($this->user()), fn(Tileset $t) => $t !== $tileset),
             'behaviours' => EditorData::BEHAVIOURS,
@@ -373,9 +397,14 @@ class EditorController extends AbstractController
     }
 
     #[Route('/tiles/{id}.json', name: 'tileset_json', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function tilesetJson(Tileset $tileset): JsonResponse
+    public function tilesetJson(Tileset $tileset, Request $request): JsonResponse
     {
         if (!$this->canSeeTileset($tileset)) throw $this->createNotFoundException();
+        $old = $this->creations->revision($tileset, $request->query->getInt('version'))?->getSnapshot();
+        if ($old !== null) {
+            return $this->json(['id' => $tileset->getId(), 'zone' => null, 'masks' => (object) $old['masks'],
+                'image' => 'data:image/png;base64,' . $old['image']] + $old);
+        }
 
         return $this->json($this->tilesetData($tileset));
     }
@@ -384,9 +413,10 @@ class EditorController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function saveTileset(Tileset $tileset, Request $request): JsonResponse
     {
-        if (!$tileset->isOwnedBy($this->user()) || !$this->apiToken($request)) return $this->json(['error' => 'forbidden'], 403);
+        if (!$this->creations->canEdit($tileset, $this->user()) || !$this->apiToken($request)) return $this->json(['error' => 'forbidden'], 403);
         if (strlen($request->getContent()) > Tileset::MAX_PNG * 2) return $this->json(['error' => 'too big'], 413);
         $body = json_decode($request->getContent(), true);
+        if ($conflict = $this->creations->conflict($tileset, $body)) return $this->json($conflict, 409);
         $name = is_array($body) ? EditorData::name($body['name'] ?? null) : null;
         $blocks = is_array($body) ? EditorData::blocks($body['image'] ?? null, $body['solidity'] ?? null, $body['behaviour'] ?? [], $body['masks'] ?? []) : null;
         if ($name === null || $blocks === null) return $this->json(['error' => 'invalid'], 400);
@@ -394,8 +424,9 @@ class EditorController extends AbstractController
         $tileset->setPublic(!empty($body['public']));
         $tileset->setBlocks(...$blocks);
         $this->em->flush();
+        $this->creations->saved($tileset, $this->user(), $body);
 
-        return $this->json(['ok' => true, 'updated' => $tileset->getUpdatedAt()->format(DATE_ATOM)]);
+        return $this->json(['ok' => true, 'updated' => $tileset->getUpdatedAt()->format(DATE_ATOM), 'version' => $this->creations->version($tileset)]);
     }
 
     #[Route('/tiles/{id}/supprimer', name: 'tileset_delete', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -407,6 +438,7 @@ class EditorController extends AbstractController
         }
         // the levels made with it (even other players') need it
         if ($this->tilesets->usedBy($tileset) > 0) return $this->back('Ces tiles servent à des niveaux : elles ne peuvent pas être supprimées.');
+        $this->creations->record($tileset, $this->user(), 'delete');
         $this->em->remove($tileset);
         $this->em->flush();
 
@@ -430,7 +462,19 @@ class EditorController extends AbstractController
 
     private function canSeeTileset(Tileset $tileset): bool
     {
-        return $tileset->canUse($this->user()) || $this->tilesets->inPublicLevel($tileset);
+        return $this->creations->canSee($tileset, $this->user());
+    }
+
+    /** @return list<array{kind: string, creation: object}> the creations $user changes with their owners */
+    private function shared(User $user): array
+    {
+        $out = [];
+        foreach ($this->em->getRepository(\App\Entity\Member::class)->findBy(['user' => $user], ['id' => 'DESC']) as $member) {
+            $creation = $this->creations->find($member->getKind(), $member->getCreationId());
+            if ($creation !== null) $out[] = ['kind' => $member->getKind(), 'creation' => $creation];
+        }
+
+        return $out;
     }
 
     private function apiToken(Request $request): bool

@@ -11,5 +11,6 @@ until php bin/console dbal:run-sql -q "SELECT 1" >/dev/null 2>&1; do
 done
 php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 php bin/console app:zones
+php bin/console app:history
 php bin/console cache:warmup
 exec "$@"

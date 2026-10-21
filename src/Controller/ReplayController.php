@@ -33,17 +33,24 @@ class ReplayController extends AbstractController
     }
 
     #[Route('/historique', name: 'history', methods: ['GET'])]
-    public function history(Request $request, ReplayRepository $replays): Response
+    public function history(Request $request, ReplayRepository $replays, UserRepository $users): Response
     {
         $mine = $request->query->get('voir') === 'moi' && $this->getUser() instanceof User;
+        // one player's games (from his profile)
+        $name = $request->query->get('joueur');
+        $player = $mine || !is_string($name) ? null : $users->findOneBy(['username' => strtoupper(substr($name, 0, 8))]);
+        if ($player === $this->getUser() && $player !== null) [$mine, $player] = [true, null];
+        $query = $mine ? ['voir' => 'moi'] : ($player ? ['joueur' => $player->getUsername()] : []);
         $page = max(1, $request->query->getInt('page', 1));
-        [$list, $total] = $replays->page($mine ? $this->getUser() : null, $page, self::PER_PAGE);
+        [$list, $total] = $replays->page($mine ? $this->getUser() : $player, $page, self::PER_PAGE);
         $pages = max(1, (int) ceil($total / self::PER_PAGE));
-        if ($page > $pages) return $this->redirectToRoute('history', $mine ? ['voir' => 'moi'] : []);
+        if ($page > $pages) return $this->redirectToRoute('history', $query);
 
         return $this->render('replay/index.html.twig', [
             'replays' => $list,
             'mine' => $mine,
+            'player' => $player,
+            'query' => $query,
             'total' => $total,
             'page' => $page,
             'pages' => $pages,

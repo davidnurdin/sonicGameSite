@@ -1,0 +1,5 @@
+{# A player's name, as a link to his profile (none: the zones of the game). #}
+{% macro user(user) %}{% if user %}<a class="author" href="{{ path('profile', {username: user.username}) }}">{{ user.username }}</a>{% else %}Sonic PHP{% endif %}{% endmacro %}
+
+{# A creation's name, as a link to its page. #}
+{% macro creation(kind, creation) %}<a href="{{ path(constant('App\\Service\\Creations::ROUTES')[kind][0], {id: creation.id}) }}">{{ creation.name }}</a>{% endmacro %}

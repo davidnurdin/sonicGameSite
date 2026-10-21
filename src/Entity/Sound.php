@@ -24,6 +24,11 @@ class Sound
     #[ORM\Column]
     private ?int $id = null;
 
+    /** The one it was forked from (copied to be changed): null for an original, or once that one is deleted. */
+    #[ORM\ManyToOne(targetEntity: self::class)]
+    #[ORM\JoinColumn(name: 'forked_from_id', nullable: true, onDelete: 'SET NULL')]
+    private ?self $forkedFrom = null;
+
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private User $user;
@@ -57,6 +62,8 @@ class Sound
     }
 
     public function getId(): ?int { return $this->id; }
+    public function getForkedFrom(): ?self { return $this->forkedFrom; }
+    public function setForkedFrom(?self $from): void { $this->forkedFrom = $from; }
     public function getUser(): User { return $this->user; }
     public function getName(): string { return $this->name; }
     public function setName(string $name): void { $this->name = $name; }

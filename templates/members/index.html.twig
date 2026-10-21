@@ -10,7 +10,7 @@
     <ol class="members" start="{{ first }}">
         {% for user in members %}
             <li{% if app.user and app.user.username == user.username %} class="me"{% endif %}>
-                <b>{{ user.username }}</b>
+                <b><a href="{{ path('profile', {username: user.username}) }}">{{ user.username }}</a></b>
                 <span class="muted">{{ 'depuis le %date%'|trans({'%date%': user.createdAt|date(app.request.locale == 'fr' ? 'd/m/Y' : 'Y-m-d')}) }}</span>
                 {% if times[user.id] is defined and times[user.id] >= 60 %}
                     <span>{{ (times[user.id] / 3600)|round(0, 'floor') }} h {{ '%02d'|format((times[user.id] % 3600 / 60)|round(0, 'floor')) }}</span>

@@ -6,6 +6,7 @@
 {% block robots %}{{ sound.public and not edit ? 'index, follow' : 'noindex' }}{% endblock %}
 {% block main_class %}{{ edit ? 'full' : 'wide' }}{% endblock %}
 
+{% import '_parts/people.html.twig' as people %}
 {% block body %}
 {% if not edit %}
     <section class="panel wide" data-sound-player data-kind="{{ sound.kind }}" data-sound="{{ sound.data|json_encode }}" data-name="{{ sound.name }}">
@@ -13,7 +14,7 @@
             <div>
                 <h1>{{ sound.name }}</h1>
                 <p class="muted">
-                    {{ kind_name }} · {{ 'par %name%'|trans({'%name%': sound.user.username}) }}
+                    {{ kind_name }} · {{ 'par'|trans }} {{ people.user(sound.user) }}
                     {% if sound.music %}· {{ sound.data.bars }} {{ 'mesures'|trans }} · {{ sound.data.tempo }} BPM{% endif %}
                     {% if not sound.public %}· <span class="badge off">{{ 'Privé'|trans }}</span>{% endif %}
                 </p>
@@ -21,23 +22,24 @@
             <div class="lv-actions">
                 <button type="button" class="play small sd-play">▶ {{ 'Écouter'|trans }}</button>
                 <button type="button" class="pill-button sd-wav">{{ 'Télécharger (WAV)'|trans }}</button>
-                {% if sound.isOwnedBy(app.user) %}
+                {% if creation_info(sound).canEdit %}
                     <a class="pill-button" href="{{ path('sound_edit', {id: sound.id}) }}">{{ 'Éditer'|trans }}</a>
                 {% elseif app.user %}
                     <form method="post" action="{{ path('sound_new') }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
                         <input type="hidden" name="from" value="{{ sound.id }}">
-                        <button class="pill-button pc-hide" type="submit">{{ 'Copier pour le modifier'|trans }}</button>
+                        <button class="pill-button pc-hide" type="submit" title="{{ 'Faire ta propre copie, que tu modifies comme tu veux. Le créateur reste cité.'|trans }}">{{ 'Forker'|trans }}</button>
                     </form>
                 {% endif %}
             </div>
         </div>
         <p class="small muted">{{ 'Fait dans l\'éditeur de sons du site (les voix de la Master System). Un niveau peut le prendre comme musique ou à la place d\'un son du jeu.'|trans }} <a href="{{ path('editor') }}">{{ 'L\'éditeur'|trans }}</a></p>
     </section>
+    {% include '_parts/credits.html.twig' with {creation: sound} only %}
 {% else %}
     <p class="pc-only panel wide">{{ 'L\'éditeur se fait sur un ordinateur, avec une souris et un clavier.'|trans }}
         <a href="{{ path('sound', {id: sound.id}) }}">{{ 'Écouter'|trans }}</a></p>
-    <section id="sound-editor" class="editor pc-hide" data-kind="{{ sound.kind }}" data-sound="{{ sound.data|json_encode }}"
+    <section id="sound-editor" class="editor pc-hide" {{ live_attributes(sound, restored) }} data-kind="{{ sound.kind }}" data-sound="{{ data|json_encode }}"
              data-save="{{ path('sound_save', {id: sound.id}) }}" data-token="{{ csrf_token('editor') }}"
              data-drums="{{ drums|map(d => d|trans)|json_encode }}"
              data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans, error: 'Erreur'|trans}|json_encode }}">
@@ -121,14 +123,17 @@
 {% endblock %}
 
 {% macro delete_form(sound) %}
+    {% if sound.isOwnedBy(app.user) %}
     <form method="post" action="{{ path('sound_delete', {id: sound.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
           data-confirm="{{ 'Supprimer ce son pour de bon ?'|trans }}">
         <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
         <button class="pill-button danger" type="submit">{{ 'Supprimer'|trans }}</button>
     </form>
+    {% endif %}
 {% endmacro %}
 
 {% block scripts %}
     <script src="{{ asset('js/sound-engine.js') }}" defer></script>
+    {% if edit %}<script src="{{ asset('js/editor-live.js') }}" defer></script>{% endif %}
     {% if edit %}<script src="{{ asset(sound.music ? 'js/editor-music.js' : 'js/editor-sfx.js') }}" defer></script>{% endif %}
 {% endblock %}

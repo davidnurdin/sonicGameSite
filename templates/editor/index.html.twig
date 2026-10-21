@@ -4,84 +4,7 @@
 {% block description %}{{ 'Crée tes niveaux de Sonic bloc par bloc, et tes propres tiles. Regarde les niveaux publics des autres joueurs.'|trans }}{% endblock %}
 
 {% block main_class %}wide{% endblock %}
-
-{% macro level_card(level, mine) %}
-    <li class="ed-card">
-        <a class="ed-thumb" href="{{ path(mine ? 'level_edit' : 'level', {id: level.id}) }}">
-            <img src="{{ path('level_png', {id: level.id, v: level.updatedAt.timestamp}) }}" alt="" loading="lazy">
-        </a>
-        <div class="ed-card-text">
-            <b>{{ level.name }}</b>
-            <small class="muted">
-                {% if not mine %}{{ 'par %name%'|trans({'%name%': level.user.username}) }} · {% endif %}
-                {{ level.width }}×{{ level.height }} · {{ level.tileset.name }}
-            </small>
-            {% if mine %}<span class="badge{% if not level.public %} off{% endif %}">{{ level.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
-        </div>
-        <div class="ed-card-go">
-            <a class="pill-button play-pill" href="{{ path('level_play', {id: level.id}) }}">▶ {{ 'Jouer'|trans }}</a>
-            {% if mine %}<a class="pill-button" href="{{ path('level_edit', {id: level.id}) }}">{{ 'Éditer'|trans }}</a>{% endif %}
-            <a class="pill-button" href="{{ path('level', {id: level.id}) }}">{{ 'Voir'|trans }}</a>
-        </div>
-    </li>
-{% endmacro %}
-
-{% macro tileset_card(tileset, mine) %}
-    <li class="ed-card tiles">
-        <a class="ed-thumb" href="{{ path(mine ? 'tileset_edit' : 'tileset', {id: tileset.id}) }}">
-            <img src="{{ path('tileset_png', {id: tileset.id, v: tileset.updatedAt.timestamp}) }}" alt="" loading="lazy">
-        </a>
-        <div class="ed-card-text">
-            <b>{{ tileset.name }}</b>
-            <small class="muted">
-                {{ tileset.zone ? 'Zone du jeu'|trans ~ ' · ' : (mine ? '' : 'par %name%'|trans({'%name%': tileset.user.username}) ~ ' · ') }}
-                {{ tileset.count }} {{ 'blocs'|trans }}
-            </small>
-            {% if mine %}<span class="badge{% if not tileset.public %} off{% endif %}">{{ tileset.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
-        </div>
-        <div class="ed-card-go">
-            {% if mine %}<a class="pill-button" href="{{ path('tileset_edit', {id: tileset.id}) }}">{{ 'Éditer'|trans }}</a>{% endif %}
-            <a class="pill-button" href="{{ path('tileset', {id: tileset.id}) }}">{{ 'Voir'|trans }}</a>
-        </div>
-    </li>
-{% endmacro %}
-
-{% macro sprites_card(set, mine) %}
-    <li class="ed-card sprites">
-        <a class="ed-thumb" href="{{ path(mine ? 'sprites_edit' : 'sprites', {id: set.id}) }}">
-            <img src="{{ path('sprites_png', {id: set.id, sheet: 'sonic', v: set.updatedAt.timestamp}) }}" alt="" loading="lazy">
-        </a>
-        <div class="ed-card-text">
-            <b>{{ set.name }}</b>
-            <small class="muted">
-                {{ mine ? '' : 'par %name%'|trans({'%name%': set.user.username}) ~ ' · ' }}
-                {{ set.sheets|length > 1 ? '%n% planches redessinées'|trans({'%n%': set.sheets|length}) : '%n% planche redessinée'|trans({'%n%': set.sheets|length}) }}
-            </small>
-            {% if mine %}<span class="badge{% if not set.public %} off{% endif %}">{{ set.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
-        </div>
-        <div class="ed-card-go">
-            {% if mine %}<a class="pill-button" href="{{ path('sprites_edit', {id: set.id}) }}">{{ 'Éditer'|trans }}</a>{% endif %}
-            <a class="pill-button" href="{{ path('sprites', {id: set.id}) }}">{{ 'Voir'|trans }}</a>
-        </div>
-    </li>
-{% endmacro %}
-
-{% macro sound_card(sound, mine) %}
-    <li class="ed-card sound" data-sound-player data-kind="{{ sound.kind }}" data-sound="{{ sound.data|json_encode }}" data-name="{{ sound.name }}">
-        <div class="ed-card-text">
-            <b>{{ sound.music ? '♪' : '🔊' }} {{ sound.name }}</b>
-            <small class="muted">
-                {{ sound.music ? 'Musique'|trans : 'Bruitage'|trans }}{{ mine ? '' : ' · ' ~ 'par %name%'|trans({'%name%': sound.user.username}) }}
-            </small>
-            {% if mine %}<span class="badge{% if not sound.public %} off{% endif %}">{{ sound.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
-        </div>
-        <div class="ed-card-go">
-            <button type="button" class="pill-button play-pill sd-play">▶</button>
-            {% if mine %}<a class="pill-button" href="{{ path('sound_edit', {id: sound.id}) }}">{{ 'Éditer'|trans }}</a>{% endif %}
-            <a class="pill-button" href="{{ path('sound', {id: sound.id}) }}">{{ 'Voir'|trans }}</a>
-        </div>
-    </li>
-{% endmacro %}
+{% import '_parts/cards.html.twig' as cards %}
 
 {% block body %}
 <section class="panel wide">
@@ -146,23 +69,32 @@
     <section class="panel wide">
         <h2>{{ 'Mes niveaux'|trans }}</h2>
         {% if myLevels is empty %}<p class="muted">{{ 'Pas encore de niveau.'|trans }}</p>{% endif %}
-        <ul class="ed-cards">{% for level in myLevels %}{{ _self.level_card(level, true) }}{% endfor %}</ul>
+        <ul class="ed-cards">{% for level in myLevels %}{{ cards.level_card(level, true) }}{% endfor %}</ul>
     </section>
     <section class="panel wide">
         <h2>{{ 'Mes tiles'|trans }}</h2>
         {% if myTilesets is empty %}<p class="muted">{{ 'Pas encore de tiles à toi.'|trans }}</p>{% endif %}
-        <ul class="ed-cards">{% for tileset in myTilesets %}{{ _self.tileset_card(tileset, true) }}{% endfor %}</ul>
+        <ul class="ed-cards">{% for tileset in myTilesets %}{{ cards.tileset_card(tileset, true) }}{% endfor %}</ul>
     </section>
     <section class="panel wide">
         <h2>{{ 'Mes sprites'|trans }}</h2>
         {% if mySprites is empty %}<p class="muted">{{ 'Pas encore de sprites à toi.'|trans }}</p>{% endif %}
-        <ul class="ed-cards">{% for set in mySprites %}{{ _self.sprites_card(set, true) }}{% endfor %}</ul>
+        <ul class="ed-cards">{% for set in mySprites %}{{ cards.sprites_card(set, true) }}{% endfor %}</ul>
     </section>
     <section class="panel wide">
         <h2 id="sounds">{{ 'Mes sons'|trans }}</h2>
         {% if mySounds is empty %}<p class="muted">{{ 'Pas encore de son à toi.'|trans }}</p>{% endif %}
-        <ul class="ed-cards">{% for sound in mySounds %}{{ _self.sound_card(sound, true) }}{% endfor %}</ul>
+        <ul class="ed-cards">{% for sound in mySounds %}{{ cards.sound_card(sound, true) }}{% endfor %}</ul>
     </section>
+    {% if shared is not empty %}
+    <section class="panel wide">
+        <h2 id="shared">{{ 'Partagés avec moi'|trans }}</h2>
+        <p class="small muted">{{ 'Leur créateur t\'a ajouté : tu peux les modifier avec lui.'|trans }}</p>
+        <ul class="ed-cards">{% for s in shared %}
+            {% if s.kind == 'level' %}{{ cards.level_card(s.creation, true) }}{% elseif s.kind == 'tileset' %}{{ cards.tileset_card(s.creation, true) }}{% elseif s.kind == 'sprites' %}{{ cards.sprites_card(s.creation, true) }}{% else %}{{ cards.sound_card(s.creation, true) }}{% endif %}
+        {% endfor %}</ul>
+    </section>
+    {% endif %}
 {% else %}
     <section class="panel wide">
         <p>{{ 'Pour créer des niveaux, des tiles, des sprites et des sons :'|trans }}
@@ -174,7 +106,7 @@
 <section class="panel wide">
     <h2>{{ 'Niveaux publics'|trans }}</h2>
     {% if publicLevels is empty %}<p class="muted">{{ 'Aucun niveau public pour le moment.'|trans }}</p>{% endif %}
-    <ul class="ed-cards">{% for level in publicLevels %}{{ _self.level_card(level, app.user and level.user == app.user) }}{% endfor %}</ul>
+    <ul class="ed-cards">{% for level in publicLevels %}{{ cards.level_card(level, app.user and level.user == app.user) }}{% endfor %}</ul>
     {% if pages > 1 %}
         <nav class="pager" aria-label="{{ 'Pages'|trans }}">
             {% if page > 1 %}<a class="pill-button" href="{{ path('editor', {page: page - 1}) }}" rel="prev">← {{ 'Précédents'|trans }}</a>{% endif %}
@@ -187,22 +119,22 @@
 <section class="panel wide">
     <h2>{{ 'Tiles'|trans }}</h2>
     <ul class="ed-cards">
-        {% for tileset in zones %}{{ _self.tileset_card(tileset, false) }}{% endfor %}
-        {% for tileset in publicTilesets %}{{ _self.tileset_card(tileset, app.user and tileset.user == app.user) }}{% endfor %}
+        {% for tileset in zones %}{{ cards.tileset_card(tileset, false) }}{% endfor %}
+        {% for tileset in publicTilesets %}{{ cards.tileset_card(tileset, app.user and tileset.user == app.user) }}{% endfor %}
     </ul>
 </section>
 
 {% if publicSprites is not empty %}
 <section class="panel wide">
     <h2>{{ 'Sprites publics'|trans }}</h2>
-    <ul class="ed-cards">{% for set in publicSprites %}{{ _self.sprites_card(set, false) }}{% endfor %}</ul>
+    <ul class="ed-cards">{% for set in publicSprites %}{{ cards.sprites_card(set, false) }}{% endfor %}</ul>
 </section>
 {% endif %}
 
 {% if publicSounds is not empty %}
 <section class="panel wide">
     <h2>{{ 'Sons publics'|trans }}</h2>
-    <ul class="ed-cards">{% for sound in publicSounds %}{{ _self.sound_card(sound, false) }}{% endfor %}</ul>
+    <ul class="ed-cards">{% for sound in publicSounds %}{{ cards.sound_card(sound, false) }}{% endfor %}</ul>
 </section>
 {% endif %}
 {% endblock %}

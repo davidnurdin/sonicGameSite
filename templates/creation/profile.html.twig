@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+{% import '_parts/people.html.twig' as people %}
+{% import '_parts/cards.html.twig' as cards %}
+
+{% set kinds = {level: 'Niveau', tileset: 'Tiles', sprites: 'Sprites', sound: 'Son'} %}
+{% set actions = {
+    create: 'a créé', fork: 'a forké', save: 'a enregistré', restore: 'a repris une version de',
+    forked: 'a forké', member: 'a ajouté un participant à', unmember: 'a retiré un participant de', delete: 'a supprimé',
+} %}
+{% block title %}{{ player.username }} · Sonic PHP{% endblock %}
+{% block description %}{{ 'Les niveaux, tiles, sprites et sons de %name% sur Sonic PHP.'|trans({'%name%': player.username}) }}{% endblock %}
+{% block main_class %}wide{% endblock %}
+
+{% block body %}
+<section class="panel wide">
+    <h1>{{ player.username }}</h1>
+    <p class="muted">
+        {{ 'Inscrit depuis le %date%'|trans({'%date%': player.createdAt|date(app.request.locale == 'fr' ? 'd/m/Y' : 'Y-m-d')}) }}
+        {% if time >= 60 %}· {{ 'Temps de jeu'|trans }} {{ (time / 3600)|round(0, 'floor') }} h {{ '%02d'|format((time % 3600 / 60)|round(0, 'floor')) }}{% endif %}
+        {% if replays > 0 %}· <a href="{{ path('history', {joueur: player.username}) }}">{{ replays > 1 ? '%n% replays'|trans({'%n%': replays}) : '%n% replay'|trans({'%n%': replays}) }}</a>{% endif %}
+    </p>
+    {% if me %}<p class="small muted">{{ 'C\'est ta page : les autres y voient tes créations publiques.'|trans }} <a href="{{ path('editor') }}">{{ 'L\'éditeur'|trans }}</a></p>{% endif %}
+</section>
+
+{% if levels is not empty %}
+<section class="panel wide">
+    <h2>{{ 'Niveaux'|trans }} ({{ levels|length }})</h2>
+    <ul class="ed-cards">{% for level in levels %}{{ cards.level_card(level, me) }}{% endfor %}</ul>
+</section>
+{% endif %}
+{% if tilesets is not empty %}
+<section class="panel wide">
+    <h2>{{ 'Tiles'|trans }} ({{ tilesets|length }})</h2>
+    <ul class="ed-cards">{% for tileset in tilesets %}{{ cards.tileset_card(tileset, me) }}{% endfor %}</ul>
+</section>
+{% endif %}
+{% if sprites is not empty %}
+<section class="panel wide">
+    <h2>{{ 'Sprites'|trans }} ({{ sprites|length }})</h2>
+    <ul class="ed-cards">{% for set in sprites %}{{ cards.sprites_card(set, me) }}{% endfor %}</ul>
+</section>
+{% endif %}
+{% if sounds is not empty %}
+<section class="panel wide">
+    <h2>{{ 'Sons'|trans }} ({{ sounds|length }})</h2>
+    <ul class="ed-cards">{% for sound in sounds %}{{ cards.sound_card(sound, me) }}{% endfor %}</ul>
+</section>
+{% endif %}
+{% if levels is empty and tilesets is empty and sprites is empty and sounds is empty %}
+<section class="panel wide"><p class="muted">{{ 'Pas encore de création publique.'|trans }}</p></section>
+{% endif %}
+
+{% if shared is not empty %}
+<section class="panel wide">
+    <h2>{{ 'Participe à'|trans }}</h2>
+    <ul class="cr-forks">
+        {% for s in shared %}<li>{{ kinds[s.kind]|trans }} {{ people.creation(s.kind, s.creation) }} {{ 'de'|trans }} {{ people.user(s.creation.user) }}</li>{% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% if activity is not empty %}
+<section class="panel wide">
+    <h2>{{ 'Dernières actions'|trans }}</h2>
+    <ol class="cr-history">
+        {% for a in activity %}
+            {% set r = a.revision %}
+            <li class="cr-{{ r.action }}">
+                <div class="cr-line">
+                    <time datetime="{{ r.createdAt|date(constant('DATE_ATOM')) }}">{{ r.createdAt|date(app.request.locale == 'fr' ? 'd/m/Y H:i' : 'Y-m-d H:i', 'Europe/Paris') }}</time>
+                    {{ actions[r.action]|trans }} {{ kinds[r.kind]|trans|lower }}
+                    {% if a.creation %}{{ people.creation(r.kind, a.creation) }} · <a class="small" href="{{ path(r.kind ~ '_history', {id: r.creationId}) }}">{{ 'historique'|trans }}</a>{% else %}<b>{{ r.name }}</b>{% endif %}
+                </div>
+            </li>
+        {% endfor %}
+    </ol>
+</section>
+{% endif %}
+{% endblock %}

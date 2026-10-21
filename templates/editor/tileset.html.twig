@@ -5,6 +5,7 @@
 {% block robots %}{{ tileset.public and not edit ? 'index, follow' : 'noindex' }}{% endblock %}
 {% block main_class %}{{ edit ? 'full' : 'wide' }}{% endblock %}
 
+{% import '_parts/people.html.twig' as people %}
 {% block body %}
 {% if not edit %}
     <section class="panel wide">
@@ -12,19 +13,19 @@
             <div>
                 <h1>{{ tileset.name }}</h1>
                 <p class="muted">
-                    {{ tileset.zone ? 'Zone du jeu'|trans : 'par %name%'|trans({'%name%': tileset.user.username}) }} ·
+                    {% if tileset.zone %}{{ 'Zone du jeu'|trans }}{% else %}{{ 'par'|trans }} {{ people.user(tileset.user) }}{% endif %} ·
                     {{ tileset.count }} {{ 'blocs'|trans }} · {{ used > 1 ? '%n% niveaux'|trans({'%n%': used}) : '%n% niveau'|trans({'%n%': used}) }}
                     {% if not tileset.public %}· <span class="badge off">{{ 'Privé'|trans }}</span>{% endif %}
                 </p>
             </div>
             <div class="lv-actions">
-                {% if tileset.isOwnedBy(app.user) %}
+                {% if creation_info(tileset).canEdit %}
                     <a class="pill-button" href="{{ path('tileset_edit', {id: tileset.id}) }}">{{ 'Éditer'|trans }}</a>
                 {% elseif app.user and tileset.canUse(app.user) %}
                     <form method="post" action="{{ path('tileset_new') }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
                         <input type="hidden" name="from" value="{{ tileset.id }}">
-                        <button class="pill-button pc-hide" type="submit">{{ 'Copier pour les modifier'|trans }}</button>
+                        <button class="pill-button pc-hide" type="submit" title="{{ 'Faire ta propre copie, que tu modifies comme tu veux. Le créateur reste cité.'|trans }}">{{ 'Forker'|trans }}</button>
                     </form>
                 {% endif %}
             </div>
@@ -32,11 +33,12 @@
         <div class="ts-view"><img src="{{ path('tileset_png', {id: tileset.id, v: tileset.updatedAt.timestamp}) }}" alt="{{ tileset.name }}"></div>
         <p class="small muted">{{ 'Chaque bloc fait 32×32 pixels. Un niveau peut utiliser ces tiles si elles sont publiques.'|trans }} <a href="{{ path('editor') }}">{{ 'L\'éditeur'|trans }}</a></p>
     </section>
+    {% include '_parts/credits.html.twig' with {creation: tileset} only %}
 {% else %}
     <p class="pc-only panel wide">{{ 'L\'éditeur se fait sur un ordinateur, avec une souris et un clavier.'|trans }}
         <a href="{{ path('tileset', {id: tileset.id}) }}">{{ 'Voir les tiles'|trans }}</a></p>
-    <section id="tile-editor" class="editor pc-hide"
-             data-json="{{ path('tileset_json', {id: tileset.id}) }}" data-save="{{ path('tileset_save', {id: tileset.id}) }}"
+    <section id="tile-editor" class="editor pc-hide" {{ live_attributes(tileset, restored) }}
+             data-json="{{ path('tileset_json', {id: tileset.id, version: restored}) }}" data-save="{{ path('tileset_save', {id: tileset.id}) }}"
              data-tileset-json="{{ path('tileset_json', {id: 0})|replace({'/0.json': '/ID.json'}) }}"
              data-token="{{ csrf_token('editor') }}" data-shapes="{{ asset('data/solidity-shapes.json') }}"
              data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, cloneFirst: 'Alt+clic : choisis d\'abord la source à copier.'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans,
@@ -124,11 +126,13 @@
                 <label class="small"><input type="checkbox" name="w-walls"> {{ 'Murs : bloque Sonic sur les côtés'|trans }}</label>
                 <label class="small"><input type="checkbox" name="w-ceiling"> {{ 'Plafond : bloque Sonic par en dessous'|trans }}</label>
                 <div class="te-shapes"></div>
+                {% if tileset.isOwnedBy(app.user) %}
                 <form method="post" action="{{ path('tileset_delete', {id: tileset.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
                       data-confirm="{{ 'Supprimer ces tiles pour de bon ?'|trans }}">
                     <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
                     <button class="pill-button danger" type="submit"{% if used %} disabled title="{{ 'Ces tiles servent à des niveaux : elles ne peuvent pas être supprimées.'|trans }}"{% endif %}>{{ 'Supprimer ces tiles'|trans }}</button>
                 </form>
+                {% endif %}
             </div>
         </div>
     </section>
@@ -138,6 +142,6 @@
 {% block scripts %}
     {% if edit %}
         <script src="{{ asset('js/level-view.js') }}" defer></script>
-        <script src="{{ asset('js/editor-tiles.js') }}" defer></script>
+        <script src="{{ asset('js/editor-live.js') }}" defer></script><script src="{{ asset('js/editor-tiles.js') }}" defer></script>
     {% endif %}
 {% endblock %}

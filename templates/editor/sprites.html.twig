@@ -5,6 +5,7 @@
 {% block robots %}{{ set.public and not edit ? 'index, follow' : 'noindex' }}{% endblock %}
 {% block main_class %}{{ edit ? 'full' : 'wide' }}{% endblock %}
 
+{% import '_parts/people.html.twig' as people %}
 {% block body %}
 {% if not edit %}
     <section class="panel wide">
@@ -12,19 +13,19 @@
             <div>
                 <h1>{{ set.name }}</h1>
                 <p class="muted">
-                    {{ 'par %name%'|trans({'%name%': set.user.username}) }} ·
+                    {{ 'par'|trans }} {{ people.user(set.user) }} ·
                     {{ used > 1 ? '%n% niveaux'|trans({'%n%': used}) : '%n% niveau'|trans({'%n%': used}) }}
                     {% if not set.public %}· <span class="badge off">{{ 'Privé'|trans }}</span>{% endif %}
                 </p>
             </div>
             <div class="lv-actions">
-                {% if set.isOwnedBy(app.user) %}
+                {% if creation_info(set).canEdit %}
                     <a class="pill-button" href="{{ path('sprites_edit', {id: set.id}) }}">{{ 'Éditer'|trans }}</a>
                 {% elseif app.user %}
                     <form method="post" action="{{ path('sprites_new') }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
                         <input type="hidden" name="from" value="{{ set.id }}">
-                        <button class="pill-button pc-hide" type="submit">{{ 'Copier pour les modifier'|trans }}</button>
+                        <button class="pill-button pc-hide" type="submit" title="{{ 'Faire ta propre copie, que tu modifies comme tu veux. Le créateur reste cité.'|trans }}">{{ 'Forker'|trans }}</button>
                     </form>
                 {% endif %}
             </div>
@@ -38,11 +39,12 @@
         {% if set.sheets is empty %}<p class="muted">{{ 'Rien de redessiné pour le moment : ce sont les sprites du jeu.'|trans }}</p>{% endif %}
         <p class="small muted">{{ 'Un niveau qui choisit ces sprites se joue avec eux. Les planches non redessinées restent celles du jeu.'|trans }} <a href="{{ path('editor') }}">{{ 'L\'éditeur'|trans }}</a></p>
     </section>
+    {% include '_parts/credits.html.twig' with {creation: set} only %}
 {% else %}
     <p class="pc-only panel wide">{{ 'L\'éditeur se fait sur un ordinateur, avec une souris et un clavier.'|trans }}
         <a href="{{ path('sprites', {id: set.id}) }}">{{ 'Voir les sprites'|trans }}</a></p>
-    <section id="sprite-editor" class="editor pc-hide"
-             data-json="{{ path('sprites_json', {id: set.id}) }}" data-save="{{ path('sprites_save', {id: set.id}) }}"
+    <section id="sprite-editor" class="editor pc-hide" {{ live_attributes(set, restored) }}
+             data-json="{{ path('sprites_json', {id: set.id, version: restored}) }}" data-save="{{ path('sprites_save', {id: set.id}) }}"
              data-token="{{ csrf_token('editor') }}"
              data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, cloneFirst: 'Alt+clic : choisis d\'abord la source à copier.'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans,
                  error: 'Erreur'|trans, size: 'Il faut une image de %w%×%h% pixels, comme la planche du jeu.'|trans, own: 'redessinée'|trans}|json_encode }}">
@@ -107,11 +109,13 @@
                     </ul>
                 </details>
                 <p class="sp-pos small muted"></p>
+                {% if set.isOwnedBy(app.user) %}
                 <form method="post" action="{{ path('sprites_delete', {id: set.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
                       data-confirm="{{ 'Supprimer ces sprites pour de bon ? Les niveaux qui les utilisent reprendront ceux du jeu.'|trans }}">
                     <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
                     <button class="pill-button danger" type="submit">{{ 'Supprimer ces sprites'|trans }}</button>
                 </form>
+                {% endif %}
             </aside>
         </div>
     </section>
@@ -119,5 +123,6 @@
 {% endblock %}
 
 {% block scripts %}
+    {% if edit %}<script src="{{ asset('js/editor-live.js') }}" defer></script>{% endif %}
     {% if edit %}<script src="{{ asset('js/editor-sprites.js') }}" defer></script>{% endif %}
 {% endblock %}

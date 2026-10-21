@@ -61,6 +61,7 @@
                 <a href="{{ path('editor') }}"{% if route == 'editor' %} aria-current="page"{% endif %}>{{ 'Éditeur de niveau'|trans }}</a>
                 <hr>
                 {% if app.user %}
+                    <a href="{{ path('profile', {username: app.user.username}) }}"{% if route == 'profile' %} aria-current="page"{% endif %}>{{ 'Mon profil'|trans }}</a>
                     <a href="{{ path('logout') }}">{{ 'Déconnexion'|trans }} <small>({{ app.user.username }})</small></a>
                 {% else %}
                     {# back to this page once signed in (an invitation to a room...) #}

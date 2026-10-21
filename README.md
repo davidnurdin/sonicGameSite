@@ -18,7 +18,8 @@ Le site de [Sonic PHP](https://github.com/davidnurdin/sonicGamePhp), en ligne su
   ressorts, vies perdues, actes, émeraudes, matchs et victoires, et le classement de ceux qui jouent le plus ;
 - **invité sans compte** : JOUER, sur la page d'un salon, mène à l'inscription (ou à la connexion), puis
   revient directement dans le salon (`?next=`) ;
-- la liste des **joueurs inscrits** (`/joueurs`, 30 par page) ;
+- la liste des **joueurs inscrits** (`/joueurs`, 30 par page), et la page de chacun (`/joueur/{nom}`) : ses
+  créations, celles auxquelles il participe, ses dernières actions, ses parties (`/historique?joueur={nom}`) ;
 - le nombre de **joueurs dans le jeu** dans l'en-tête de chaque page : les jeux ouverts (la page du jeu le
   dit au site toutes les 45 secondes, `POST /api/jeu`, gardé 2 minutes en cache), au moins les joueurs des
   salons du relais ;
@@ -120,6 +121,29 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
 - Les éditeurs (`public/js/level-view.js`, `editor-level.js`, `editor-tiles.js`, `editor-sprites.js`,
   `editor-music.js`, `editor-sfx.js`) enregistrent en JSON avec le
   jeton CSRF `editor` (en-tête `X-CSRF-Token`) ; `EditorData` vérifie tout ce qu'ils envoient.
+
+## Comment marchent les forks, le travail à plusieurs et l'historique
+
+- Chaque création (niveau, tiles, sprites, son) montre son créateur, avec un lien vers sa page, et sous la page
+  de la création, ses **crédits** (`templates/_parts/credits.html.twig`) : d'où elle vient, ses forks, les
+  joueurs qui la modifient, le lien vers son historique. Dans le jeu, un niveau du site affiche son nom et son
+  auteur pendant ses 4 premières secondes (`Game::drawSiteCredit`, `author` de `jeu.json`).
+- **Forker** : faire sa propre copie d'une création visible (`forked_from_id` la relie à l'originale ; l'historique
+  des deux le dit).
+- **À plusieurs** : le créateur ajoute des joueurs par leur nom (`Member`, `POST /creation/{sorte}/{id}/membres`).
+  Ils ouvrent l'éditeur et enregistrent comme lui (pas de suppression, pas d'ajout de joueurs). Les créations
+  partagées sont dans `/editeur` (« Partagés avec moi »). Un éditeur ouvert demande toutes les 5 secondes
+  (`public/js/editor-live.js`, `POST /api/edition/{sorte}/{id}`) la version enregistrée et qui d'autre est dans
+  l'éditeur (cache, 15 s). Il dit quand quelqu'un d'autre a enregistré. Chaque enregistrement envoie la version
+  dont l'éditeur est parti : si quelqu'un a enregistré depuis, le site répond 409, et le joueur choisit de
+  recharger ou d'écraser (`force` ; l'autre version reste dans l'historique).
+- **Historique complet** (`Revision`, `/niveau|tiles|sprites|son/{id}/historique`) : chaque action (création,
+  fork, enregistrement, version reprise, joueur ajouté ou retiré, suppression), qui, quand, ce qui a changé en
+  mots (`Creations::changes` : blocs, objets, dessin des blocs lu dans le PNG par `Png`, notes…) et, pour
+  chaque version, tout son contenu (JSON compressé). « Ouvrir cette version » la charge dans l'éditeur
+  (`?version=`) ; l'enregistrer la reprend. L'historique reste visible après une suppression pour ceux qui y ont
+  travaillé. `bin/console app:history` (au démarrage du conteneur) donne une première version aux créations
+  faites avant l'historique.
 
 ## Développer
 

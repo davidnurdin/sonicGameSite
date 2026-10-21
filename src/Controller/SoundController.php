@@ -6,6 +6,7 @@ use App\Entity\Sound;
 use App\Entity\SoundAudio;
 use App\Entity\User;
 use App\Repository\SoundRepository;
+use App\Service\Creations;
 use App\Service\EditorData;
 use App\Service\SoundData;
 use Doctrine\ORM\EntityManagerInterface;
@@ -26,7 +27,7 @@ class SoundController extends AbstractController
     /** Sounds an account may have. */
     private const MAX_EACH = 100;
 
-    public function __construct(private EntityManagerInterface $em, private SoundRepository $sounds)
+    public function __construct(private EntityManagerInterface $em, private SoundRepository $sounds, private Creations $creations)
     {
     }
 
@@ -42,15 +43,18 @@ class SoundController extends AbstractController
             return $this->redirectToRoute('editor');
         }
         $from = $request->request->getInt('from') ? $this->sounds->find($request->request->getInt('from')) : null;
-        if ($from instanceof Sound && $from->canSee($user)) {
+        if ($from instanceof Sound && $this->creations->canSee($from, $user)) {
             $sound = new Sound($user, mb_substr($from->getName(), 0, 33) . ' (copie)', $from->getKind(), $from->getData());
+            $sound->setForkedFrom($from);
         } else {
+            $from = null;
             $music = $request->request->get('kind') === Sound::MUSIC;
             $sound = new Sound($user, EditorData::name($request->request->get('name')) ?? ($music ? 'MUSIQUE' : 'SON'),
                 $music ? Sound::MUSIC : Sound::SFX, $music ? SoundData::newMusic() : SoundData::newSfx());
         }
         $this->em->persist($sound);
         $this->em->flush();
+        $this->creations->created($sound, $user, $from);
 
         return $this->redirectToRoute('sound_edit', ['id' => $sound->getId()]);
     }
@@ -58,18 +62,23 @@ class SoundController extends AbstractController
     #[Route('/son/{id}', name: 'sound', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function show(Sound $sound): Response
     {
-        if (!$sound->canSee($this->user())) throw $this->createNotFoundException();
+        if (!$this->creations->canSee($sound, $this->user())) throw $this->createNotFoundException();
 
         return $this->render('editor/sound.html.twig', $this->page($sound, false));
     }
 
     #[Route('/son/{id}/editer', name: 'sound_edit', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
-    public function edit(Sound $sound): Response
+    public function edit(Sound $sound, Request $request): Response
     {
-        if (!$sound->isOwnedBy($this->user())) return $this->redirectToRoute('sound', ['id' => $sound->getId()]);
+        if (!$this->creations->canEdit($sound, $this->user())) return $this->redirectToRoute('sound', ['id' => $sound->getId()]);
+        // a version of its history, opened in the editor
+        $old = $this->creations->revision($sound, $request->query->getInt('version'));
 
-        return $this->render('editor/sound.html.twig', $this->page($sound, true));
+        return $this->render('editor/sound.html.twig', $this->page($sound, true) + [
+            'data' => $old?->getSnapshot()['data'] ?? $sound->getData(),
+            'restored' => $old?->getId(),
+        ]);
     }
 
     /** {name, public, data, audio}: data is checked by SoundData (music or sfx, as the sound is), audio is its WAV in base64. */
@@ -77,11 +86,12 @@ class SoundController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function save(Sound $sound, Request $request): JsonResponse
     {
-        if (!$sound->isOwnedBy($this->user()) || !$this->isCsrfTokenValid('editor', (string) $request->headers->get('X-CSRF-Token'))) {
+        if (!$this->creations->canEdit($sound, $this->user()) || !$this->isCsrfTokenValid('editor', (string) $request->headers->get('X-CSRF-Token'))) {
             return $this->json(['error' => 'forbidden'], 403);
         }
         if (strlen($request->getContent()) > 512 * 1024 + SoundData::MAX_WAV * 4 / 3) return $this->json(['error' => 'too big'], 413);
         $body = json_decode($request->getContent(), true);
+        if ($conflict = $this->creations->conflict($sound, $body)) return $this->json($conflict, 409);
         $name = is_array($body) ? EditorData::name($body['name'] ?? null) : null;
         $data = is_array($body) ? ($sound->isMusic() ? SoundData::music($body['data'] ?? null) : SoundData::sfx($body['data'] ?? null)) : null;
         $audio = is_array($body) && isset($body['audio']) ? SoundData::wav($body['audio']) : null;
@@ -94,15 +104,16 @@ class SoundController extends AbstractController
             $stored ? $stored->setWav($audio) : $this->em->persist(new SoundAudio($sound, $audio));
         }
         $this->em->flush();
+        $this->creations->saved($sound, $this->user(), $body);
 
-        return $this->json(['ok' => true, 'updated' => $sound->getUpdatedAt()->format(DATE_ATOM)]);
+        return $this->json(['ok' => true, 'updated' => $sound->getUpdatedAt()->format(DATE_ATOM), 'version' => $this->creations->version($sound)]);
     }
 
     /** The sound as the editor rendered it (the game's version). */
     #[Route('/son/{id}.wav', name: 'sound_wav', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function wav(Sound $sound): Response
     {
-        $wav = $sound->canSee($this->user()) ? $this->em->find(SoundAudio::class, $sound)?->getWav() : null;
+        $wav = $this->creations->canSee($sound, $this->user()) ? $this->em->find(SoundAudio::class, $sound)?->getWav() : null;
         if ($wav === null) throw $this->createNotFoundException();
         $response = new Response($wav, 200, ['Content-Type' => 'audio/wav', 'X-Content-Type-Options' => 'nosniff']);
         $response->setLastModified(\DateTime::createFromImmutable($sound->getUpdatedAt()));
@@ -116,6 +127,7 @@ class SoundController extends AbstractController
     public function delete(Sound $sound, Request $request): Response
     {
         if ($sound->isOwnedBy($this->user()) && $this->isCsrfTokenValid('editor', (string) $request->request->get('_token'))) {
+            $this->creations->record($sound, $this->user(), 'delete');
             $this->em->remove($sound);
             $this->em->flush();
         }

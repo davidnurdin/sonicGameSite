@@ -1,0 +1,44 @@
+{# Under a creation's page: who made it, where it comes from, its forks, who works on it, its history. #}
+{% import '_parts/people.html.twig' as people %}
+{% set info = creation_info(creation) %}
+<section class="panel wide credits" id="credits">
+    <h2>{{ 'Crédits'|trans }}</h2>
+    <p>
+        {{ 'Créé par'|trans }} <b>{{ people.user(info.owner) }}</b>
+        {% if info.from %}· {{ 'forké depuis'|trans }} {{ people.creation(info.kind, info.from) }} {{ 'de'|trans }} {{ people.user(info.from.user) }}{% endif %}
+        · <a href="{{ path(info.kind ~ '_history', {id: creation.id}) }}">{{ 'Historique complet'|trans }}</a>
+    </p>
+    {% for flash in app.flashes('creation') %}<p class="flash error">{{ flash.m|trans({'%name%': flash.name}) }}</p>{% endfor %}
+    {% if info.members is not empty or info.owned %}
+        <h3>{{ 'Ils le modifient aussi'|trans }}</h3>
+        {% if info.members is empty %}<p class="muted small">{{ 'Personne pour le moment.'|trans }}</p>{% endif %}
+        <ul class="cr-members">
+            {% for member in info.members %}
+                <li>
+                    {{ people.user(member.user) }}
+                    {% if info.owned %}
+                        <form method="post" action="{{ path('creation_members', {kind: info.kind, id: creation.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+                            <input type="hidden" name="remove" value="{{ member.id }}">
+                            <button class="pill-button small" type="submit" aria-label="{{ 'Retirer %name%'|trans({'%name%': member.user.username}) }}">×</button>
+                        </form>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+        {% if info.owned %}
+            <form class="cr-add" method="post" action="{{ path('creation_members', {kind: info.kind, id: creation.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+                <input type="text" name="name" maxlength="8" required placeholder="{{ 'Pseudo'|trans }}" aria-label="{{ 'Pseudo du joueur'|trans }}">
+                <button class="pill-button" type="submit">{{ 'Ajouter'|trans }}</button>
+            </form>
+            <p class="small muted">{{ 'Un joueur ajouté peut l\'ouvrir dans l\'éditeur et l\'enregistrer comme toi. Chaque changement reste dans l\'historique, qu\'on peut reprendre.'|trans }}</p>
+        {% endif %}
+    {% endif %}
+    {% if info.forks is not empty %}
+        <h3>{{ 'Forks'|trans }} ({{ info.forks|length }})</h3>
+        <ul class="cr-forks">
+            {% for fork in info.forks %}<li>{{ people.creation(info.kind, fork) }} {{ 'de'|trans }} {{ people.user(fork.user) }}</li>{% endfor %}
+        </ul>
+    {% endif %}
+</section>
