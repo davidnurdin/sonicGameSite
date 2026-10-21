@@ -3,10 +3,12 @@
 namespace App\Controller;
 
 use App\Entity\Level;
+use App\Entity\Sound;
 use App\Entity\SpriteSet;
 use App\Entity\Tileset;
 use App\Entity\User;
 use App\Repository\LevelRepository;
+use App\Repository\SoundRepository;
 use App\Repository\SpriteSetRepository;
 use App\Repository\TilesetRepository;
 use App\Repository\UserRepository;
@@ -41,6 +43,7 @@ class EditorController extends AbstractController
         private LevelRepository $levels,
         private TilesetRepository $tilesets,
         private SpriteSetRepository $spriteSets,
+        private SoundRepository $sounds,
         private TranslatorInterface $translator,
         #[Autowire(env: 'GAME_URL')] private string $gameUrl,
     ) {
@@ -58,6 +61,8 @@ class EditorController extends AbstractController
             'myTilesets' => $user ? $this->tilesets->ofUser($user) : [],
             'mySprites' => $user ? $this->spriteSets->ofUser($user) : [],
             'publicSprites' => array_filter($this->spriteSets->publicOnes(), fn(SpriteSet $s) => !$s->isOwnedBy($user)),
+            'mySounds' => $user ? $this->sounds->ofUser($user) : [],
+            'publicSounds' => array_filter($this->sounds->publicOnes(), fn(Sound $s) => !$s->isOwnedBy($user)),
             'publicLevels' => $public,
             'page' => $page,
             'pages' => max(1, (int) ceil($total / self::PER_PAGE)),

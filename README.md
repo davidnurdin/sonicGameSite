@@ -31,7 +31,7 @@ Le site de [Sonic PHP](https://github.com/davidnurdin/sonicGamePhp), en ligne su
 - les **visiteurs en direct** : un Sonic par personne sur le site, sur le fond de la page, chacun avec son
   comportement (coureur, sauteur, spin dash, flâneur, suiveur). Le sien est bleu, marqué « TOI », et court
   après la souris (sur téléphone : là où on touche l'écran). Les nuages sont ceux de Green Hill ;
-- les **éditeurs** : niveaux, tiles (dessin et collisions) et sprites, publics ou privés. Les niveaux se
+- les **éditeurs** : niveaux, tiles (dessin et collisions), sprites, sons et musiques, publics ou privés. Les niveaux se
   jouent dans le jeu (bouton Jouer, ou menu NIVEAUX DU SITE du jeu). Ce qui reste à faire est dans
   [`TODO-editeur-de-niveau.md`](TODO-editeur-de-niveau.md).
 
@@ -100,7 +100,13 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
   `public/img/sheets/`, refaites par `python3 tools/sprite-sheets.py <jeu>`.
 - Les zones du jeu (blocs, collisions, l'acte 1 de chacune comme modèle) sont dans `data/game/`, refaites par
   `python3 tools/game-data.py <jeu>`. `bin/console app:zones` les met en base (lancé au démarrage du conteneur).
-- Les éditeurs (`public/js/level-view.js`, `editor-level.js`, `editor-tiles.js`, `editor-sprites.js`) enregistrent en JSON avec le
+- Un son (`Sound`, `/son/{id}/editer`) : une musique (un piano roll sur les 4 voix de la puce de la Master
+  System : 2 carrés, une basse, le bruit pour la batterie ; une voix joue une note à la fois) ou un bruitage
+  (les réglages d'un générateur : onde, hauteur qui glisse, enveloppe, vibrato, répétitions). Le format est
+  décrit dans `SoundData`. `public/js/sound-engine.js` les joue (Web Audio) et en fait des WAV. Ils ne servent
+  pas encore dans le jeu.
+- Les éditeurs (`public/js/level-view.js`, `editor-level.js`, `editor-tiles.js`, `editor-sprites.js`,
+  `editor-music.js`, `editor-sfx.js`) enregistrent en JSON avec le
   jeton CSRF `editor` (en-tête `X-CSRF-Token`) ; `EditorData` vérifie tout ce qu'ils envoient.
 
 ## Développer

@@ -66,6 +66,23 @@
     </li>
 {% endmacro %}
 
+{% macro sound_card(sound, mine) %}
+    <li class="ed-card sound" data-sound-player data-kind="{{ sound.kind }}" data-sound="{{ sound.data|json_encode }}" data-name="{{ sound.name }}">
+        <div class="ed-card-text">
+            <b>{{ sound.music ? '♪' : '🔊' }} {{ sound.name }}</b>
+            <small class="muted">
+                {{ sound.music ? 'Musique'|trans : 'Bruitage'|trans }}{{ mine ? '' : ' · ' ~ 'par %name%'|trans({'%name%': sound.user.username}) }}
+            </small>
+            {% if mine %}<span class="badge{% if not sound.public %} off{% endif %}">{{ sound.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
+        </div>
+        <div class="ed-card-go">
+            <button type="button" class="pill-button play-pill sd-play">▶</button>
+            {% if mine %}<a class="pill-button" href="{{ path('sound_edit', {id: sound.id}) }}">{{ 'Éditer'|trans }}</a>{% endif %}
+            <a class="pill-button" href="{{ path('sound', {id: sound.id}) }}">{{ 'Voir'|trans }}</a>
+        </div>
+    </li>
+{% endmacro %}
+
 {% block body %}
 <section class="panel wide">
     <h1>{{ 'Éditeur de niveau'|trans }}</h1>
@@ -111,6 +128,19 @@
             <p class="small muted">{{ 'Redessine Sonic, les badniks, les objets ou les boss, pixel par pixel. Un niveau qui les choisit se joue avec eux.'|trans }}</p>
             <button type="submit" class="play small">{{ 'Créer'|trans }}</button>
         </form>
+        <form class="panel form" method="post" action="{{ path('sound_new') }}">
+            <h2>{{ 'Nouveau son'|trans }}</h2>
+            <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+            <label for="sound-name">{{ 'Nom'|trans }}</label>
+            <input type="text" id="sound-name" name="name" maxlength="40" required placeholder="{{ 'Ma musique'|trans }}">
+            <label for="sound-kind">{{ 'Sorte'|trans }}</label>
+            <select id="sound-kind" name="kind">
+                <option value="music">{{ 'Une musique (4 voix, comme la Master System)'|trans }}</option>
+                <option value="sfx">{{ 'Un bruitage (saut, anneau, explosion…)'|trans }}</option>
+            </select>
+            <p class="small muted">{{ 'Compose une musique note par note ou fabrique un bruitage, écoute-les et télécharge-les en WAV. Ils ne servent pas encore dans le jeu.'|trans }}</p>
+            <button type="submit" class="play small">{{ 'Créer'|trans }}</button>
+        </form>
     </section>
 
     <section class="panel wide">
@@ -128,9 +158,14 @@
         {% if mySprites is empty %}<p class="muted">{{ 'Pas encore de sprites à toi.'|trans }}</p>{% endif %}
         <ul class="ed-cards">{% for set in mySprites %}{{ _self.sprites_card(set, true) }}{% endfor %}</ul>
     </section>
+    <section class="panel wide">
+        <h2>{{ 'Mes sons'|trans }}</h2>
+        {% if mySounds is empty %}<p class="muted">{{ 'Pas encore de son à toi.'|trans }}</p>{% endif %}
+        <ul class="ed-cards">{% for sound in mySounds %}{{ _self.sound_card(sound, true) }}{% endfor %}</ul>
+    </section>
 {% else %}
     <section class="panel wide">
-        <p>{{ 'Pour créer des niveaux, des tiles et des sprites :'|trans }}
+        <p>{{ 'Pour créer des niveaux, des tiles, des sprites et des sons :'|trans }}
             <a href="{{ path('register', {next: path('editor')}) }}">{{ 'crée ton compte'|trans }}</a> {{ 'ou'|trans }}
             <a href="{{ path('login', {next: path('editor')}) }}">{{ 'connecte-toi'|trans }}</a>.</p>
     </section>
@@ -163,4 +198,15 @@
     <ul class="ed-cards">{% for set in publicSprites %}{{ _self.sprites_card(set, false) }}{% endfor %}</ul>
 </section>
 {% endif %}
+
+{% if publicSounds is not empty %}
+<section class="panel wide">
+    <h2>{{ 'Sons publics'|trans }}</h2>
+    <ul class="ed-cards">{% for sound in publicSounds %}{{ _self.sound_card(sound, false) }}{% endfor %}</ul>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+    {% if mySounds is not empty or publicSounds is not empty %}<script src="{{ asset('js/sound-engine.js') }}" defer></script>{% endif %}
 {% endblock %}

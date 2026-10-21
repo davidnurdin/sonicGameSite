@@ -515,3 +515,23 @@ main.full { max-width: none; padding: 0 12px 24px; }
 .sp-view img { width: auto; max-width: none; background: repeating-conic-gradient(#2a3157 0% 25%, #1c2244 0% 50%) 0 0 / 16px 16px; }
 .sp-swatches { grid-template-columns: repeat(12, 1fr); }
 .ed-side label.small:has(input[type=file]) { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+
+/* sound editor */
+.mu-box { position: relative; overflow: auto; border-radius: 12px; background: #0a1028; user-select: none; }
+.mu-roll { position: sticky; top: 0; left: 0; display: block; z-index: 1; pointer-events: none; }
+.mu-sizer { position: absolute; top: 0; left: 0; }
+.mu-voices { display: flex; flex-direction: column; gap: 6px; }
+.mu-voice { display: flex; align-items: center; gap: 8px; }
+.mu-voice button { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; border: 2px solid transparent; font-size: 14px; }
+.mu-voice.on button { border-color: var(--yellow); }
+.mu-voice i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; }
+.mu-voice input { width: 90px; }
+.ed-bar input[type=number] { width: 64px; padding: 4px 6px; border: 0; border-radius: 6px; font-size: 14px; }
+.sfx-main { flex: 1; min-height: 0; overflow: auto; }
+.sfx-panel { max-width: 760px; margin: 0; }
+.sfx-presets { flex-wrap: wrap; }
+.sfx-wave { display: block; width: 100%; max-width: 720px; height: 120px; margin: 10px 0; border-radius: 8px; }
+.sfx-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 18px; }
+.sfx-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 600; }
+.sfx-fields output { color: var(--yellow); font-weight: 700; }
+.ed-card.sound .ed-card-text b { font-size: 16px; }

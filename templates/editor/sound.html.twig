@@ -1,0 +1,134 @@
+{% extends 'base.html.twig' %}
+
+{% set kind_name = sound.music ? 'Musique'|trans : 'Bruitage'|trans %}
+{% block title %}{{ sound.name }} · {{ edit ? 'Éditeur de sons'|trans : kind_name }} · Sonic PHP{% endblock %}
+{% block description %}{{ sound.music ? 'Une musique faite par %name% dans l\'éditeur de sons de Sonic PHP.'|trans({'%name%': sound.user.username}) : 'Un bruitage fait par %name% dans l\'éditeur de sons de Sonic PHP.'|trans({'%name%': sound.user.username}) }}{% endblock %}
+{% block robots %}{{ sound.public and not edit ? 'index, follow' : 'noindex' }}{% endblock %}
+{% block main_class %}{{ edit ? 'full' : 'wide' }}{% endblock %}
+
+{% block body %}
+{% if not edit %}
+    <section class="panel wide" data-sound-player data-kind="{{ sound.kind }}" data-sound="{{ sound.data|json_encode }}" data-name="{{ sound.name }}">
+        <div class="lv-head">
+            <div>
+                <h1>{{ sound.name }}</h1>
+                <p class="muted">
+                    {{ kind_name }} · {{ 'par %name%'|trans({'%name%': sound.user.username}) }}
+                    {% if sound.music %}· {{ sound.data.bars }} {{ 'mesures'|trans }} · {{ sound.data.tempo }} BPM{% endif %}
+                    {% if not sound.public %}· <span class="badge off">{{ 'Privé'|trans }}</span>{% endif %}
+                </p>
+            </div>
+            <div class="lv-actions">
+                <button type="button" class="play small sd-play">▶ {{ 'Écouter'|trans }}</button>
+                <button type="button" class="pill-button sd-wav">{{ 'Télécharger (WAV)'|trans }}</button>
+                {% if sound.isOwnedBy(app.user) %}
+                    <a class="pill-button" href="{{ path('sound_edit', {id: sound.id}) }}">{{ 'Éditer'|trans }}</a>
+                {% elseif app.user %}
+                    <form method="post" action="{{ path('sound_new') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+                        <input type="hidden" name="from" value="{{ sound.id }}">
+                        <button class="pill-button pc-hide" type="submit">{{ 'Copier pour le modifier'|trans }}</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+        <p class="small muted">{{ 'Fait dans l\'éditeur de sons du site (les voix de la Master System). Il ne sert pas encore dans le jeu.'|trans }} <a href="{{ path('editor') }}">{{ 'L\'éditeur'|trans }}</a></p>
+    </section>
+{% else %}
+    <p class="pc-only panel wide">{{ 'L\'éditeur se fait sur un ordinateur, avec une souris et un clavier.'|trans }}
+        <a href="{{ path('sound', {id: sound.id}) }}">{{ 'Écouter'|trans }}</a></p>
+    <section id="sound-editor" class="editor pc-hide" data-kind="{{ sound.kind }}" data-sound="{{ sound.data|json_encode }}"
+             data-save="{{ path('sound_save', {id: sound.id}) }}" data-token="{{ csrf_token('editor') }}"
+             data-drums="{{ drums|map(d => d|trans)|json_encode }}"
+             data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans, error: 'Erreur'|trans}|json_encode }}">
+        <div class="ed-bar">
+            <input type="text" name="name" value="{{ sound.name }}" maxlength="40" aria-label="{{ 'Nom'|trans }}">
+            <label><input type="checkbox" name="public" {{ sound.public ? 'checked' }}> {{ 'Public'|trans }}</label>
+            <span class="ed-sep"></span>
+            <button type="button" class="pill-button ed-undo" title="Ctrl+Z">↶</button>
+            <button type="button" class="pill-button ed-redo" title="Ctrl+Y">↷</button>
+            {% if sound.music %}
+                <label>{{ 'Tempo'|trans }} <input type="number" name="tempo" min="40" max="300" aria-label="{{ 'Tempo'|trans }}"></label>
+                <label>{{ 'Mesures'|trans }} <input type="number" name="bars" min="1" max="32" aria-label="{{ 'Mesures'|trans }}"></label>
+            {% endif %}
+            <span class="ed-sep"></span>
+            <button type="button" class="play small sd-play" title="{{ 'Espace'|trans }}">▶</button>
+            {% if sound.music %}<label title="L"><input type="checkbox" name="loop" checked> {{ 'En boucle'|trans }}</label>{% endif %}
+            <button type="button" class="pill-button sd-wav">WAV</button>
+            <span class="ed-sep"></span>
+            <span class="ed-status" role="status"></span>
+            <button type="button" class="play small ed-save" title="Ctrl+S">{{ 'Enregistrer'|trans }}</button>
+        </div>
+        {% if sound.music %}
+            <div class="ed-main">
+                <div class="mu-box"><canvas class="mu-roll"></canvas></div>
+                <aside class="ed-side">
+                    <h3>{{ 'Voix'|trans }}</h3>
+                    <div class="mu-voices">
+                        {% for voice in voices %}
+                            <div class="mu-voice" data-voice="{{ loop.index0 }}">
+                                <button type="button" class="pill-button" title="{{ loop.index }}"><i></i> {{ voice[0]|trans }}</button>
+                                <input type="range" min="0" max="10" aria-label="{{ 'Volume'|trans }} {{ voice[0]|trans }}">
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <details open>
+                        <summary><h3>{{ 'Aide'|trans }}</h3></summary>
+                        <ul class="small ed-help">
+                            <li>{{ 'Clic : poser une note (glisser vers la droite : plus longue). Clic sur une note ou clic droit : l\'enlever.'|trans }}</li>
+                            <li>{{ 'Une colonne = un temps de double croche ; une mesure = 16 colonnes.'|trans }}</li>
+                            <li>{{ 'Les notes des autres voix sont en pâle. 1 à 4 : changer de voix.'|trans }}</li>
+                            <li>{{ 'Espace : écouter / arrêter. Clic sur la règle du haut : écouter depuis là.'|trans }}</li>
+                            <li>{{ 'Ctrl+Z / Ctrl+Y : annuler / refaire. Ctrl+S : enregistrer.'|trans }}</li>
+                        </ul>
+                    </details>
+                    <p class="sp-pos small muted"></p>
+                    {{ _self.delete_form(sound) }}
+                </aside>
+            </div>
+        {% else %}
+            <div class="sfx-main">
+                <div class="panel sfx-panel">
+                    <h3>{{ 'Partir de'|trans }}</h3>
+                    <div class="ed-row sfx-presets">
+                        {% for key, name in {jump: 'Saut', ring: 'Anneau', spring: 'Ressort', hit: 'Coup', explosion: 'Explosion', laser: 'Laser', powerup: 'Bonus', blip: 'Menu'} %}
+                            <button type="button" class="pill-button" data-preset="{{ key }}">{{ name|trans }}</button>
+                        {% endfor %}
+                        <button type="button" class="pill-button" data-preset="random">🎲 {{ 'Au hasard'|trans }}</button>
+                    </div>
+                    <canvas class="sfx-wave" width="720" height="120"></canvas>
+                    <div class="sfx-fields">
+                        <label>{{ 'Onde'|trans }}
+                            <select name="wave">
+                                {% for wave in waves %}<option value="{{ wave }}">{{ {square: 'Carrée', pulse: 'Carrée fine', triangle: 'Triangle', sawtooth: 'Dent de scie', sine: 'Sinus', noise: 'Bruit'}[wave]|trans }}</option>{% endfor %}
+                            </select></label>
+                        {% for key, field in {
+                            start: ['Hauteur au début (Hz)', 20, 8000], end: ['Hauteur à la fin (Hz)', 20, 8000],
+                            attack: ['Attaque (ms)', 0, 1000], sustain: ['Tenue (ms)', 0, 2000], decay: ['Chute (ms)', 0, 2000],
+                            volume: ['Volume', 0, 10], vibrato: ['Vibrato', 0, 100], speed: ['Vitesse du vibrato (Hz)', 0, 40],
+                            repeat: ['Répétitions', 1, 8], gap: ['Silence entre deux (ms)', 0, 1000]} %}
+                            <label>{{ field[0]|trans }} <output></output>
+                                <input type="range" name="{{ key }}" min="{{ field[1] }}" max="{{ field[2] }}"></label>
+                        {% endfor %}
+                    </div>
+                    <p class="small muted">{{ 'Chaque réglage changé se fait entendre. Espace : écouter.'|trans }}</p>
+                    {{ _self.delete_form(sound) }}
+                </div>
+            </div>
+        {% endif %}
+    </section>
+{% endif %}
+{% endblock %}
+
+{% macro delete_form(sound) %}
+    <form method="post" action="{{ path('sound_delete', {id: sound.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
+          data-confirm="{{ 'Supprimer ce son pour de bon ?'|trans }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+        <button class="pill-button danger" type="submit">{{ 'Supprimer'|trans }}</button>
+    </form>
+{% endmacro %}
+
+{% block scripts %}
+    <script src="{{ asset('js/sound-engine.js') }}" defer></script>
+    {% if edit %}<script src="{{ asset(sound.music ? 'js/editor-music.js' : 'js/editor-sfx.js') }}" defer></script>{% endif %}
+{% endblock %}
