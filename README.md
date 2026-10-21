@@ -62,7 +62,9 @@ dans le jeu. Un salon créé ici l'est par la page (`create` avec `watch`) ; le 
 du jeu en devient l'hôte. Le relais garde un salon vide 90 secondes : le temps que le jeu se charge.
 
 JOUER ouvre le jeu avec `?room=CODE&mode=…&level=…&back=<page du salon>` en plus du nom, de la langue et du
-jeton des statistiques. La liste des salons publics vient de `GET /health?rooms` du relais
+jeton des statistiques. La zone peut être un niveau de l'éditeur (les siens et les publics) : `level=36` et
+`sl=<id>&slt=<clé>&sln=<nom>` ; le jeu le télécharge avant le match, les autres joueurs aussi (le nom est dans les
+infos du salon, `site`). La liste des salons publics vient de `GET /health?rooms` du relais
 (`OnlineStats`, `/salons.json`).
 
 ## Comment marchent les statistiques
@@ -108,6 +110,13 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
   `SoundAudio`) : c'est ce que joue le jeu. Un niveau choisit une musique du jeu ou une de l'éditeur de sons, et
   peut remplacer des bruitages du jeu (`SoundData::GAME_SFX`) ; `/niveau/{id}/jeu.json` les donne en WAV
   (`music_wav`, `sfx_wav`).
+- Outil clone (K) dans les éditeurs de niveau, de tiles et de sprites : Alt+clic (ou clic droit) sur la source,
+  puis on peint ailleurs ; la source, encadrée en bleu, suit le pinceau. Dans l'éditeur de tiles, la source peut
+  être dans un autre bloc (Alt+clic sur la liste des blocs).
+- Un replay sur un niveau de l'éditeur (niveau 36) est relié à ce niveau (`replay.site_level_id`) : son nom dans
+  l'historique ; « Revoir » le télécharge d'abord.
+- En local, le site vise par défaut le relais de prod (`.env`) : pour tester les salons, mettre `RELAY_WS_URL`,
+  `RELAY_HEALTH_URL` et `GAME_URL` sur le relais et la page locaux dans `.env.local`.
 - Les éditeurs (`public/js/level-view.js`, `editor-level.js`, `editor-tiles.js`, `editor-sprites.js`,
   `editor-music.js`, `editor-sfx.js`) enregistrent en JSON avec le
   jeton CSRF `editor` (en-tête `X-CSRF-Token`) ; `EditorData` vérifie tout ce qu'ils envoient.
