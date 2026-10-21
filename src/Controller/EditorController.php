@@ -37,7 +37,7 @@ class EditorController extends AbstractController
 {
     private const PER_PAGE = 24;
     /** Levels and sets an account may have. */
-    private const MAX_EACH = 100;
+    public const MAX_EACH = 100;
     /** Levels a page of the game's menu NIVEAUX DU SITE. */
     private const GAME_PAGE = 6;
 

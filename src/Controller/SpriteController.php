@@ -24,7 +24,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class SpriteController extends AbstractController
 {
     /** Sets an account may have. */
-    private const MAX_EACH = 50;
+    public const MAX_EACH = 50;
 
     public function __construct(private EntityManagerInterface $em, private SpriteSetRepository $sets, private Packages $assets,
         private Creations $creations)

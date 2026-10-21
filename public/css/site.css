@@ -564,3 +564,17 @@ main.full { max-width: none; padding: 0 12px 24px; }
 .cr-trash-list { list-style: none; margin: 0 0 16px; padding: 0; }
 .cr-trash-list li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, .12); }
 .cr-trash-list form { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* the AI page and the API keys */
+.ai-doc h3 { margin: 18px 0 6px; font-size: 16px; }
+.ai-doc pre, .ai-new pre { overflow-x: auto; padding: 10px 12px; border-radius: 8px; background: rgba(0, 0, 0, .35); font-size: 13px; line-height: 1.45; white-space: pre; }
+.ai-doc code, .ai-new code, .cr-trash-list code { padding: 1px 5px; border-radius: 4px; background: rgba(0, 0, 0, .3); font-size: .92em; overflow-wrap: anywhere; }
+.ai-doc li { margin: 4px 0; }
+.ai-tools { margin: 0; }
+.ai-tools dt { margin-top: 8px; }
+.ai-tools dd { margin: 2px 0 0 16px; font-size: 14px; opacity: .85; }
+.ai-new { margin: 12px 0 18px; padding: 12px 14px; border: 2px solid var(--yellow); border-radius: 10px; }
+.ai-key code { font-size: 15px; user-select: all; }
+.ai-form { max-width: 440px; }
+.ai-form select { padding: 8px 10px; border: 0; border-radius: 8px; font-size: 15px; }
+.danger-text { color: #ff7a7a; }

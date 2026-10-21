@@ -3,8 +3,9 @@
 namespace App\Service;
 
 /**
- * The pixels of a PNG as the editors save them (8 bits a channel, RGBA or RGB, not interlaced), read by hand: the
- * image of the site has no GD. Enough to tell which blocks of a set of tiles changed between two versions.
+ * The pixels of a PNG as the editors save them (8 bits a channel, RGBA or RGB, not interlaced), read and written by
+ * hand: the image of the site has no GD. For the history (which blocks changed) and the studio of the API
+ * (pictures drawn by an AI, previews of the levels).
  */
 final class Png
 {
@@ -64,6 +65,32 @@ final class Png
         }
 
         return [$width, $height, $out];
+    }
+
+    /** A PNG of $width x $height pixels from their RGBA bytes (4 a pixel, rows from the top). */
+    public static function encode(int $width, int $height, string $rgba): string
+    {
+        $stride = $width * 4;
+        $raw = '';
+        // filter 1 (sub) on each row: smaller for the flat colours of pixel art
+        for ($y = 0; $y < $height; $y++) {
+            $row = substr($rgba, $y * $stride, $stride);
+            $raw .= "\x01" . substr($row, 0, 4) . self::sub($row);
+        }
+        $chunk = fn(string $type, string $data) => pack('N', strlen($data)) . $type . $data . pack('N', crc32($type . $data));
+
+        return "\x89PNG\r\n\x1a\n" . $chunk('IHDR', pack('NNCCCCC', $width, $height, 8, 6, 0, 0, 0))
+            . $chunk('IDAT', (string) gzcompress($raw, 9)) . $chunk('IEND', '');
+    }
+
+    /** The bytes of a row after the first pixel, each minus the byte 4 before it (PNG filter 1). */
+    private static function sub(string $row): string
+    {
+        $bytes = unpack('C*', $row);
+        $out = '';
+        for ($i = 5, $n = count($bytes); $i <= $n; $i++) $out .= chr(($bytes[$i] - $bytes[$i - 4]) & 0xFF);
+
+        return $out;
     }
 
     private static function paeth(int $a, int $b, int $c): int

@@ -33,12 +33,20 @@ final class Creations
     /** How long a creation stays in its owner's trash before it is deleted for good. */
     public const TRASH_DAYS = 30;
 
+    /** The API key doing the actions of this request (an AI, through the studio's API): said in their history. */
+    private ?string $via = null;
+
     public function __construct(
         private EntityManagerInterface $em,
         private RevisionRepository $revisions,
         private MemberRepository $members,
         #[Autowire(service: 'cache.app')] private CacheItemPoolInterface $cache,
     ) {
+    }
+
+    public function setVia(?string $keyName): void
+    {
+        $this->via = $keyName;
     }
 
     public static function kind(object $creation): string
@@ -191,6 +199,7 @@ final class Creations
                 ? [[$action === 'save' ? 'Première version de l\'historique' : 'Première version']]
                 : self::changes($kind, $before, $snapshot));
         }
+        if ($this->via !== null) $changes[] = ['Par l\'API, clé « %key% »', ['%key%' => $this->via]];
         $revision = new Revision($kind, $creation->getId(), $user, $action, $creation->getName(), $changes, $other?->getId(), $data, $hash);
         $this->em->persist($revision);
 

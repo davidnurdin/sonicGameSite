@@ -14,6 +14,14 @@ security:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build|css)/
             security: false
+        # the studio for AIs (MCP server, REST): a player's API key, no session
+        api:
+            pattern: ^/(mcp|api/v1)(/|$)
+            stateless: true
+            provider: app_user_provider
+            custom_authenticators:
+                - App\Security\ApiKeyAuthenticator
+            entry_point: App\Security\ApiKeyAuthenticator
         main:
             lazy: true
             provider: app_user_provider
@@ -33,7 +41,8 @@ security:
                 path: logout
                 target: home
 
-    access_control: []
+    access_control:
+        - { path: ^/(mcp|api/v1)(/|$), roles: ROLE_USER }
 
 when@test:
     security:

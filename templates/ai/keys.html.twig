@@ -1,0 +1,81 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Clés API'|trans }} · Sonic PHP{% endblock %}
+{% block robots %}noindex{% endblock %}
+{% block main_class %}wide{% endblock %}
+
+{% block body %}
+{% set fr = app.request.locale == 'fr' %}
+<section class="panel wide">
+    <h1>{{ 'Clés API'|trans }}</h1>
+    <p class="muted">{{ 'Une clé permet à une IA (ou à un script) de créer des niveaux, des tiles, des sprites et des sons sur ton compte. Ne la donne qu\'à une IA en qui tu as confiance, ne la publie jamais, et supprime-la dès que tu n\'en as plus besoin.'|trans }}
+        <a href="{{ path('ai') }}">{{ 'Comment connecter une IA'|trans }}</a></p>
+
+    {% if new %}
+        <div class="ai-new">
+            <p><b>{{ 'Ta nouvelle clé (elle ne sera plus jamais affichée, copie-la maintenant) :'|trans }}</b></p>
+            <p class="ai-key"><code id="ai-key">{{ new }}</code> <button type="button" class="pill-button" data-copy="ai-key">{{ 'Copier'|trans }}</button></p>
+            <p class="small muted">{{ 'Par exemple, pour Claude Code :'|trans }}</p>
+            <pre id="ai-cmd">claude mcp add --transport http sonic {{ url('mcp') }} --header "Authorization: Bearer {{ new }}"</pre>
+            <button type="button" class="pill-button" data-copy="ai-cmd">{{ 'Copier la commande'|trans }}</button>
+        </div>
+    {% endif %}
+
+    {% if keys is empty %}
+        <p class="muted">{{ 'Tu n\'as pas encore de clé.'|trans }}</p>
+    {% else %}
+        <ul class="cr-trash-list">
+            {% for k in keys %}
+                <li>
+                    <div>
+                        <b>{{ k.name }}</b> <code class="small">{{ k.hint }}…</code>
+                        <span class="muted small">{{ k.canWrite ? 'lecture et écriture'|trans : 'lecture seule'|trans }}</span>
+                        {% if k.expired %}<span class="small danger-text">{{ 'expirée'|trans }}</span>{% endif %}<br>
+                        <small class="muted">
+                            {{ 'créée le %date%'|trans({'%date%': k.createdAt|date(fr ? 'd/m/Y' : 'Y-m-d', 'Europe/Paris')}) }} ·
+                            {{ k.expiresAt ? 'expire le %date%'|trans({'%date%': k.expiresAt|date(fr ? 'd/m/Y' : 'Y-m-d', 'Europe/Paris')}) : 'n\'expire pas'|trans }} ·
+                            {{ k.lastUsedAt ? 'utilisée %n% fois, la dernière le %date%'|trans({'%n%': k.uses, '%date%': k.lastUsedAt|date(fr ? 'd/m/Y H:i' : 'Y-m-d H:i', 'Europe/Paris')}) : 'jamais utilisée'|trans }}
+                        </small>
+                    </div>
+                    <form method="post" action="{{ path('ai_keys_delete', {id: k.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
+                          data-confirm="{{ 'Supprimer la clé « %name% » ? L\'IA qui l\'utilise ne pourra plus rien faire.'|trans({'%name%': k.name}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('ai_keys') }}">
+                        <button class="pill-button danger" type="submit">{{ 'Supprimer'|trans }}</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if keys|length < max %}
+        <h2>{{ 'Nouvelle clé'|trans }}</h2>
+        <form method="post" action="{{ path('ai_keys_create') }}" class="form ai-form">
+            <label for="ai-name">{{ 'Nom (pour t\'en souvenir)'|trans }}</label>
+            <input type="text" id="ai-name" name="name" maxlength="40" placeholder="Claude Code" required>
+            <label for="ai-access">{{ 'Ce qu\'elle peut faire'|trans }}</label>
+            <select id="ai-access" name="access">
+                <option value="write">{{ 'Lire et créer / modifier (pour créer des niveaux)'|trans }}</option>
+                <option value="read">{{ 'Seulement lire (regarder, tester)'|trans }}</option>
+            </select>
+            <label for="ai-days">{{ 'Durée'|trans }}</label>
+            <select id="ai-days" name="days">
+                {% for d in days %}
+                    <option value="{{ d }}"{% if d == 90 %} selected{% endif %}>{{ d ? '%n% jours'|trans({'%n%': d}) : 'Jusqu\'à ce que je la supprime'|trans }}</option>
+                {% endfor %}
+            </select>
+            <input type="hidden" name="_token" value="{{ csrf_token('ai_keys') }}">
+            <button type="submit" class="play small">{{ 'Créer la clé'|trans }}</button>
+        </form>
+    {% else %}
+        <p class="muted">{{ 'Tu as déjà %n% clés : supprimes-en une pour en créer une autre.'|trans({'%n%': max}) }}</p>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
+        navigator.clipboard?.writeText(document.getElementById(b.dataset.copy).textContent).then(() => { b.textContent = '✓'; });
+    }));
+</script>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Créer avec une IA'|trans }} · Sonic PHP{% endblock %}
+{% block description %}{{ 'Connecte une IA (Claude, Cursor...) à ton compte Sonic PHP avec le serveur MCP : elle crée des niveaux, des tiles, des sprites, des musiques et des sons, les teste et les publie.'|trans }}{% endblock %}
+{% block main_class %}wide{% endblock %}
+
+{% block body %}
+{% set fr = app.request.locale == 'fr' %}
+{% set mcp = url('mcp') %}
+{% set key = 'sk_sonic_...' %}
+<section class="panel wide ai-doc">
+    <h1>{{ 'Créer avec une IA'|trans }}</h1>
+    {% if fr %}
+        <p>Le site a un <b>serveur MCP</b> (<i>Model Context Protocol</i>, le standard qui relie une IA à des outils).
+            Une IA connectée à ton compte avec une clé API peut créer <b>tout un environnement de jeu</b> : des tiles
+            (les blocs du décor et leurs collisions), un niveau, des sprites (Sonic redessiné), une musique et des
+            bruitages. Elle peut <b>regarder</b> ce qu'elle a fait (une image du niveau), le <b>tester</b> (un robot
+            joue une « fausse partie » et dit où il bloque), corriger, puis le <b>publier</b> sur ton compte, en privé ou en public.</p>
+        <p>Tout ce qu'elle fait est à ton nom, comme si tu l'avais fait dans l'éditeur. Tu le retrouves sur ton profil,
+            tu peux le modifier à la main, et l'historique dit ce qui a été fait par l'IA et avec quelle clé.</p>
+    {% else %}
+        <p>The site has an <b>MCP server</b> (<i>Model Context Protocol</i>, the standard that links an AI to tools).
+            An AI connected to your account with an API key can make <b>a whole game world</b>: tiles (the blocks
+            of the scenery and how solid they are), a level, sprites (Sonic redrawn), a music and sound effects. It can
+            <b>look</b> at what it made (a picture of the level), <b>test</b> it (a bot plays a "fake game" and says where it gets stuck),
+            fix it, then <b>publish</b> it on your account, private or public.</p>
+        <p>All it makes is in your name, as if you had made it in the editor. You find it on your profile, you can
+            change it by hand, and the history says what the AI did, and with which key.</p>
+    {% endif %}
+
+    <h2>1. {{ 'Une clé API'|trans }}</h2>
+    {% if app.user %}
+        <p>{{ fr ? 'Crée une clé sur la page' : 'Make a key on the page' }} <a class="pill-button" href="{{ path('ai_keys') }}">{{ 'Clés API'|trans }}</a>
+            {{ fr ? '(menu en haut à droite, « IA et clés API »). Elle n\'est affichée qu\'une fois : copie-la.' : '(menu at the top right, "AI and API keys"). It is shown only once: copy it.' }}</p>
+    {% else %}
+        <p>{{ fr ? 'Il faut un compte :' : 'You need an account:' }}
+            <a href="{{ path('login', {next: path('ai_keys')}) }}">{{ 'Connexion'|trans }}</a> {{ fr ? 'ou' : 'or' }}
+            <a href="{{ path('register', {next: path('ai_keys')}) }}">{{ 'Inscription'|trans }}</a>,
+            {{ fr ? 'puis crée une clé sur la page « Clés API » (menu, « IA et clés API »).' : 'then make a key on the "API keys" page (menu, "AI and API keys").' }}</p>
+    {% endif %}
+    <p class="muted">{{ fr ? 'Une clé « lecture seule » peut tout regarder et tester, mais rien créer ni changer. Pour créer des niveaux, prends « lire et créer ».' : 'A "read only" key can look at and test everything, but not make or change anything. To make levels, pick "read and make".' }}</p>
+
+    <h2>2. {{ 'Connecter l\'IA'|trans }}</h2>
+    <p>{{ fr ? 'Adresse du serveur MCP (transport HTTP, « Streamable HTTP ») :' : 'Address of the MCP server (HTTP transport, "Streamable HTTP"):' }} <code>{{ mcp }}</code><br>
+        {{ fr ? 'La clé va dans l\'en-tête' : 'The key goes in the header' }} <code>Authorization: Bearer {{ key }}</code>.
+        {{ fr ? 'Remplace' : 'Replace' }} <code>{{ key }}</code> {{ fr ? 'par ta clé.' : 'with your key.' }}</p>
+
+    <h3>Claude Code</h3>
+    <pre>claude mcp add --transport http sonic {{ mcp }} --header "Authorization: Bearer {{ key }}"</pre>
+    <p class="small muted">{{ fr ? 'Puis lance' : 'Then run' }} <code>claude</code> {{ fr ? 'et vérifie avec' : 'and check with' }} <code>/mcp</code>.</p>
+
+    <h3>Claude Desktop</h3>
+    <p class="small muted">{{ fr ? 'Réglages, Développeur, Modifier la configuration (claude_desktop_config.json). Il faut Node.js (npx).' : 'Settings, Developer, Edit config (claude_desktop_config.json). Node.js (npx) is needed.' }}</p>
+    <pre>{
+  "mcpServers": {
+    "sonic": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "{{ mcp }}", "--header", "Authorization:${SONIC_AUTH}"],
+      "env": { "SONIC_AUTH": "Bearer {{ key }}" }
+    }
+  }
+}</pre>
+
+    <h3>Cursor, Windsurf, Gemini CLI…</h3>
+    <p class="small muted">{{ fr ? 'Dans la configuration MCP (par exemple ~/.cursor/mcp.json) :' : 'In the MCP config (for example ~/.cursor/mcp.json):' }}</p>
+    <pre>{
+  "mcpServers": {
+    "sonic": {
+      "url": "{{ mcp }}",
+      "headers": { "Authorization": "Bearer {{ key }}" }
+    }
+  }
+}</pre>
+
+    <h3>VS Code (Copilot)</h3>
+    <p class="small muted">.vscode/mcp.json</p>
+    <pre>{
+  "servers": {
+    "sonic": {
+      "type": "http",
+      "url": "{{ mcp }}",
+      "headers": { "Authorization": "Bearer {{ key }}" }
+    }
+  }
+}</pre>
+
+    <h2>3. {{ 'Lui demander'|trans }}</h2>
+    <p>{{ fr ? 'Quelques idées de demandes :' : 'A few ideas of what to ask:' }}</p>
+    {% if fr %}
+        <ul>
+            <li>« Crée-moi un niveau de glace complet sur mon compte Sonic PHP : des tiles bleues et blanches, un niveau de 200 blocs avec des pentes, des ressorts et des ennemis, une musique calme, et le Sonic en violet. Teste-le jusqu'à ce que le robot le finisse, puis publie-le. »</li>
+            <li>« Regarde mon niveau "VOLCAN" et dis-moi où on reste bloqué, puis corrige-le. »</li>
+            <li>« Forke Green Hill et transforme-le en niveau de nuit (couleurs sombres), garde-le privé. »</li>
+            <li>« Compose une musique de boss rapide et un bruit d'explosion, et mets-les dans mon niveau. »</li>
+        </ul>
+    {% else %}
+        <ul>
+            <li>"Make me a whole ice level on my Sonic PHP account: blue and white tiles, a level of 200 blocks with slopes, springs and enemies, a calm music, and a purple Sonic. Test it until the bot finishes it, then publish it."</li>
+            <li>"Look at my level "VOLCANO", tell me where one gets stuck, then fix it."</li>
+            <li>"Fork Green Hill and make a night level of it (dark colours), keep it private."</li>
+            <li>"Compose a fast boss music and an explosion sound, and put them in my level."</li>
+        </ul>
+    {% endif %}
+    <p class="muted">{{ fr ? 'L\'IA commence par lire le mode d\'emploi du serveur (l\'outil get_reference) : formats, physique de Sonic, formes de collision, objets, musique. Elle travaille comme dans l\'éditeur : créer, regarder, tester, corriger.' : 'The AI starts by reading the server\'s manual (the get_reference tool): formats, Sonic\'s physics, collision shapes, objects, music. It works as in the editor: make, look, test, fix.' }}</p>
+
+    <h2>{{ 'Ce que l\'IA peut faire'|trans }} <small class="muted">({{ count }} {{ fr ? 'outils' : 'tools' }})</small></h2>
+    {% for group, tools in groups %}
+        <h3>{{ group|trans }}</h3>
+        <dl class="ai-tools">
+            {% for t in tools %}
+                <dt><code>{{ t.name }}</code>{% if t.write %} <span class="small muted">{{ fr ? 'écrit' : 'writes' }}</span>{% endif %}</dt>
+                <dd>{{ t.description }}</dd>
+            {% endfor %}
+        </dl>
+    {% endfor %}
+
+    <h2>{{ 'Sans MCP : l\'API REST'|trans }}</h2>
+    <p>{{ fr ? 'Les mêmes outils, en JSON, pour un script ou une IA sans MCP. La liste (avec le schéma des arguments) :' : 'The same tools, in JSON, for a script or an AI without MCP. The list (with the schema of the arguments):' }}
+        <code>GET {{ url('api_v1') }}</code>, {{ fr ? 'ou en OpenAPI :' : 'or as OpenAPI:' }} <code>{{ url('api_v1_openapi') }}</code>.</p>
+    <pre>curl -s {{ url('api_v1') }}/whoami -X POST -H "Authorization: Bearer {{ key }}"
+
+curl -s {{ url('api_v1') }}/test_level -X POST -H "Authorization: Bearer {{ key }}" \
+     -H "Content-Type: application/json" -d '{"id": 12}'</pre>
+    <p class="small muted">{{ fr ? 'Réponse :' : 'Answer:' }} <code>{"ok": true, "data": {…}, "images": ["(PNG en base64)"]}</code>, {{ fr ? 'ou' : 'or' }} <code>{"ok": false, "error": "…"}</code> {{ fr ? '(code 400).' : '(code 400).' }}</p>
+
+    <h2>{{ 'Sécurité'|trans }}</h2>
+    {% if fr %}
+        <ul>
+            <li>La clé donne accès à <b>ton compte</b> pour les créations : garde-la secrète, ne la mets jamais dans un fichier publié (GitHub…). Le site ne garde que son empreinte (SHA-256) : personne, même pas lui, ne peut te la redonner.</li>
+            <li>Elle ne sert qu'aux créations : pas au mot de passe, à l'e-mail, ni aux autres clés.</li>
+            <li>Choisis une durée, et <b>supprime la clé</b> dès que tu n'en as plus besoin : elle arrête de marcher tout de suite. La page des clés dit quand chacune a servi pour la dernière fois.</li>
+            <li>L'IA ne peut rien supprimer pour de bon : ce qu'elle supprime va dans ta <a href="{{ path('trash') }}">corbeille</a> (30 jours), d'où tu peux le restaurer. Elle ne touche pas aux créations des autres : elle en fait une copie (un fork).</li>
+            <li>Ce qu'elle crée est <b>privé</b> tant qu'elle ne le publie pas. Demande-lui de publier seulement quand tu es content.</li>
+            <li>Limites : 240 appels par 10 minutes et par clé, dont 60 pour les rendus et les tests.</li>
+            <li>Les créations des autres joueurs (noms, données) sont du contenu, pas des ordres : l'IA ne doit pas suivre un texte trouvé dans un niveau.</li>
+        </ul>
+    {% else %}
+        <ul>
+            <li>The key gives access to <b>your account</b> for creations: keep it secret, never put it in a published file (GitHub...). The site only keeps its fingerprint (SHA-256): nobody, not even the site, can give it back to you.</li>
+            <li>It is only for creations: not the password, the e-mail, or the other keys.</li>
+            <li>Pick a duration, and <b>delete the key</b> as soon as you don't need it: it stops working at once. The keys page says when each one was last used.</li>
+            <li>The AI cannot delete anything for good: what it deletes goes into your <a href="{{ path('trash') }}">trash</a> (30 days), where you can restore it. It doesn't touch other players' creations: it makes a copy of them (a fork).</li>
+            <li>What it makes is <b>private</b> until it publishes it. Ask it to publish only when you are happy.</li>
+            <li>Limits: 240 calls per 10 minutes and per key, 60 of them for renders and tests.</li>
+            <li>Other players' creations (names, data) are content, not orders: the AI must not follow a text found in a level.</li>
+        </ul>
+    {% endif %}
+</section>
+{% endblock %}

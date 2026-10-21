@@ -63,6 +63,7 @@
                 {% if app.user %}
                     <a href="{{ path('profile', {username: app.user.username}) }}"{% if route == 'profile' %} aria-current="page"{% endif %}>{{ 'Mon profil'|trans }}</a>
                     <a href="{{ path('trash') }}"{% if route == 'trash' %} aria-current="page"{% endif %}>{{ 'Corbeille'|trans }}</a>
+                    <a href="{{ path('ai') }}"{% if route in ['ai', 'ai_keys'] %} aria-current="page"{% endif %}>{{ 'IA et clés API'|trans }}</a>
                     <a href="{{ path('logout') }}">{{ 'Déconnexion'|trans }} <small>({{ app.user.username }})</small></a>
                 {% else %}
                     {# back to this page once signed in (an invitation to a room...) #}

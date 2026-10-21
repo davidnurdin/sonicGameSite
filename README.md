@@ -151,6 +151,48 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
   travaillé. `bin/console app:history` (au démarrage du conteneur) donne une première version aux créations
   faites avant l'historique.
 
+## Comment marche le serveur MCP (créer avec une IA)
+
+Une IA connectée au compte d'un joueur crée tout un environnement de jeu : tiles, niveau, sprites, musique,
+bruitages. Elle le regarde, le teste et le publie. La page `/ia` (publique) explique comment la brancher.
+
+- **Clés** (`ApiKey`, page `/ia/cles`, menu « IA et clés API ») :
+  - `sk_sonic_` + 40 caractères aléatoires ; seul le SHA-256 est gardé ;
+  - la clé n'est montrée qu'une fois ;
+  - lecture seule, ou lecture et écriture ;
+  - durée de 30, 90 ou 365 jours, ou sans fin ;
+  - 10 clés au plus par joueur ;
+  - l'auteur la supprime quand il veut.
+- **Authentification** : `ApiKeyAuthenticator`, firewall `api`, sans état et sans cookie, sur `^/(mcp|api/v1)`.
+  La clé passe par `Authorization: Bearer` ou `X-Api-Key`. Sans clé, ou avec une clé inconnue ou expirée :
+  réponse 401 en JSON.
+- **`POST /mcp`** (`McpController`) :
+  - MCP en JSON-RPC 2.0, transport « Streamable HTTP », réponses JSON, sans session ;
+  - méthodes `initialize`, `ping`, `tools/list`, `tools/call` ; les notifications renvoient 202 ;
+  - GET renvoie 405 ;
+  - un `Origin` d'un autre site renvoie 403 ;
+  - corps limité à 8 Mo.
+- **API REST** (`ApiController`) :
+  - `GET /api/v1` donne la liste des outils avec leurs schémas ;
+  - `GET /api/v1/openapi.json` ;
+  - `POST /api/v1/{outil}` renvoie `{ok, data, images}`.
+- **Les outils** (`src/Service/Studio`) :
+  - `ToolRegistry` rassemble les `ToolProvider` : `AccountTools`, `LevelTools`, `TilesetTools`,
+    `SpriteTools`, `SoundTools`, soit 24 outils.
+  - Il refuse l'écriture à une clé en lecture seule.
+  - Limites par clé : 240 appels par 10 minutes (`api`), dont 60 rendus ou tests (`api_heavy`).
+  - Une erreur de l'IA revient en `ToolError`, avec un message clair (`isError` en MCP, 400 en REST).
+  - Les modifications passent par `Creations` : historique, membres, corbeille. L'historique note
+    « Par l'API, clé … ».
+  - Rien n'est supprimé pour de bon par l'API (corbeille seulement).
+  - Une création d'un autre joueur ne se modifie pas : il faut la forker.
+- **Ce qui sert à l'IA** :
+  - `Reference` : le mode d'emploi (formats, physique, formes, objets, musique) ;
+  - `LevelRenderer` : l'image du niveau, aussi en miniature ;
+  - `Simulator` : la « fausse partie », un robot avec la physique du jeu (`test_level`) ;
+  - `SoundRenderer` : le portage PHP de `sound-engine.js`, qui fait les WAV de `SoundAudio` ;
+  - `Canvas`, `Pixels` et `Png::encode` : le pixel art en texte vers PNG, et l'inverse (il n'y a pas GD).
+
 ## Développer
 
 ```bash

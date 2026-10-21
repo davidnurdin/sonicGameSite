@@ -25,7 +25,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class SoundController extends AbstractController
 {
     /** Sounds an account may have. */
-    private const MAX_EACH = 100;
+    public const MAX_EACH = 100;
 
     public function __construct(private EntityManagerInterface $em, private SoundRepository $sounds, private Creations $creations)
     {
