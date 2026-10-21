@@ -13,7 +13,7 @@
             <div>
                 <h1>{{ tileset.name }}</h1>
                 <p class="muted">
-                    {% if tileset.zone %}{{ 'Zone du jeu'|trans }}{% else %}{{ 'par'|trans }} {{ people.user(tileset.user) }}{% endif %} ·
+                    {% if tileset.zone %}{{ 'Zone du jeu'|trans }}{% else %}{{ 'par'|trans }} {{ people.user(tileset.user) }}{% set from = creation_info(tileset).from %}{% if from %} ({{ 'fork de'|trans }} {{ people.creation('tileset', from) }} {{ 'de'|trans }} {{ people.user(from.user) }}){% endif %}{% endif %} ·
                     {{ tileset.count }} {{ 'blocs'|trans }} · {{ used > 1 ? '%n% niveaux'|trans({'%n%': used}) : '%n% niveau'|trans({'%n%': used}) }}
                     {% if not tileset.public %}· <span class="badge off">{{ 'Privé'|trans }}</span>{% endif %}
                 </p>

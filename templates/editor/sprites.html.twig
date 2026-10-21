@@ -13,7 +13,7 @@
             <div>
                 <h1>{{ set.name }}</h1>
                 <p class="muted">
-                    {{ 'par'|trans }} {{ people.user(set.user) }} ·
+                    {{ 'par'|trans }} {{ people.user(set.user) }}{% set from = creation_info(set).from %}{% if from %} ({{ 'fork de'|trans }} {{ people.creation('sprites', from) }} {{ 'de'|trans }} {{ people.user(from.user) }}){% endif %} ·
                     {{ used > 1 ? '%n% niveaux'|trans({'%n%': used}) : '%n% niveau'|trans({'%n%': used}) }}
                     {% if not set.public %}· <span class="badge off">{{ 'Privé'|trans }}</span>{% endif %}
                 </p>

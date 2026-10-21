@@ -70,12 +70,20 @@
             <b>{{ sound.music ? '♪' : '🔊' }} {{ sound.name }}</b>
             <small class="muted">
                 {{ sound.music ? 'Musique'|trans : 'Bruitage'|trans }}{% if not mine %} · {{ 'par'|trans }} {{ people.user(sound.user) }}{% endif %}
+                {% if sound.forkedFrom %} · {{ 'fork de'|trans }} {{ sound.forkedFrom.name }}{% endif %}
             </small>
             {% if mine %}<span class="badge{% if not sound.public %} off{% endif %}">{{ sound.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
         </div>
         <div class="ed-card-go">
             <button type="button" class="pill-button play-pill sd-play">▶</button>
-            {% if mine %}<a class="pill-button" href="{{ path('sound_edit', {id: sound.id}) }}">{{ 'Éditer'|trans }}</a>{% endif %}
+            {% if mine %}<a class="pill-button" href="{{ path('sound_edit', {id: sound.id}) }}">{{ 'Éditer'|trans }}</a>
+            {% elseif app.user %}
+                <form method="post" action="{{ path('sound_new') }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+                    <input type="hidden" name="from" value="{{ sound.id }}">
+                    <button class="pill-button pc-hide" type="submit" title="{{ 'Faire ta propre copie, que tu modifies comme tu veux. Le créateur reste cité.'|trans }}">{{ 'Forker'|trans }}</button>
+                </form>
+            {% endif %}
             <a class="pill-button" href="{{ path('sound', {id: sound.id}) }}">{{ 'Voir'|trans }}</a>
         </div>
     </li>

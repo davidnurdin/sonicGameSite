@@ -54,6 +54,12 @@ class SoundController extends AbstractController
         }
         $this->em->persist($sound);
         $this->em->flush();
+        // what the game plays: the original's, until the copy is saved in its editor
+        $audio = $from !== null ? $this->em->find(SoundAudio::class, $from)?->getWav() : null;
+        if ($audio !== null) {
+            $this->em->persist(new SoundAudio($sound, $audio));
+            $this->em->flush();
+        }
         $this->creations->created($sound, $user, $from);
 
         return $this->redirectToRoute('sound_edit', ['id' => $sound->getId()]);

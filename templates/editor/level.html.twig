@@ -17,7 +17,7 @@
             <div>
                 <h1>{{ level.name }}</h1>
                 <p class="muted">
-                    {{ 'par'|trans }} {{ people.user(level.user) }} · {{ level.width }}×{{ level.height }} {{ 'blocs'|trans }} ·
+                    {{ 'par'|trans }} {{ people.user(level.user) }}{% set from = creation_info(level).from %}{% if from %} ({{ 'fork de'|trans }} {{ people.creation('level', from) }} {{ 'de'|trans }} {{ people.user(from.user) }}){% endif %} · {{ level.width }}×{{ level.height }} {{ 'blocs'|trans }} ·
                     {{ 'tiles'|trans }} <a href="{{ path('tileset', {id: level.tileset.id}) }}">{{ level.tileset.name }}</a> ·
                     {{ level.objects|length }} {{ 'objets'|trans }}
                     {% if level.spriteSet %}· {{ 'sprites'|trans }} <a href="{{ path('sprites', {id: level.spriteSet.id}) }}">{{ level.spriteSet.name }}</a>{% endif %}

@@ -14,7 +14,7 @@
             <div>
                 <h1>{{ sound.name }}</h1>
                 <p class="muted">
-                    {{ kind_name }} · {{ 'par'|trans }} {{ people.user(sound.user) }}
+                    {{ kind_name }} · {{ 'par'|trans }} {{ people.user(sound.user) }}{% set from = creation_info(sound).from %}{% if from %} ({{ 'fork de'|trans }} {{ people.creation('sound', from) }} {{ 'de'|trans }} {{ people.user(from.user) }}){% endif %}
                     {% if sound.music %}· {{ sound.data.bars }} {{ 'mesures'|trans }} · {{ sound.data.tempo }} BPM{% endif %}
                     {% if not sound.public %}· <span class="badge off">{{ 'Privé'|trans }}</span>{% endif %}
                 </p>
@@ -46,6 +46,8 @@
         <div class="ed-bar">
             <input type="text" name="name" value="{{ sound.name }}" maxlength="40" aria-label="{{ 'Nom'|trans }}">
             <label><input type="checkbox" name="public" {{ sound.public ? 'checked' }}> {{ 'Public'|trans }}</label>
+            {% set from = creation_info(sound).from %}
+            {% if from %}<span class="small muted">{{ 'fork de'|trans }} {{ people.creation('sound', from) }} {{ 'de'|trans }} {{ people.user(from.user) }}</span>{% endif %}
             <span class="ed-sep"></span>
             <button type="button" class="pill-button ed-undo" title="Ctrl+Z">↶</button>
             <button type="button" class="pill-button ed-redo" title="Ctrl+Y">↷</button>

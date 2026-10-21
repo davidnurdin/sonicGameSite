@@ -129,7 +129,8 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
   joueurs qui la modifient, le lien vers son historique. Dans le jeu, un niveau du site affiche son nom et son
   auteur pendant ses 4 premières secondes (`Game::drawSiteCredit`, `author` de `jeu.json`).
 - **Forker** : faire sa propre copie d'une création visible (`forked_from_id` la relie à l'originale ; l'historique
-  des deux le dit).
+  des deux le dit). Un son forké garde le son rendu de l'original (`SoundAudio`) jusqu'à son premier enregistrement ;
+  ses cartes, sa page et son éditeur disent de quel son il est le fork.
 - **À plusieurs** : le créateur ajoute des joueurs par leur nom (`Member`, `POST /creation/{sorte}/{id}/membres`).
   Ils ouvrent l'éditeur et enregistrent comme lui (pas de suppression, pas d'ajout de joueurs). Les créations
   partagées sont dans `/editeur` (« Partagés avec moi »). Un éditeur ouvert demande toutes les 5 secondes

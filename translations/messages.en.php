@@ -536,6 +536,7 @@ return [
     'Enregistrement' => 'Saved',
     'Version reprise' => 'Version taken back',
     'Forké' => 'Forked',
+    'fork de' => 'fork of',
     'Participant ajouté' => 'Player added',
     'Participant retiré' => 'Player removed',
     'Suppression' => 'Deleted',
