@@ -103,8 +103,11 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
 - Un son (`Sound`, `/son/{id}/editer`) : une musique (un piano roll sur les 4 voix de la puce de la Master
   System : 2 carrés, une basse, le bruit pour la batterie ; une voix joue une note à la fois) ou un bruitage
   (les réglages d'un générateur : onde, hauteur qui glisse, enveloppe, vibrato, répétitions). Le format est
-  décrit dans `SoundData`. `public/js/sound-engine.js` les joue (Web Audio) et en fait des WAV. Ils ne servent
-  pas encore dans le jeu.
+  décrit dans `SoundData`. `public/js/sound-engine.js` les joue (Web Audio) et en fait des WAV. À
+  l'enregistrement, l'éditeur envoie aussi le son rendu (WAV 22050 Hz, une boucle pour une musique ;
+  `SoundAudio`) : c'est ce que joue le jeu. Un niveau choisit une musique du jeu ou une de l'éditeur de sons, et
+  peut remplacer des bruitages du jeu (`SoundData::GAME_SFX`) ; `/niveau/{id}/jeu.json` les donne en WAV
+  (`music_wav`, `sfx_wav`).
 - Les éditeurs (`public/js/level-view.js`, `editor-level.js`, `editor-tiles.js`, `editor-sprites.js`,
   `editor-music.js`, `editor-sfx.js`) enregistrent en JSON avec le
   jeton CSRF `editor` (en-tête `X-CSRF-Token`) ; `EditorData` vérifie tout ce qu'ils envoient.

@@ -138,7 +138,7 @@
                 <option value="music">{{ 'Une musique (4 voix, comme la Master System)'|trans }}</option>
                 <option value="sfx">{{ 'Un bruitage (saut, anneau, explosion…)'|trans }}</option>
             </select>
-            <p class="small muted">{{ 'Compose une musique note par note ou fabrique un bruitage, écoute-les et télécharge-les en WAV. Ils ne servent pas encore dans le jeu.'|trans }}</p>
+            <p class="small muted">{{ 'Compose une musique note par note ou fabrique un bruitage, écoute-les, télécharge-les en WAV, et mets-les dans tes niveaux.'|trans }}</p>
             <button type="submit" class="play small">{{ 'Créer'|trans }}</button>
         </form>
     </section>
@@ -159,7 +159,7 @@
         <ul class="ed-cards">{% for set in mySprites %}{{ _self.sprites_card(set, true) }}{% endfor %}</ul>
     </section>
     <section class="panel wide">
-        <h2>{{ 'Mes sons'|trans }}</h2>
+        <h2 id="sounds">{{ 'Mes sons'|trans }}</h2>
         {% if mySounds is empty %}<p class="muted">{{ 'Pas encore de son à toi.'|trans }}</p>{% endif %}
         <ul class="ed-cards">{% for sound in mySounds %}{{ _self.sound_card(sound, true) }}{% endfor %}</ul>
     </section>

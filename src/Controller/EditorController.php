@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Level;
 use App\Entity\Sound;
+use App\Entity\SoundAudio;
 use App\Entity\SpriteSet;
 use App\Entity\Tileset;
 use App\Entity\User;
@@ -14,6 +15,7 @@ use App\Repository\TilesetRepository;
 use App\Repository\UserRepository;
 use App\Service\EditorData;
 use App\Service\LevelToken;
+use App\Service\SoundData;
 use App\Service\StatsToken;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -127,6 +129,9 @@ class EditorController extends AbstractController
             'objects' => $this->objectNames(),
             'musics' => EditorData::MUSICS,
             'spriteSets' => $this->spriteSets->usable($this->user()),
+            'musicSounds' => $this->sounds->usable($this->user(), Sound::MUSIC),
+            'sfxSounds' => $this->sounds->usable($this->user(), Sound::SFX),
+            'gameSfx' => SoundData::GAME_SFX,
         ]);
     }
 
@@ -199,6 +204,9 @@ class EditorController extends AbstractController
             'tiles' => base64_encode($tileset->getImage()),
             // its own sprites: {sheet: PNG in base64} (LevelManager::loadCustom)
             'sprites' => (object) ($level->getSpriteSet()?->getSheets() ?? []),
+            // its own music and sound effects, as the sound editor rendered them: WAV in base64
+            'music_wav' => $this->wav($level->getMusicSound()),
+            'sfx_wav' => (object) array_filter(array_map(fn(int $id) => $this->wav($this->sounds->find($id)), $level->getSfx())),
         ]);
     }
 
@@ -252,6 +260,19 @@ class EditorController extends AbstractController
         if (is_int($body['music'] ?? null) && isset(EditorData::MUSICS[$body['music']])) $level->setMusic($body['music']);
         $level->update($tileset, ...$parsed);
         $level->setSpriteSet($sprites);
+        // its music: a song of the game (music) or one of the sound editor (musicSound); sounds of the game changed (sfx)
+        $musicSound = is_int($body['musicSound'] ?? null) ? $this->sounds->find($body['musicSound']) : null;
+        if ($musicSound !== null && ($musicSound->getKind() !== Sound::MUSIC
+            || (!$musicSound->canSee($this->user()) && $musicSound !== $level->getMusicSound()))) return $this->json(['error' => 'music'], 400);
+        $level->setMusicSound($musicSound);
+        $sfx = [];
+        foreach (is_array($body['sfx'] ?? null) ? $body['sfx'] : [] as $index => $id) {
+            $sound = is_int($id) && isset(SoundData::GAME_SFX[(int) $index]) ? $this->sounds->find($id) : null;
+            if ($sound === null || $sound->getKind() !== Sound::SFX
+                || (!$sound->canSee($this->user()) && !in_array($id, $level->getSfx(), true))) return $this->json(['error' => 'sfx'], 400);
+            $sfx[(int) $index] = $id;
+        }
+        $level->setSfx($sfx);
         if (isset($body['thumb'])) $level->setThumb(EditorData::thumb($body['thumb']));
         $this->em->flush();
 
@@ -272,6 +293,8 @@ class EditorController extends AbstractController
         $copy->setThumb($level->getThumb());
         $copy->setMusic($level->getMusic());
         if ($level->getSpriteSet()?->canUse($user)) $copy->setSpriteSet($level->getSpriteSet());
+        if ($level->getMusicSound()?->canSee($user)) $copy->setMusicSound($level->getMusicSound());
+        $copy->setSfx(array_filter($level->getSfx(), fn(int $id) => $this->sounds->find($id)?->canSee($user) ?? false));
         $this->em->persist($copy);
         $this->em->flush();
 
@@ -433,6 +456,8 @@ class EditorController extends AbstractController
             'objects' => $level->getObjects(),
             'music' => $level->getMusic(),
             'sprites' => $level->getSpriteSet()?->getId(),
+            'musicSound' => $level->getMusicSound()?->getId(),
+            'sfx' => (object) $level->getSfx(),
             'tileset' => $this->tilesetData($level->getTileset()),
         ];
     }
@@ -449,6 +474,14 @@ class EditorController extends AbstractController
             'masks' => (object) $tileset->getMasks(),
             'image' => $this->generateUrl('tileset_png', ['id' => $tileset->getId(), 'v' => $tileset->getUpdatedAt()->getTimestamp()]),
         ];
+    }
+
+    /** A sound of the editor as it rendered it (WAV in base64), or null. */
+    private function wav(?Sound $sound): ?string
+    {
+        $wav = $sound ? $this->em->find(SoundAudio::class, $sound)?->getWav() : null;
+
+        return $wav === null ? null : base64_encode($wav);
     }
 
     /** A transparent sheet of $count blocks (a PNG made by hand: there is no GD in the image of the site). */

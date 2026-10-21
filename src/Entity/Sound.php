@@ -9,7 +9,8 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * A music or a sound effect made in the sound editor (public/js/sound-engine.js plays them): a music is notes on the
  * 4 voices of the Master System's sound chip (2 squares, a bass, the noise), a sound effect the settings of a
- * generator (wave, pitch slide, envelope...). See SoundData for both. Not played in the game.
+ * generator (wave, pitch slide, envelope...). See SoundData for both. The editor also sends it rendered (SoundAudio):
+ * what the game plays, for the levels that take it as their music or instead of a sound of the game.
  */
 #[ORM\Entity(repositoryClass: SoundRepository::class)]
 #[ORM\Table(name: 'sound')]

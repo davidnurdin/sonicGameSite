@@ -301,8 +301,10 @@
         if (saving) return false;
         saving = true;
         status(T.saving);
-        const body = { name: $('[name="name"]').value, public: $('[name="public"]').checked, data: music };
         try {
+            // with what the game plays
+            const body = { name: $('[name="name"]').value, public: $('[name="public"]').checked, data: music,
+                audio: await E.forGame('music', music) };
             const r = await fetch(root.dataset.save, { method: 'POST', body: JSON.stringify(body),
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': root.dataset.token } });
             if (!r.ok) throw new Error(String(r.status));

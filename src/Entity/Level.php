@@ -9,7 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * A level made in the editor, laid out like the game's (level<N>.bin): width x height blocks of 32 pixels, one
  * byte each (a block of its Tileset), Sonic's start and the objects (type of the game's objects, x, y in
- * blocks). Public: everybody sees it, signed in or not. Not played in the game yet.
+ * blocks). Public: everybody sees it, signed in or not. Played in the game (EditorController::game).
  */
 #[ORM\Entity(repositoryClass: LevelRepository::class)]
 #[ORM\Table(name: 'level')]
@@ -40,6 +40,15 @@ class Level
     #[ORM\ManyToOne(targetEntity: SpriteSet::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?SpriteSet $spriteSet = null;
+
+    /** Its music, made in the sound editor, instead of a song of the game ($music). */
+    #[ORM\ManyToOne(targetEntity: Sound::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Sound $musicSound = null;
+
+    /** @var array<int, int> sounds of the game (SoundData::GAME_SFX) => the sound effect (Sound id) played instead */
+    #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
+    private array $sfx = [];
 
     #[ORM\Column(length: 40)]
     private string $name;
@@ -101,6 +110,12 @@ class Level
     public function getUser(): User { return $this->user; }
     public function getTileset(): Tileset { return $this->tileset; }
     public function getSpriteSet(): ?SpriteSet { return $this->spriteSet; }
+    public function getMusicSound(): ?Sound { return $this->musicSound; }
+    public function setMusicSound(?Sound $sound): void { $this->musicSound = $sound; }
+    /** @return array<int, int> */
+    public function getSfx(): array { return $this->sfx; }
+    /** @param array<int, int> $sfx */
+    public function setSfx(array $sfx): void { $this->sfx = $sfx; }
     public function setSpriteSet(?SpriteSet $spriteSet): void { $this->spriteSet = $spriteSet; }
     public function getName(): string { return $this->name; }
     public function setName(string $name): void { $this->name = $name; }

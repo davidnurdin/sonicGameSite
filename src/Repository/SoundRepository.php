@@ -22,6 +22,15 @@ class SoundRepository extends ServiceEntityRepository
             ->orderBy('s.updatedAt', 'DESC')->getQuery()->getResult();
     }
 
+    /** @return list<Sound> what $user may put in a level: his sounds of that kind, then the public ones */
+    public function usable(?User $user, string $kind): array
+    {
+        $own = $user ? array_filter($this->ofUser($user), fn(Sound $s) => $s->getKind() === $kind) : [];
+        $public = array_filter($this->publicOnes(200), fn(Sound $s) => $s->getKind() === $kind && !$s->isOwnedBy($user));
+
+        return array_values([...$own, ...$public]);
+    }
+
     /** @return list<Sound> the public ones, the latest first */
     public function publicOnes(int $max = 60): array
     {

@@ -57,7 +57,15 @@
             <input type="text" name="name" value="{{ level.name }}" maxlength="40" aria-label="{{ 'Nom'|trans }}">
             <label><input type="checkbox" name="public" {{ level.public ? 'checked' }}> {{ 'Public'|trans }}</label>
             <label>♪ <select name="music" aria-label="{{ 'Musique'|trans }}">
-                {% for index, name in musics %}<option value="{{ index }}"{% if index == level.music %} selected{% endif %}>{{ name|trans }}</option>{% endfor %}
+                <optgroup label="{{ 'Musiques du jeu'|trans }}">
+                    {% for index, name in musics %}<option value="{{ index }}"{% if not level.musicSound and index == level.music %} selected{% endif %}>{{ name|trans }}</option>{% endfor %}
+                </optgroup>
+                {% if musicSounds is not empty or level.musicSound %}
+                    <optgroup label="{{ 'Musiques de l\'éditeur de sons'|trans }}">
+                        {% for sound in musicSounds %}<option value="s{{ sound.id }}"{% if level.musicSound and level.musicSound.id == sound.id %} selected{% endif %}>{{ sound.name }}{% if sound.user != app.user %} ({{ sound.user.username }}){% endif %}</option>{% endfor %}
+                        {% if level.musicSound and level.musicSound not in musicSounds %}<option value="s{{ level.musicSound.id }}" selected>{{ level.musicSound.name }}</option>{% endif %}
+                    </optgroup>
+                {% endif %}
             </select></label>
             <label title="{{ 'Les sprites du jeu, ou un de tes jeux de sprites'|trans }}">{{ 'Sprites'|trans }} <select name="sprites" aria-label="{{ 'Sprites'|trans }}">
                 <option value="">{{ 'ceux du jeu'|trans }}</option>
@@ -101,6 +109,19 @@
                 <details class="ed-objects-box">
                     <summary><h3>{{ 'Objets'|trans }}</h3> <small class="muted">O · {{ 'Maj+clic : enlever'|trans }}</small></summary>
                     <div class="ed-objects"></div>
+                </details>
+                <details class="ed-sfx">
+                    <summary><h3>{{ 'Bruitages'|trans }}</h3></summary>
+                    <p class="small muted">{{ 'Remplace des sons du jeu par tes bruitages (éditeur de sons) dans ce niveau.'|trans }}</p>
+                    {% for index, name in gameSfx %}
+                        <label class="small">{{ name|trans }}
+                            <select data-sfx="{{ index }}">
+                                <option value="">{{ 'celui du jeu'|trans }}</option>
+                                {% for sound in sfxSounds %}<option value="{{ sound.id }}"{% if level.sfx[index] is defined and level.sfx[index] == sound.id %} selected{% endif %}>{{ sound.name }}{% if sound.user != app.user %} ({{ sound.user.username }}){% endif %}</option>{% endfor %}
+                                {% if level.sfx[index] is defined and level.sfx[index] not in sfxSounds|map(s => s.id) %}<option value="{{ level.sfx[index] }}" selected>#{{ level.sfx[index] }}</option>{% endif %}
+                            </select></label>
+                    {% endfor %}
+                    {% if sfxSounds is empty %}<p class="small"><a href="{{ path('editor') }}#sounds">{{ 'Crée d\'abord un bruitage.'|trans }}</a></p>{% endif %}
                 </details>
                 <details>
                     <summary><h3>{{ 'Taille'|trans }}</h3></summary>

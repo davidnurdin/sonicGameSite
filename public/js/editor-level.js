@@ -336,7 +336,10 @@
             blocks: encodeBlocks(level.blocks),
             start: level.start,
             objects: level.objects,
-            music: Number($('[name="music"]').value),
+            // a song of the game, or a music of the sound editor ("s<id>": then music stays the game's song before)
+            music: $('[name="music"]').value.startsWith('s') ? gameMusic : Number($('[name="music"]').value),
+            musicSound: $('[name="music"]').value.startsWith('s') ? Number($('[name="music"]').value.slice(1)) : null,
+            sfx: Object.fromEntries([...root.querySelectorAll('[data-sfx]')].filter((s) => s.value).map((s) => [s.dataset.sfx, Number(s.value)])),
             sprites: $('[name="sprites"]').value ? Number($('[name="sprites"]').value) : null,
             thumb: view.sheet ? view.thumbnail() : undefined,
         };
@@ -367,6 +370,11 @@
     });
     $('[name="music"]').addEventListener('change', changed);
     $('[name="sprites"]').addEventListener('change', changed);
+    root.querySelectorAll('[data-sfx]').forEach((s) => s.addEventListener('change', changed));
+    // the song of the game kept for a level with a music of the sound editor
+    let gameMusic = 0;
+    const keepGameMusic = () => { if (!$('[name="music"]').value.startsWith('s')) gameMusic = Number($('[name="music"]').value); };
+    $('[name="music"]').addEventListener('change', keepGameMusic);
     $('[name="name"]').addEventListener('input', changed);
     $('[name="public"]').addEventListener('change', changed);
     $('.ed-undo').addEventListener('click', () => restore(undo, redo));
@@ -396,6 +404,7 @@
 
     fetch(root.dataset.json).then((r) => r.json()).then(async (data) => {
         level = { width: data.width, height: data.height, blocks: decodeBlocks(data.blocks), start: data.start, objects: data.objects };
+        gameMusic = data.music;
         tileset = data.tileset;
         await view.setTileset(tileset);
         tilesetSelect.value = String(tileset.id);

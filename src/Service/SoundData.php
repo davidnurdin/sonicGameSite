@@ -11,6 +11,9 @@ namespace App\Service;
  *
  * A sound effect: {wave, start, end (Hz: the pitch slides from one to the other), attack, sustain, decay (ms),
  * volume: 0-10, vibrato: depth 0-100 and speed 0-40 Hz, repeat: 1-8 times, gap between them (ms)}.
+ *
+ * Both are also saved rendered (wav): what the game plays. A level may take a music, and sound effects instead of
+ * some of the game's (GAME_SFX).
  */
 final class SoundData
 {
@@ -19,6 +22,15 @@ final class SoundData
     public const DRUMS = ['Grosse caisse', 'Caisse claire', 'Charleston', 'Cymbale'];
     public const WAVES = ['square', 'pulse', 'triangle', 'sawtooth', 'sine', 'noise'];
     public const MAX_NOTES = 2048;
+    /** The sounds of the game a level may change: the game's SoundManager::SFX_* => name. */
+    public const GAME_SFX = [
+        0x00 => 'Saut', 0x02 => 'Anneau', 0x04 => 'Ressort', 0x01 => 'Explosion (badnik, moniteur)', 0x11 => 'Sonic touché',
+        0x09 => 'Vie en plus', 0x06 => 'Boule (roulé)', 0x03 => 'Dérapage', 0x07 => 'Bumper', 0x0A => 'Tir des badniks',
+        0x12 => 'Plouf', 0x1A => 'Interrupteur', 0x0B => 'Panneau qui tourne',
+    ];
+    /** The rendering of the editor: a PCM WAV, mono, 16 bits, at this rate. */
+    public const WAV_RATE = 22050;
+    public const MAX_WAV = 12 * 1024 * 1024;
     public const LOW = 24;
     public const HIGH = 96;
 
@@ -76,6 +88,20 @@ final class SoundData
         }
 
         return $sfx;
+    }
+
+    /** A WAV as the editor renders it (PCM, mono, 16 bits, WAV_RATE), or null. */
+    public static function wav(mixed $base64): ?string
+    {
+        if (!is_string($base64) || strlen($base64) > self::MAX_WAV * 4 / 3 + 4) return null;
+        $wav = base64_decode($base64, true);
+        if ($wav === false || strlen($wav) < 44 || strlen($wav) > self::MAX_WAV) return null;
+        if (substr($wav, 0, 4) !== 'RIFF' || substr($wav, 8, 8) !== 'WAVEfmt ' || substr($wav, 36, 4) !== 'data') return null;
+        $f = unpack('vformat/vchannels/Vrate/Vbytes/vblock/vbits', substr($wav, 20, 16));
+        $size = unpack('V', substr($wav, 40, 4))[1];
+        if ($f['format'] !== 1 || $f['channels'] !== 1 || $f['rate'] !== self::WAV_RATE || $f['bits'] !== 16) return null;
+
+        return $size === strlen($wav) - 44 ? $wav : null;
     }
 
     private static function int(mixed $value, int $min, int $max): ?int

@@ -210,9 +210,10 @@ window.SoundEngine = (() => {
 
     // ---- WAV
 
-    async function render(kind, data) {
-        const length = (kind === 'music' ? musicLength(data) + 0.7 : sfxLength(data) + 0.05);
-        const off = new OfflineAudioContext(1, Math.ceil(length * RATE), RATE);
+    // the sound in an AudioBuffer; loop: a music exactly once round (the game loops it), without the end of its last notes
+    async function render(kind, data, { rate = RATE, loop = false } = {}) {
+        const length = kind === 'music' ? musicLength(data) + (loop ? 0 : 0.7) : sfxLength(data) + 0.05;
+        const off = new OfflineAudioContext(1, Math.ceil(length * rate), rate);
         if (kind === 'music') scheduleMusic(off, off.destination, data, 0); else scheduleSfx(off, off.destination, data, 0);
         return off.startRendering();
     }
@@ -264,5 +265,13 @@ window.SoundEngine = (() => {
         root.querySelector('.sd-wav')?.addEventListener('click', () => download(kind, data, root.dataset.name));
     }
 
-    return { play, stop, position, preview, render, download, midiHz, noteName, stepLength, musicLength, sfxLength, isPlaying: () => !!playing };
+    // what the game plays (SoundData::wav): a WAV at 22050 Hz, in base64
+    async function forGame(kind, data) {
+        const bytes = new Uint8Array(await wav(await render(kind, data, { rate: 22050, loop: true })).arrayBuffer());
+        let s = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        return btoa(s);
+    }
+
+    return { play, stop, position, preview, render, download, forGame, midiHz, noteName, stepLength, musicLength, sfxLength, isPlaying: () => !!playing };
 })();
