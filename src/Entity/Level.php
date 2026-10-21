@@ -14,6 +14,9 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: LevelRepository::class)]
 #[ORM\Table(name: 'level')]
 #[ORM\Index(name: 'level_public', columns: ['public', 'updated_at'])]
+#[ORM\Index(name: 'level_score', columns: ['public', 'score'])]
+#[ORM\Index(name: 'level_plays', columns: ['public', 'plays'])]
+#[ORM\Index(name: 'level_favourites', columns: ['public', 'favourites'])]
 class Level
 {
     use Trashable;
@@ -88,6 +91,25 @@ class Level
     #[ORM\Column(type: Types::BLOB, nullable: true)]
     private $thumb = null;
 
+    /** How many times the game downloaded it to play it (once a few hours by player, LevelRatings::played). */
+    #[ORM\Column(options: ['default' => 0])]
+    private int $plays = 0;
+
+    /** The stars the players gave it (LevelVote): how many votes, their sum, and the score it is sorted by. */
+    #[ORM\Column(options: ['default' => 0])]
+    private int $voteCount = 0;
+
+    #[ORM\Column(options: ['default' => 0])]
+    private int $voteSum = 0;
+
+    /** The average pulled towards 3 stars while it has few votes (LevelRatings::score): the order of "the best". */
+    #[ORM\Column(options: ['default' => 3])]
+    private float $score = 3;
+
+    /** How many players put it in their favourites (LevelFavourite). */
+    #[ORM\Column(options: ['default' => 0])]
+    private int $favourites = 0;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -140,6 +162,22 @@ class Level
     public function getBlocks(): string
     {
         return is_resource($this->blocks) ? (string) stream_get_contents($this->blocks, -1, 0) : (string) $this->blocks;
+    }
+
+    public function getPlays(): int { return $this->plays; }
+    public function addPlay(): void { $this->plays++; }
+    public function getVoteCount(): int { return $this->voteCount; }
+    /** The average of its stars (1 to 5), null without votes. */
+    public function getRating(): ?float { return $this->voteCount > 0 ? round($this->voteSum / $this->voteCount, 1) : null; }
+    public function getScore(): float { return $this->score; }
+    public function getFavourites(): int { return $this->favourites; }
+
+    public function setRatings(int $votes, int $sum, float $score, int $favourites): void
+    {
+        $this->voteCount = $votes;
+        $this->voteSum = $sum;
+        $this->score = $score;
+        $this->favourites = $favourites;
     }
 
     public function getMusic(): int { return $this->music; }

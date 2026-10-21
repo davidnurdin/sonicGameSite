@@ -40,8 +40,31 @@
                 {% endif %}
             </div>
         </div>
+        {% import '_parts/cards.html.twig' as cards %}
+        {% import '_parts/icons.html.twig' as icons %}
+        {% set opinion = level_opinion(level) %}
+        <div class="lv-rate">
+            {{ cards.numbers(level) }}
+            {% for flash in app.flashes('rating') %}<span class="flash error small">{{ flash|trans }}</span>{% endfor %}
+            {% if app.user and opinion.refused is null %}
+                <form method="post" action="{{ path('level_vote', {id: level.id}) }}" aria-label="{{ 'Ta note'|trans }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('rating') }}">
+                    <span class="small">{{ 'Ta note'|trans }}</span>
+                    {% for n in 1..5 %}
+                        <button class="lv-star{{ n <= opinion.stars ? ' on' }}" type="submit" name="stars" value="{{ n }}" aria-pressed="{{ n == opinion.stars ? 'true' : 'false' }}"
+                                title="{{ n > 1 ? '%n% étoiles'|trans({'%n%': n}) : '%n% étoile'|trans({'%n%': n}) }}" aria-label="{{ n > 1 ? '%n% étoiles'|trans({'%n%': n}) : '%n% étoile'|trans({'%n%': n}) }}">{{ icons.icon('star') }}</button>
+                    {% endfor %}
+                    {% if opinion.stars %}<button class="pill-button small" type="submit" name="stars" value="0">{{ 'Retirer ma note'|trans }}</button>{% endif %}
+                </form>
+            {% elseif not app.user and level.public %}
+                <span class="small muted"><a href="{{ path('login', {next: app.request.pathInfo}) }}">{{ 'Connecte-toi'|trans }}</a> {{ 'pour le noter et le mettre dans tes favoris.'|trans }}</span>
+            {% elseif opinion.refused and app.user %}
+                <span class="small muted">{{ opinion.refused|trans }}</span>
+            {% endif %}
+            {{ cards.favourite(level, true) }}
+        </div>
         <div class="lv-box view"></div>
-        <p class="small muted">{{ 'Fais glisser pour te déplacer dans le niveau.'|trans }} <a href="{{ path('editor') }}">{{ 'Tous les niveaux'|trans }}</a></p>
+        <p class="small muted">{{ 'Fais glisser pour te déplacer dans le niveau.'|trans }} <a href="{{ path('levels') }}">{{ 'Tous les niveaux'|trans }}</a></p>
     </section>
     {% include '_parts/credits.html.twig' with {creation: level} only %}
 {% else %}

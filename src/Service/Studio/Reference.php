@@ -60,6 +60,9 @@ final class Reference
                     . 'Sprites: create_sprites then edit_sprites (recolour Sonic, the badniks, the objects; or draw).',
                 '7. Publish when the player wants: set_public (each part: a public level needs its tiles, sprites and sounds public for others to '
                     . 'play it as made). Give the player the links (play).',
+                '8. For ideas, look at what the players like: list_creations kind level, scope public, sort top (the best rated), plays or fav; '
+                    . 'get_level and render_level on one. The players rate the levels (1 to 5 stars) and put them in favourites on the site and in '
+                    . 'the game; the API does not vote.',
             ],
             'rules' => [
                 'Only change what the player asked for; make new creations rather than overwrite his, unless he asked.',

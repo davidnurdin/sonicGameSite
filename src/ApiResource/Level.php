@@ -27,9 +27,10 @@ use Symfony\Component\Validator\Constraints as Assert;
                     schema: ['type' => 'integer', 'minimum' => 1], constraints: [new Assert\Positive()]),
                 'name' => new QueryParameter(description: 'Seulement ceux dont le nom contient ce texte.',
                     schema: ['type' => 'string', 'maxLength' => 40], constraints: [new Assert\Length(max: 40)]),
-                'order' => new QueryParameter(description: '`updated` (défaut), `created` (les plus récents d\'abord) ou `name`.',
-                    schema: ['type' => 'string', 'enum' => ['updated', 'created', 'name'], 'default' => 'updated'],
-                    constraints: [new Assert\Choice(choices: ['updated', 'created', 'name'])]),
+                'order' => new QueryParameter(description: '`updated` (défaut), `created` (les plus récents d\'abord), `name`, `top` (les mieux notés, '
+                    . 'par `score`), `plays` (les plus joués) ou `favourites` (les plus souvent en favoris).',
+                    schema: ['type' => 'string', 'enum' => ['updated', 'created', 'name', 'top', 'plays', 'favourites'], 'default' => 'updated'],
+                    constraints: [new Assert\Choice(choices: ['updated', 'created', 'name', 'top', 'plays', 'favourites'])]),
             ],
         ),
         new Get(uriTemplate: '/levels/{id}', openapi: new Operation(summary: 'Un niveau public.')),
@@ -102,6 +103,21 @@ final class Level
 
     #[ApiProperty(description: 'Combien de parties enregistrées ont été jouées dessus.', example: 5)]
     public int $replayCount;
+
+    #[ApiProperty(description: 'La moyenne des étoiles (1 à 5) que les joueurs lui ont données (null : pas encore noté). On ne note pas ses propres niveaux.', example: 4.2)]
+    public ?float $rating = null;
+
+    #[ApiProperty(description: 'Combien de joueurs l\'ont noté.', example: 12)]
+    public int $votes;
+
+    #[ApiProperty(description: 'Le score du classement « mieux notés » : la moyenne ramenée vers 3 tant qu\'il a peu de votes (comme s\'il avait 4 votes de 3 de plus).', example: 3.9)]
+    public float $score;
+
+    #[ApiProperty(description: 'Combien de fois le jeu l\'a lancé (une fois toutes les quelques heures par joueur).', example: 340)]
+    public int $plays;
+
+    #[ApiProperty(description: 'Combien de joueurs l\'ont mis dans leurs favoris.', example: 7)]
+    public int $favourites;
 
     #[ApiProperty(description: 'Quand il a été créé.')]
     public \DateTimeImmutable $createdAt;

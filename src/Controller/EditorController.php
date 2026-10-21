@@ -14,6 +14,7 @@ use App\Repository\SpriteSetRepository;
 use App\Repository\TilesetRepository;
 use App\Repository\UserRepository;
 use App\Service\Creations;
+use App\Service\LevelRatings;
 use App\Service\EditorData;
 use App\Service\LevelToken;
 use App\Service\SoundData;
@@ -37,7 +38,6 @@ class EditorController extends AbstractController
 {
     use TrashRedirect;
 
-    private const PER_PAGE = 24;
     /** Levels and sets an account may have. */
     public const MAX_EACH = 100;
     /** Levels a page of the game's menu NIVEAUX DU SITE. */
@@ -59,8 +59,8 @@ class EditorController extends AbstractController
     public function hub(Request $request, EditorData $data): Response
     {
         $user = $this->user();
-        $page = max(1, $request->query->getInt('page', 1));
-        [$public, $total] = $this->levels->publicPage($page, self::PER_PAGE);
+        // the best ones; all of them, sorted and searched: /niveaux (LevelsController)
+        [$public] = $this->levels->catalogue('top', 1, 8);
 
         return $this->render('editor/index.html.twig', [
             'myLevels' => $user ? $this->levels->ofUser($user) : [],
@@ -70,8 +70,6 @@ class EditorController extends AbstractController
             'mySounds' => $user ? $this->sounds->ofUser($user) : [],
             'publicSounds' => array_filter($this->sounds->publicOnes(), fn(Sound $s) => !$s->isOwnedBy($user)),
             'publicLevels' => $public,
-            'page' => $page,
-            'pages' => max(1, (int) ceil($total / self::PER_PAGE)),
             'zones' => $this->tilesets->zones(),
             'publicTilesets' => $this->tilesets->publicOnes(),
             'usable' => $this->tilesets->usable($user),
@@ -194,13 +192,15 @@ class EditorController extends AbstractController
      * and behaviour of its blocks, its tiles (PNG, base64). Public, or with the key of a JOUER link.
      */
     #[Route('/niveau/{id}/jeu.json', name: 'level_game', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function game(Level $level, Request $request, LevelToken $tokens): JsonResponse
+    public function game(Level $level, Request $request, LevelToken $tokens, LevelRatings $ratings): JsonResponse
     {
         $response = new JsonResponse();
         $response->headers->set('Access-Control-Allow-Origin', '*');
         if ($level->isTrashed() || (!$level->isPublic() && !$tokens->isValid($level, (string) $request->query->get('lt')))) {
             return $response->setData(['error' => 'not found'])->setStatusCode(404);
         }
+        // the game downloads it to play it: one more play (once in a while from the same place)
+        $ratings->played($level, (string) $request->getClientIp());
         $tileset = $level->getTileset();
 
         return $response->setData([
@@ -239,17 +239,27 @@ class EditorController extends AbstractController
      * text: no CORS preflight). The player's own levels first (with the key of the private ones), then the public ones.
      */
     #[Route('/api/niveaux', name: 'api_levels', methods: ['POST'])]
-    public function gameLevels(Request $request, LevelToken $tokens, StatsToken $stats, UserRepository $users): JsonResponse
+    public function gameLevels(Request $request, LevelToken $tokens, StatsToken $stats, UserRepository $users, LevelRatings $ratings): JsonResponse
     {
         $body = json_decode(substr($request->getContent(), 0, 1024), true);
         $body = is_array($body) ? $body : [];
         $id = is_string($body['st'] ?? null) ? $stats->userId($body['st']) : null;
         $user = $id !== null ? $users->find($id) : null;
         $page = max(1, min(1000, (int) ($body['page'] ?? 1)));
-        [$list, $count] = $this->levels->gamePage($user, $page, self::GAME_PAGE);
+        // sort: top, new, plays, fav (the most liked), mine (his levels), favourites (his favourites); none: the
+        // menu of the games of before (his levels first, then the latest changed)
+        $sort = is_string($body['sort'] ?? null) ? $body['sort'] : null;
+        [$list, $count] = match (true) {
+            $sort === 'mine' || $sort === 'favourites' => $user === null ? [[], 0]
+                : $this->levels->catalogue('top', $page, self::GAME_PAGE, null, $sort === 'favourites' ? $user : null, $sort === 'mine' ? $user : null),
+            in_array($sort, LevelRepository::SORTS, true) => $this->levels->catalogue($sort, $page, self::GAME_PAGE),
+            default => $this->levels->gamePage($user, $page, self::GAME_PAGE),
+        };
+        $favourites = $user !== null ? $ratings->favouriteIds($user) : [];
         $response = new JsonResponse([
             'page' => $page,
             'pages' => max(1, (int) ceil($count / self::GAME_PAGE)),
+            'sort' => $sort,
             'account' => $user?->getUsername(),
             'levels' => array_map(fn(Level $level) => [
                 'id' => $level->getId(),
@@ -258,6 +268,14 @@ class EditorController extends AbstractController
                 'mine' => $user !== null && $level->isOwnedBy($user),
                 'public' => $level->isPublic(),
                 'lt' => $level->isPublic() ? '' : $tokens->create($level),
+                // what the players think of it: the average of the stars (null: no vote), votes, plays, favourites
+                'rating' => $level->getRating(),
+                'votes' => $level->getVoteCount(),
+                'plays' => $level->getPlays(),
+                'favourites' => $level->getFavourites(),
+                // the player's own: his stars, in his favourites
+                'stars' => $ratings->myVote($level, $user),
+                'fav' => isset($favourites[$level->getId()]),
             ], $list),
         ]);
         $response->headers->set('Access-Control-Allow-Origin', '*');

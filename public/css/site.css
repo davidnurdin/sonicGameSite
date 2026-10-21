@@ -455,7 +455,16 @@ main.full { max-width: none; padding: 0 12px 24px; }
 .ed-card-go { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 4px; }
 .ed-card-go form { display: contents; }
 .ed-card-go > .pill-button, .ed-card-go > form > .pill-button { flex: 1 1 0; min-width: 0; padding: 0 10px; }
-.ed-card-go .pill-button.icon-only { flex: 0 0 36px; padding: 0; }
+.ed-card-go .pill-button.icon-only { flex: 0 0 38px; padding: 0; }
+/* the main action of a card (play, listen) takes the room left */
+.ed-card-go .pill-button.play-pill.icon-only { flex: 1 1 38px; }
+.lv-fav .ico { color: rgba(255, 255, 255, .55); }
+.lv-fav.on .ico { color: #ff4d6d; }
+.lv-numbers { display: flex; flex-wrap: wrap; gap: 4px 12px; color: rgba(255, 255, 255, .75); }
+.lv-numbers > span { display: inline-flex; align-items: center; gap: 4px; }
+.lv-numbers .ico { width: 13px; height: 13px; }
+.lv-numbers .ico-star { color: #ffd400; }
+.lv-numbers .ico-heart { color: #ff4d6d; }
 .ed-card-go .ed-card-trash .pill-button { margin-left: auto; background: #c81e36; color: var(--white); }
 .ed-card-go .ed-card-trash .pill-button:hover { background: #ee2f4a; }
 .ed-only-empty { display: flex; flex-direction: column; gap: 6px; }
@@ -611,3 +620,27 @@ main.full { max-width: none; padding: 0 12px 24px; }
 .dev-table th, .dev-table td { padding: 6px 8px; border-bottom: 1px solid rgba(255, 255, 255, .12); text-align: left; vertical-align: top; }
 .dev-table td:first-child { white-space: nowrap; }
 @media (max-width: 600px) { .dev-table td:first-child { white-space: normal; } }
+
+/* the catalogue of the levels (/niveaux): search, orders */
+.lv-search { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0 12px; }
+.lv-search input[type="search"] { flex: 1 1 220px; max-width: 420px; padding: 9px 14px; border: 2px solid rgba(255, 255, 255, .2);
+    border-radius: 999px; background: rgba(0, 0, 0, .25); color: var(--white); font: 600 15px system-ui, sans-serif; }
+.lv-search input[type="search"]:focus { outline: none; border-color: var(--yellow); }
+.lv-search input[type="search"]::placeholder { color: rgba(255, 255, 255, .5); }
+.lv-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.lv-tabs a { padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, .08); color: inherit; text-decoration: none; font-weight: 700; font-size: 14px; }
+.lv-tabs a:hover { background: rgba(255, 255, 255, .16); }
+.lv-tabs a[aria-current="page"] { background: var(--yellow, #ffd400); color: #10194d; }
+/* the stars of a level page */
+.lv-rate { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 10px; }
+.lv-rate form { display: inline-flex; align-items: center; gap: 2px; }
+.lv-star { width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px; background: none; color: rgba(255, 255, 255, .3); cursor: pointer; }
+.lv-star .ico { width: 26px; height: 26px; }
+.lv-star.on { color: #ffd400; }
+.lv-rate form:hover .lv-star { color: #ffd400; }
+.lv-rate form .lv-star:hover ~ .lv-star { color: rgba(255, 255, 255, .3); }
+.lv-star:focus-visible { outline: 2px solid #fff; }
+
+/* a group of cards inside a section (the musics, the sound effects) */
+.ed-sub { margin: 14px 0 8px; font-size: 16px; }
+.ed-sub:first-of-type { margin-top: 4px; }

@@ -67,9 +67,13 @@
     </section>
 
     <section class="panel wide">
-        <h2>{{ 'Mes niveaux'|trans }}</h2>
+        <div class="lv-head">
+            <h2>{{ 'Mes niveaux'|trans }}</h2>
+            {% if myLevels|length > 8 %}<a class="pill-button" href="{{ path('levels', {vue: 'miens'}) }}">{{ 'Tous mes niveaux (%n%)'|trans({'%n%': myLevels|length}) }} →</a>{% endif %}
+        </div>
         {% if myLevels is empty %}<p class="muted">{{ 'Pas encore de niveau.'|trans }}</p>{% endif %}
-        <ul class="ed-cards">{% for level in myLevels %}{{ cards.level_card(level, true) }}{% endfor %}</ul>
+        {# the latest changed; all of them, searched: /niveaux?vue=miens #}
+        <ul class="ed-cards">{% for level in myLevels|slice(0, 8) %}{{ cards.level_card(level, true) }}{% endfor %}</ul>
     </section>
     <section class="panel wide">
         <h2>{{ 'Mes tiles'|trans }}</h2>
@@ -84,7 +88,7 @@
     <section class="panel wide">
         <h2 id="sounds">{{ 'Mes sons'|trans }}</h2>
         {% if mySounds is empty %}<p class="muted">{{ 'Pas encore de son à toi.'|trans }}</p>{% endif %}
-        <ul class="ed-cards">{% for sound in mySounds %}{{ cards.sound_card(sound, true) }}{% endfor %}</ul>
+        {{ cards.sound_groups(mySounds, true) }}
     </section>
     {% if shared is not empty %}
     <section class="panel wide">
@@ -104,16 +108,13 @@
 {% endif %}
 
 <section class="panel wide">
-    <h2>{{ 'Niveaux publics'|trans }}</h2>
+    <div class="lv-head">
+        <h2>{{ 'Les mieux notés'|trans }}</h2>
+        <a class="pill-button" href="{{ path('levels') }}">{{ 'Tous les niveaux'|trans }} →</a>
+    </div>
     {% if publicLevels is empty %}<p class="muted">{{ 'Aucun niveau public pour le moment.'|trans }}</p>{% endif %}
     <ul class="ed-cards">{% for level in publicLevels %}{{ cards.level_card(level, app.user and level.user == app.user) }}{% endfor %}</ul>
-    {% if pages > 1 %}
-        <nav class="pager" aria-label="{{ 'Pages'|trans }}">
-            {% if page > 1 %}<a class="pill-button" href="{{ path('editor', {page: page - 1}) }}" rel="prev">← {{ 'Précédents'|trans }}</a>{% endif %}
-            <span>{{ 'Page %page% sur %pages%'|trans({'%page%': page, '%pages%': pages}) }}</span>
-            {% if page < pages %}<a class="pill-button" href="{{ path('editor', {page: page + 1}) }}" rel="next">{{ 'Suivants'|trans }} →</a>{% endif %}
-        </nav>
-    {% endif %}
+    <p class="small"><a href="{{ path('levels', {tri: 'new'}) }}">{{ 'Nouveautés'|trans }}</a> · <a href="{{ path('levels', {tri: 'plays'}) }}">{{ 'Plus joués'|trans }}</a>{% if app.user %} · <a href="{{ path('levels', {vue: 'favoris'}) }}">{{ 'Mes favoris'|trans }}</a>{% endif %}</p>
 </section>
 
 <section class="panel wide">
@@ -134,7 +135,7 @@
 {% if publicSounds is not empty %}
 <section class="panel wide">
     <h2>{{ 'Sons publics'|trans }}</h2>
-    <ul class="ed-cards">{% for sound in publicSounds %}{{ cards.sound_card(sound, false) }}{% endfor %}</ul>
+    {{ cards.sound_groups(publicSounds, false) }}
 </section>
 {% endif %}
 {% endblock %}
@@ -142,3 +143,4 @@
 {% block scripts %}
     {% if mySounds is not empty or publicSounds is not empty %}<script src="{{ asset('js/sound-engine.js') }}" defer></script>{% endif %}
 {% endblock %}
+

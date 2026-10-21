@@ -13,12 +13,14 @@
                 {% if not mine %}{{ 'par'|trans }} {{ people.user(level.user) }} · {% endif %}
                 {{ level.width }}×{{ level.height }} · {{ level.tileset.name }}
             </small>
+            {{ cards.numbers(level) }}
             {% if mine %}<span class="badge{% if not level.public %} off{% endif %}">{{ level.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
         </div>
         <div class="ed-card-go">
-            <a class="pill-button play-pill" href="{{ path('level_play', {id: level.id}) }}">{{ icons.icon('play') }}{{ 'Jouer'|trans }}</a>
-            {% if mine %}<a class="pill-button" href="{{ path('level_edit', {id: level.id}) }}">{{ icons.icon('edit') }}{{ 'Éditer'|trans }}</a>{% endif %}
-            <a class="pill-button" href="{{ path('level', {id: level.id}) }}">{{ icons.icon('view') }}{{ 'Voir'|trans }}</a>
+            <a class="pill-button play-pill icon-only" href="{{ path('level_play', {id: level.id}) }}" aria-label="{{ 'Jouer'|trans }}" title="{{ 'Jouer'|trans }}">{{ icons.icon('play') }}</a>
+            {% if mine %}<a class="pill-button icon-only" href="{{ path('level_edit', {id: level.id}) }}" aria-label="{{ 'Éditer'|trans }}" title="{{ 'Éditer'|trans }}">{{ icons.icon('edit') }}</a>{% endif %}
+            <a class="pill-button icon-only" href="{{ path('level', {id: level.id}) }}" aria-label="{{ 'Voir'|trans }}" title="{{ 'Voir'|trans }}">{{ icons.icon('view') }}</a>
+            {{ cards.favourite(level) }}
             {{ cards.trash('level', level) }}
         </div>
     </li>
@@ -41,8 +43,8 @@
             {% if mine %}<span class="badge{% if not tileset.public %} off{% endif %}">{{ tileset.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
         </div>
         <div class="ed-card-go">
-            {% if mine %}<a class="pill-button" href="{{ path('tileset_edit', {id: tileset.id}) }}">{{ icons.icon('edit') }}{{ 'Éditer'|trans }}</a>{% endif %}
-            <a class="pill-button" href="{{ path('tileset', {id: tileset.id}) }}">{{ icons.icon('view') }}{{ 'Voir'|trans }}</a>
+            {% if mine %}<a class="pill-button icon-only" href="{{ path('tileset_edit', {id: tileset.id}) }}" aria-label="{{ 'Éditer'|trans }}" title="{{ 'Éditer'|trans }}">{{ icons.icon('edit') }}</a>{% endif %}
+            <a class="pill-button icon-only" href="{{ path('tileset', {id: tileset.id}) }}" aria-label="{{ 'Voir'|trans }}" title="{{ 'Voir'|trans }}">{{ icons.icon('view') }}</a>
             {{ cards.trash('tileset', tileset) }}
         </div>
     </li>
@@ -65,8 +67,8 @@
             {% if mine %}<span class="badge{% if not set.public %} off{% endif %}">{{ set.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
         </div>
         <div class="ed-card-go">
-            {% if mine %}<a class="pill-button" href="{{ path('sprites_edit', {id: set.id}) }}">{{ icons.icon('edit') }}{{ 'Éditer'|trans }}</a>{% endif %}
-            <a class="pill-button" href="{{ path('sprites', {id: set.id}) }}">{{ icons.icon('view') }}{{ 'Voir'|trans }}</a>
+            {% if mine %}<a class="pill-button icon-only" href="{{ path('sprites_edit', {id: set.id}) }}" aria-label="{{ 'Éditer'|trans }}" title="{{ 'Éditer'|trans }}">{{ icons.icon('edit') }}</a>{% endif %}
+            <a class="pill-button icon-only" href="{{ path('sprites', {id: set.id}) }}" aria-label="{{ 'Voir'|trans }}" title="{{ 'Voir'|trans }}">{{ icons.icon('view') }}</a>
             {{ cards.trash('sprites', set) }}
         </div>
     </li>
@@ -87,18 +89,55 @@
         </div>
         <div class="ed-card-go">
             <button type="button" class="pill-button play-pill icon-only sd-play" aria-label="{{ 'Écouter'|trans }}" title="{{ 'Écouter'|trans }}">{{ icons.icon('play') }}{{ icons.icon('stop') }}</button>
-            {% if mine %}<a class="pill-button" href="{{ path('sound_edit', {id: sound.id}) }}">{{ icons.icon('edit') }}{{ 'Éditer'|trans }}</a>
+            {% if mine %}<a class="pill-button icon-only" href="{{ path('sound_edit', {id: sound.id}) }}" aria-label="{{ 'Éditer'|trans }}" title="{{ 'Éditer'|trans }}">{{ icons.icon('edit') }}</a>
             {% elseif app.user %}
                 <form method="post" action="{{ path('sound_new') }}">
                     <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
                     <input type="hidden" name="from" value="{{ sound.id }}">
-                    <button class="pill-button pc-hide" type="submit" title="{{ 'Faire ta propre copie, que tu modifies comme tu veux. Le créateur reste cité.'|trans }}">{{ icons.icon('fork') }}{{ 'Forker'|trans }}</button>
+                    <button class="pill-button pc-hide icon-only" type="submit" aria-label="{{ 'Forker'|trans }}" title="{{ 'Forker : faire ta propre copie, que tu modifies comme tu veux. Le créateur reste cité.'|trans }}">{{ icons.icon('fork') }}</button>
                 </form>
             {% endif %}
-            <a class="pill-button" href="{{ path('sound', {id: sound.id}) }}">{{ icons.icon('view') }}{{ 'Voir'|trans }}</a>
+            <a class="pill-button icon-only" href="{{ path('sound', {id: sound.id}) }}" aria-label="{{ 'Voir'|trans }}" title="{{ 'Voir'|trans }}">{{ icons.icon('view') }}</a>
             {{ cards.trash('sound', sound) }}
         </div>
     </li>
+{% endmacro %}
+
+{# What the players think of a level: its stars (average, votes), its plays, its favourites. #}
+{% macro numbers(level) %}
+    {% import '_parts/icons.html.twig' as icons %}
+    <span class="lv-numbers small">
+        <span class="lv-stars" title="{{ level.voteCount ? '%r% sur 5, %n% votes'|trans({'%r%': level.rating, '%n%': level.voteCount}) : 'Pas encore noté'|trans }}">{{ icons.icon('star') }}{{ level.voteCount ? level.rating|number_format(1, ',') ~ ' (' ~ level.voteCount ~ ')' : '–' }}</span>
+        <span title="{{ 'Parties'|trans }}">{{ icons.icon('play') }}{{ level.plays }}</span>
+        <span title="{{ 'Dans les favoris'|trans }}">{{ icons.icon('heart') }}{{ level.favourites }}</span>
+    </span>
+{% endmacro %}
+
+{# The heart of a level: in the viewer's favourites, or not (signed in only; back to this page). #}
+{% macro favourite(level, labelled = false) %}
+    {% import '_parts/icons.html.twig' as icons %}
+    {% if app.user and level.public or app.user and level.ownedBy(app.user) %}
+        {% set on = is_favourite(level) %}
+        {% set label = on ? 'Retirer des favoris'|trans : 'Ajouter aux favoris'|trans %}
+        <form class="lv-fav-form" method="post" action="{{ path('level_favourite', {id: level.id}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('rating') }}">
+            <input type="hidden" name="on" value="{{ on ? 0 : 1 }}">
+            <input type="hidden" name="back" value="{{ app.request.requestUri }}">
+            <button class="pill-button lv-fav{{ on ? ' on' }}{{ labelled ? '' : ' icon-only' }}" type="submit" aria-pressed="{{ on ? 'true' : 'false' }}" aria-label="{{ label }}" title="{{ label }}">{{ icons.icon('heart') }}{% if labelled %}{{ on ? 'Dans tes favoris'|trans : 'Favori'|trans }}{% endif %}</button>
+        </form>
+    {% endif %}
+{% endmacro %}
+
+{# The sounds, the musics apart from the sound effects. #}
+{% macro sound_groups(list, mine) %}
+    {% import _self as cards %}
+    {% for music in [true, false] %}
+        {% set group = list|filter(s => s.music == music) %}
+        {% if group is not empty %}
+            <h3 class="ed-sub">{{ music ? '♪ ' ~ 'Musiques'|trans : '🔊 ' ~ 'Bruitages'|trans }} <small class="muted">{{ group|length }}</small></h3>
+            <ul class="ed-cards">{% for sound in group %}{{ cards.sound_card(sound, mine) }}{% endfor %}</ul>
+        {% endif %}
+    {% endfor %}
 {% endmacro %}
 
 {# The red trash of a card: only its creator; asks first, then back to this page (TrashRedirect). #}

@@ -10,7 +10,8 @@ use App\Entity\Level;
 /** The public levels (App\ApiResource\Level). */
 final class LevelProvider extends PublicProvider implements ProviderInterface
 {
-    private const ORDERS = ['updated' => ['c.updatedAt', 'DESC'], 'created' => ['c.createdAt', 'DESC'], 'name' => ['c.name', 'ASC']];
+    private const ORDERS = ['updated' => ['c.updatedAt', 'DESC'], 'created' => ['c.createdAt', 'DESC'], 'name' => ['c.name', 'ASC'],
+        'top' => ['c.score', 'DESC'], 'plays' => ['c.plays', 'DESC'], 'favourites' => ['c.favourites', 'DESC']];
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
     {

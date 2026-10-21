@@ -66,7 +66,8 @@ final class Studio
         if ($creation->getForkedFrom() !== null) $out['forked_from'] = ['id' => $creation->getForkedFrom()->getId(), 'name' => $creation->getForkedFrom()->getName()];
         $out += match (true) {
             $creation instanceof Level => ['size' => [$creation->getWidth(), $creation->getHeight()], 'tileset_id' => $creation->getTileset()->getId(),
-                'objects' => count($creation->getObjects())],
+                'objects' => count($creation->getObjects()), 'rating' => $creation->getRating(), 'votes' => $creation->getVoteCount(),
+                'plays' => $creation->getPlays(), 'favourites' => $creation->getFavourites()],
             $creation instanceof Tileset => ['blocks' => $creation->getCount()] + ($creation->getZone() !== null ? ['zone' => $creation->getZone()] : []),
             $creation instanceof SpriteSet => ['redrawn_sheets' => array_keys($creation->getSheets())],
             $creation instanceof Sound => ['sound_kind' => $creation->getKind()],

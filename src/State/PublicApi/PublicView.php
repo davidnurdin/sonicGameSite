@@ -72,6 +72,11 @@ final class PublicView
         $dto->forkedFrom = $this->visible($level->getForkedFrom()) ? ApiResource\Level::ref($level->getForkedFrom()->getId()) : null;
         $dto->replayCount = (int) $this->em->createQuery('SELECT COUNT(r.id) FROM ' . Entity\Replay::class . ' r WHERE r.siteLevel = :l')
             ->setParameter('l', $level)->getSingleScalarResult();
+        $dto->rating = $level->getRating();
+        $dto->votes = $level->getVoteCount();
+        $dto->score = $level->getScore();
+        $dto->plays = $level->getPlays();
+        $dto->favourites = $level->getFavourites();
         $dto->createdAt = $level->getCreatedAt();
         $dto->updatedAt = $level->getUpdatedAt();
         $id = ['id' => $level->getId()];

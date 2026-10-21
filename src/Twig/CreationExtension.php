@@ -12,7 +12,7 @@ use Twig\Attribute\AsTwigFunction;
 /** For the pages of the creations of the editors: who made them, where they come from, who works on them (Creations). */
 class CreationExtension
 {
-    public function __construct(private Creations $creations, private Security $security, private UrlGeneratorInterface $urls, private TranslatorInterface $translator)
+    public function __construct(private Creations $creations, private \App\Service\LevelRatings $ratings, private Security $security, private UrlGeneratorInterface $urls, private TranslatorInterface $translator)
     {
     }
 
@@ -36,6 +36,25 @@ class CreationExtension
             'canEdit' => $this->creations->canEdit($creation, $user),
             'routes' => Creations::ROUTES[Creations::kind($creation)],
         ];
+    }
+
+    /** The level is in the viewer's favourites (one query for the whole page). */
+    #[AsTwigFunction('is_favourite')]
+    public function isFavourite(\App\Entity\Level $level): bool
+    {
+        $user = $this->user();
+
+        return $user !== null && isset($this->ratings->favouriteIds($user)[$level->getId()]);
+    }
+
+    /** What the viewer thinks of a level: in his favourites, his stars (0: none), why he may not vote (null: he may). */
+    #[AsTwigFunction('level_opinion')]
+    public function levelOpinion(\App\Entity\Level $level): array
+    {
+        $user = $this->user();
+
+        return ['fav' => $this->isFavourite($level),
+            'stars' => $this->ratings->myVote($level, $user), 'refused' => $this->ratings->cannotVote($level, $user)];
     }
 
     /** The attributes an editor's root gets for editor-live.js: where to ask, the version it opened, an old one taken again. */

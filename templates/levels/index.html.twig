@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ view == 'favoris' ? 'Mes favoris'|trans : (view == 'miens' ? 'Mes niveaux'|trans : 'Niveaux des joueurs'|trans) }} · Sonic PHP{% endblock %}
+{% block description %}{{ 'Les niveaux de Sonic faits par les joueurs dans l\'éditeur de Sonic PHP : les mieux notés, les nouveautés, les plus joués. Joue-les dans le navigateur.'|trans }}{% endblock %}
+{% block robots %}{{ view or search or page > 1 ? 'noindex, follow' : 'index, follow' }}{% endblock %}
+{% block main_class %}wide{% endblock %}
+{% import '_parts/cards.html.twig' as cards %}
+
+{% block body %}
+{# the address of this list with some of its settings changed #}
+{% set here = {tri: sort, vue: view ?: null, q: search ?: null} %}
+<section class="panel wide">
+    <div class="lv-head">
+        <div>
+            <h1>{{ view == 'favoris' ? 'Mes favoris'|trans : (view == 'miens' ? 'Mes niveaux'|trans : 'Niveaux des joueurs'|trans) }}</h1>
+            <p class="muted">{{ total > 1 ? '%n% niveaux'|trans({'%n%': total}) : '%n% niveau'|trans({'%n%': total}) }}{% if search %} · « {{ search }} »{% endif %}</p>
+        </div>
+        <div class="lv-actions">
+            <a class="pill-button" href="{{ path('editor') }}">{{ 'Créer un niveau'|trans }}</a>
+        </div>
+    </div>
+    {% for flash in app.flashes('rating') %}<p class="flash error">{{ flash|trans }}</p>{% endfor %}
+    <form class="lv-search" method="get" action="{{ path('levels') }}" role="search">
+        <input type="hidden" name="tri" value="{{ sort }}">
+        {% if view %}<input type="hidden" name="vue" value="{{ view }}">{% endif %}
+        <input type="search" name="q" value="{{ search }}" maxlength="40" placeholder="{{ 'Nom du niveau ou du joueur'|trans }}" aria-label="{{ 'Chercher'|trans }}">
+        <button class="pill-button" type="submit">{{ 'Chercher'|trans }}</button>
+        {% if search %}<a class="small" href="{{ path('levels', here|merge({q: null})) }}">{{ 'Tout voir'|trans }}</a>{% endif %}
+    </form>
+    <nav class="lv-tabs" aria-label="{{ 'Trier'|trans }}">
+        {% for key, label in sorts %}
+            <a href="{{ path('levels', here|merge({tri: key, vue: null})) }}"{% if not view and sort == key %} aria-current="page"{% endif %}>{{ label|trans }}</a>
+        {% endfor %}
+        {% if app.user %}
+            <a href="{{ path('levels', here|merge({vue: 'favoris'})) }}"{% if view == 'favoris' %} aria-current="page"{% endif %}>♥ {{ 'Mes favoris'|trans }}</a>
+            <a href="{{ path('levels', here|merge({vue: 'miens'})) }}"{% if view == 'miens' %} aria-current="page"{% endif %}>{{ 'Mes niveaux'|trans }}</a>
+        {% endif %}
+    </nav>
+    {% if sort == 'top' and not view %}<p class="small muted">{{ 'Le classement suit la moyenne des étoiles, ramenée vers 3 tant qu\'un niveau a peu de votes : un seul 5 ne suffit pas pour passer devant tout le monde.'|trans }}</p>{% endif %}
+    {% if levels is empty %}
+        <p class="muted">{{ view == 'favoris' ? 'Pas encore de favori : mets un cœur aux niveaux que tu aimes.'|trans : 'Aucun niveau ici pour le moment.'|trans }}</p>
+    {% endif %}
+    <ul class="ed-cards">{% for level in levels %}{{ cards.level_card(level, app.user and level.user == app.user) }}{% endfor %}</ul>
+    {% if pages > 1 %}
+        <nav class="pager" aria-label="{{ 'Pages'|trans }}">
+            {% if page > 1 %}
+                <a class="pill-button" href="{{ path('levels', here|merge({page: 1})) }}" aria-label="{{ 'Première page'|trans }}">«</a>
+                <a class="pill-button" href="{{ path('levels', here|merge({page: page - 1})) }}" rel="prev">← {{ 'Précédents'|trans }}</a>
+            {% endif %}
+            <span>{{ 'Page %page% sur %pages%'|trans({'%page%': page, '%pages%': pages}) }}</span>
+            {% if page < pages %}
+                <a class="pill-button" href="{{ path('levels', here|merge({page: page + 1})) }}" rel="next">{{ 'Suivants'|trans }} →</a>
+                <a class="pill-button" href="{{ path('levels', here|merge({page: pages})) }}" aria-label="{{ 'Dernière page'|trans }}">»</a>
+            {% endif %}
+        </nav>
+    {% endif %}
+</section>
+{% endblock %}

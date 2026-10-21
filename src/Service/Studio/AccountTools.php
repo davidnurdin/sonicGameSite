@@ -18,6 +18,7 @@ final class AccountTools implements ToolProvider
 {
     private const KIND = ['type' => 'string', 'enum' => Studio::KINDS, 'description' => 'level, tileset, sprites or sound'];
     private const ID = ['type' => 'integer', 'minimum' => 1];
+    private const SCOPES = ['mine', 'shared', 'public', 'zones', 'trash', 'favourites'];
 
     public function __construct(
         private Studio $studio,
@@ -37,8 +38,13 @@ final class AccountTools implements ToolProvider
                 . 'Read "workflow" first, then what you need. Topics: ' . implode(', ', Reference::TOPICS) . '.',
                 ['properties' => ['topic' => ['type' => 'string', 'enum' => Reference::TOPICS, 'default' => 'workflow']]], $this->getReference(...)),
             new Tool('list_creations', 'List creations', 'Lists levels, tilesets, sprites or sounds: this account\'s ("mine"), those it was added to ("shared"), '
-                . 'the public ones of everybody ("public"), the zones of the game (tileset, "zones"), or what is in its trash ("trash").',
-                ['properties' => ['kind' => self::KIND, 'scope' => ['type' => 'string', 'enum' => ['mine', 'shared', 'public', 'zones', 'trash'], 'default' => 'mine'],
+                . 'the public ones of everybody ("public"), the zones of the game (tileset, "zones"), what is in its trash ("trash"), or the levels '
+                . 'in its favourites ("favourites"). Public levels: sort "top" (the best rated, default), "new", "plays" (the most played), "fav" '
+                . '(the most often in favourites), and search (in their names and authors). A level shows its rating (the average of the players\' '
+                . 'stars, 1 to 5), votes, plays and favourites.',
+                ['properties' => ['kind' => self::KIND, 'scope' => ['type' => 'string', 'enum' => self::SCOPES, 'default' => 'mine'],
+                    'sort' => ['type' => 'string', 'enum' => \App\Repository\LevelRepository::SORTS, 'default' => 'top'],
+                    'search' => ['type' => 'string', 'maxLength' => 40],
                     'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1]], 'required' => ['kind']], $this->list(...)),
             new Tool('get_history', 'History', 'Every action on a creation, the latest first: who, when, what changed (with the name of the API key when it was done through the API).',
                 ['properties' => ['kind' => self::KIND, 'id' => self::ID, 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1]], 'required' => ['kind', 'id']],
@@ -83,9 +89,20 @@ final class AccountTools implements ToolProvider
     private function list(Args $args, Context $c): Result
     {
         $kind = $args->choice('kind', Studio::KINDS);
-        $scope = $args->choice('scope', ['mine', 'shared', 'public', 'zones', 'trash'], 'mine');
+        $scope = $args->choice('scope', self::SCOPES, 'mine');
         $page = $args->int('page', 1, 1000, 1);
         $repository = $this->studio->em->getRepository(Creations::KINDS[$kind]);
+        $perPage = 50;
+        // the catalogue of the levels: sorted, searched, page by page (as the site's /niveaux)
+        if ($kind === 'level' && in_array($scope, ['public', 'favourites'], true)) {
+            $search = $args->has('search') ? mb_substr(trim((string) $args->raw('search')), 0, 40) : null;
+            [$list, $total] = $repository->catalogue($args->choice('sort', \App\Repository\LevelRepository::SORTS, 'top'), $page, $perPage, $search,
+                $scope === 'favourites' ? $c->user : null);
+
+            return new Result(['kind' => $kind, 'scope' => $scope, 'page' => $page, 'pages' => max(1, (int) ceil($total / $perPage)), 'total' => $total,
+                'items' => array_map(fn(object $x) => $this->studio->summary($x, $c->user), $list)]);
+        }
+        if ($scope === 'favourites') throw new ToolError('scope "favourites" is for kind "level".');
         $list = match ($scope) {
             'mine' => $repository->ofUser($c->user),
             'shared' => array_values(array_filter(array_map(fn($m) => $m->getKind() === $kind ? $this->studio->creations->find($kind, $m->getCreationId()) : null,
@@ -93,14 +110,12 @@ final class AccountTools implements ToolProvider
             'trash' => array_column(array_filter($this->studio->creations->trashOf($c->user), fn($i) => $i['kind'] === $kind), 'creation'),
             'zones' => $kind === 'tileset' ? $repository->zones() : throw new ToolError('scope "zones" is for kind "tileset".'),
             'public' => match ($kind) {
-                'level' => $repository->publicPage($page, 50)[0],
                 'sound' => $repository->publicOnes(200),
                 default => $repository->publicOnes(200),
             },
         };
-        $perPage = 50;
-        $total = $scope === 'public' && $kind === 'level' ? $repository->publicPage(1, 1)[1] : count($list);
-        if (!($scope === 'public' && $kind === 'level')) $list = array_slice($list, ($page - 1) * $perPage, $perPage);
+        $total = count($list);
+        $list = array_slice($list, ($page - 1) * $perPage, $perPage);
 
         return new Result([
             'kind' => $kind, 'scope' => $scope, 'page' => $page, 'pages' => max(1, (int) ceil($total / $perPage)), 'total' => $total,

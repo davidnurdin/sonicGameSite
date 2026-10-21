@@ -58,6 +58,7 @@
                 {% if app.user %}
                     <a href="{{ path('stats') }}"{% if route == 'stats' %} aria-current="page"{% endif %}>{{ 'Statistiques'|trans }}</a>
                 {% endif %}
+                <a href="{{ path('levels') }}"{% if route == 'levels' %} aria-current="page"{% endif %}>{{ 'Niveaux des joueurs'|trans }}</a>
                 <a href="{{ path('editor') }}"{% if route == 'editor' %} aria-current="page"{% endif %}>{{ 'Éditeur de niveau'|trans }}</a>
                 <a href="{{ path('developers') }}"{% if route == 'developers' %} aria-current="page"{% endif %}>{{ 'API publique'|trans }}</a>
                 <hr>

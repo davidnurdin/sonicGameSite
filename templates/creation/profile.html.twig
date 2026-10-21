@@ -43,7 +43,7 @@
 {% if sounds is not empty %}
 <section class="panel wide">
     <h2>{{ 'Sons'|trans }} ({{ sounds|length }})</h2>
-    <ul class="ed-cards">{% for sound in sounds %}{{ cards.sound_card(sound, me) }}{% endfor %}</ul>
+    {{ cards.sound_groups(sounds, me) }}
 </section>
 {% endif %}
 {% if levels is empty and tilesets is empty and sprites is empty and sounds is empty %}

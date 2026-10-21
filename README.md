@@ -127,6 +127,24 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
   `editor-music.js`, `editor-sfx.js`) enregistrent en JSON avec le
   jeton CSRF `editor` (en-tête `X-CSRF-Token`) ; `EditorData` vérifie tout ce qu'ils envoient.
 
+## Comment marchent les notes, les favoris et le catalogue des niveaux
+
+- `/niveaux` (`LevelsController`) : tous les niveaux publics, triés (`?tri=top` les mieux notés, `new`, `plays`,
+  `fav` les plus souvent en favoris), cherchés (`?q=` : nom du niveau ou du joueur), 24 par page ; `?vue=favoris`
+  et `?vue=miens` pour le joueur connecté. Le hub de l'éditeur n'en montre que les 8 mieux notés.
+- Un joueur connecté donne 1 à 5 étoiles à un niveau public d'un autre (`LevelVote`, un vote par joueur,
+  modifiable), et met n'importe quel niveau qu'il voit dans ses favoris (`LevelFavourite`), sur la page du niveau,
+  avec le cœur des cartes, ou dans le jeu (page TON AVIS à la fin d'un niveau de la liste).
+- `Level` garde les totaux pour trier sans calcul : `voteCount`, `voteSum`, `favourites`, `plays` et `score`
+  (`LevelRatings::score` : la moyenne ramenée vers 3 comme s'il avait 4 votes de 3 de plus ; un seul 5 ne passe
+  pas devant tout le monde). Une partie compte quand le jeu télécharge `jeu.json`, une fois toutes les 6 heures
+  par adresse (cache `cache.app`).
+- Le jeu : `POST /api/niveaux` prend `sort` (`top`, `new`, `plays`, `fav`, `mine`, `favourites` ; sans `sort`,
+  l'ancien ordre) et donne `rating`, `votes`, `plays`, `favourites`, `stars` et `fav` de chaque niveau ;
+  `POST /api/niveaux/note` (`{st, id, stars?, fav?}`, en `text/plain`) enregistre l'avis du joueur.
+- API publique : `rating`, `votes`, `score`, `plays`, `favourites` dans `/levels`, `order=top|plays|favourites`.
+  MCP : `list_creations` (`sort`, `search`, scope `favourites`). L'API et le MCP ne votent pas.
+
 ## Comment marchent les forks, le travail à plusieurs et l'historique
 
 - Chaque création (niveau, tiles, sprites, son) montre son créateur, avec un lien vers sa page, et sous la page
