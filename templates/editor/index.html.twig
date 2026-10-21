@@ -46,6 +46,26 @@
     </li>
 {% endmacro %}
 
+{% macro sprites_card(set, mine) %}
+    <li class="ed-card sprites">
+        <a class="ed-thumb" href="{{ path(mine ? 'sprites_edit' : 'sprites', {id: set.id}) }}">
+            <img src="{{ path('sprites_png', {id: set.id, sheet: 'sonic', v: set.updatedAt.timestamp}) }}" alt="" loading="lazy">
+        </a>
+        <div class="ed-card-text">
+            <b>{{ set.name }}</b>
+            <small class="muted">
+                {{ mine ? '' : 'par %name%'|trans({'%name%': set.user.username}) ~ ' · ' }}
+                {{ set.sheets|length > 1 ? '%n% planches redessinées'|trans({'%n%': set.sheets|length}) : '%n% planche redessinée'|trans({'%n%': set.sheets|length}) }}
+            </small>
+            {% if mine %}<span class="badge{% if not set.public %} off{% endif %}">{{ set.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
+        </div>
+        <div class="ed-card-go">
+            {% if mine %}<a class="pill-button" href="{{ path('sprites_edit', {id: set.id}) }}">{{ 'Éditer'|trans }}</a>{% endif %}
+            <a class="pill-button" href="{{ path('sprites', {id: set.id}) }}">{{ 'Voir'|trans }}</a>
+        </div>
+    </li>
+{% endmacro %}
+
 {% block body %}
 <section class="panel wide">
     <h1>{{ 'Éditeur de niveau'|trans }}</h1>
@@ -83,6 +103,14 @@
             <p class="small muted">{{ 'Des blocs de 32×32 pixels (256 au plus), chacun avec sa forme de collision. Pour partir des tiles d\'une zone ou d\'un autre joueur : « Copier » sur leur page.'|trans }}</p>
             <button type="submit" class="play small">{{ 'Créer'|trans }}</button>
         </form>
+        <form class="panel form" method="post" action="{{ path('sprites_new') }}">
+            <h2>{{ 'Nouveau jeu de sprites'|trans }}</h2>
+            <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+            <label for="sprites-name">{{ 'Nom'|trans }}</label>
+            <input type="text" id="sprites-name" name="name" maxlength="40" required placeholder="{{ 'Mes sprites'|trans }}">
+            <p class="small muted">{{ 'Redessine Sonic, les badniks, les objets ou les boss, pixel par pixel. Un niveau qui les choisit se joue avec eux.'|trans }}</p>
+            <button type="submit" class="play small">{{ 'Créer'|trans }}</button>
+        </form>
     </section>
 
     <section class="panel wide">
@@ -95,9 +123,14 @@
         {% if myTilesets is empty %}<p class="muted">{{ 'Pas encore de tiles à toi.'|trans }}</p>{% endif %}
         <ul class="ed-cards">{% for tileset in myTilesets %}{{ _self.tileset_card(tileset, true) }}{% endfor %}</ul>
     </section>
+    <section class="panel wide">
+        <h2>{{ 'Mes sprites'|trans }}</h2>
+        {% if mySprites is empty %}<p class="muted">{{ 'Pas encore de sprites à toi.'|trans }}</p>{% endif %}
+        <ul class="ed-cards">{% for set in mySprites %}{{ _self.sprites_card(set, true) }}{% endfor %}</ul>
+    </section>
 {% else %}
     <section class="panel wide">
-        <p>{{ 'Pour créer des niveaux et des tiles :'|trans }}
+        <p>{{ 'Pour créer des niveaux, des tiles et des sprites :'|trans }}
             <a href="{{ path('register', {next: path('editor')}) }}">{{ 'crée ton compte'|trans }}</a> {{ 'ou'|trans }}
             <a href="{{ path('login', {next: path('editor')}) }}">{{ 'connecte-toi'|trans }}</a>.</p>
     </section>
@@ -123,4 +156,11 @@
         {% for tileset in publicTilesets %}{{ _self.tileset_card(tileset, app.user and tileset.user == app.user) }}{% endfor %}
     </ul>
 </section>
+
+{% if publicSprites is not empty %}
+<section class="panel wide">
+    <h2>{{ 'Sprites publics'|trans }}</h2>
+    <ul class="ed-cards">{% for set in publicSprites %}{{ _self.sprites_card(set, false) }}{% endfor %}</ul>
+</section>
+{% endif %}
 {% endblock %}

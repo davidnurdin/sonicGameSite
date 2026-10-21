@@ -36,6 +36,11 @@ class Level
     #[ORM\JoinColumn(nullable: false)]
     private Tileset $tileset;
 
+    /** Its own sprites (null: the game's). */
+    #[ORM\ManyToOne(targetEntity: SpriteSet::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?SpriteSet $spriteSet = null;
+
     #[ORM\Column(length: 40)]
     private string $name;
 
@@ -95,6 +100,8 @@ class Level
     public function getId(): ?int { return $this->id; }
     public function getUser(): User { return $this->user; }
     public function getTileset(): Tileset { return $this->tileset; }
+    public function getSpriteSet(): ?SpriteSet { return $this->spriteSet; }
+    public function setSpriteSet(?SpriteSet $spriteSet): void { $this->spriteSet = $spriteSet; }
     public function getName(): string { return $this->name; }
     public function setName(string $name): void { $this->name = $name; }
     public function isPublic(): bool { return $this->public; }

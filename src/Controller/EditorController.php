@@ -3,9 +3,11 @@
 namespace App\Controller;
 
 use App\Entity\Level;
+use App\Entity\SpriteSet;
 use App\Entity\Tileset;
 use App\Entity\User;
 use App\Repository\LevelRepository;
+use App\Repository\SpriteSetRepository;
 use App\Repository\TilesetRepository;
 use App\Repository\UserRepository;
 use App\Service\EditorData;
@@ -24,7 +26,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The level editor and the tile editor (public/js/editor-*.js): the pages, and what they read and save (JSON,
  * with the CSRF token "editor" in the X-CSRF-Token header). A public level or set is seen by everybody; only
- * its owner changes it. Not played in the game yet.
+ * its owner changes it. The sprite editor is SpriteController.
  */
 class EditorController extends AbstractController
 {
@@ -38,6 +40,7 @@ class EditorController extends AbstractController
         private EntityManagerInterface $em,
         private LevelRepository $levels,
         private TilesetRepository $tilesets,
+        private SpriteSetRepository $spriteSets,
         private TranslatorInterface $translator,
         #[Autowire(env: 'GAME_URL')] private string $gameUrl,
     ) {
@@ -53,6 +56,8 @@ class EditorController extends AbstractController
         return $this->render('editor/index.html.twig', [
             'myLevels' => $user ? $this->levels->ofUser($user) : [],
             'myTilesets' => $user ? $this->tilesets->ofUser($user) : [],
+            'mySprites' => $user ? $this->spriteSets->ofUser($user) : [],
+            'publicSprites' => array_filter($this->spriteSets->publicOnes(), fn(SpriteSet $s) => !$s->isOwnedBy($user)),
             'publicLevels' => $public,
             'page' => $page,
             'pages' => max(1, (int) ceil($total / self::PER_PAGE)),
@@ -116,6 +121,7 @@ class EditorController extends AbstractController
             'usable' => $this->tilesets->usable($this->user()),
             'objects' => $this->objectNames(),
             'musics' => EditorData::MUSICS,
+            'spriteSets' => $this->spriteSets->usable($this->user()),
         ]);
     }
 
@@ -186,6 +192,8 @@ class EditorController extends AbstractController
             'behaviour' => $tileset->getBehaviour(),
             'masks' => (object) $tileset->getMasks(),
             'tiles' => base64_encode($tileset->getImage()),
+            // its own sprites: {sheet: PNG in base64} (LevelManager::loadCustom)
+            'sprites' => (object) ($level->getSpriteSet()?->getSheets() ?? []),
         ]);
     }
 
@@ -232,10 +240,13 @@ class EditorController extends AbstractController
         if ($name === null || $parsed === null || !$tileset instanceof Tileset) return $this->json(['error' => 'invalid'], 400);
         // a set it uses already stays usable, even if it is not public any more
         if (!$tileset->canUse($this->user()) && $tileset !== $level->getTileset()) return $this->json(['error' => 'tileset'], 400);
+        $sprites = is_array($body) && is_int($body['sprites'] ?? null) ? $this->spriteSets->find($body['sprites']) : null;
+        if ($sprites !== null && !$sprites->canUse($this->user()) && $sprites !== $level->getSpriteSet()) return $this->json(['error' => 'sprites'], 400);
         $level->setName($name);
         $level->setPublic(!empty($body['public']));
         if (is_int($body['music'] ?? null) && isset(EditorData::MUSICS[$body['music']])) $level->setMusic($body['music']);
         $level->update($tileset, ...$parsed);
+        $level->setSpriteSet($sprites);
         if (isset($body['thumb'])) $level->setThumb(EditorData::thumb($body['thumb']));
         $this->em->flush();
 
@@ -255,6 +266,7 @@ class EditorController extends AbstractController
             $level->getHeight(), $level->getBlocks(), $level->getStart(), $level->getObjects());
         $copy->setThumb($level->getThumb());
         $copy->setMusic($level->getMusic());
+        if ($level->getSpriteSet()?->canUse($user)) $copy->setSpriteSet($level->getSpriteSet());
         $this->em->persist($copy);
         $this->em->flush();
 
@@ -415,6 +427,7 @@ class EditorController extends AbstractController
             'start' => $level->getStart(),
             'objects' => $level->getObjects(),
             'music' => $level->getMusic(),
+            'sprites' => $level->getSpriteSet()?->getId(),
             'tileset' => $this->tilesetData($level->getTileset()),
         ];
     }

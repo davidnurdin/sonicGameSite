@@ -31,7 +31,8 @@ Le site de [Sonic PHP](https://github.com/davidnurdin/sonicGamePhp), en ligne su
 - les **visiteurs en direct** : un Sonic par personne sur le site, sur le fond de la page, chacun avec son
   comportement (coureur, sauteur, spin dash, flâneur, suiveur). Le sien est bleu, marqué « TOI », et court
   après la souris (sur téléphone : là où on touche l'écran). Les nuages sont ceux de Green Hill ;
-- l'**éditeur de niveau**, en construction : les étapes sont dans
+- les **éditeurs** : niveaux, tiles (dessin et collisions) et sprites, publics ou privés. Les niveaux se
+  jouent dans le jeu (bouton Jouer, ou menu NIVEAUX DU SITE du jeu). Ce qui reste à faire est dans
   [`TODO-editeur-de-niveau.md`](TODO-editeur-de-niveau.md).
 
 Symfony 8.1, PHP 8.4, MariaDB 11.4, FrankenPHP (avec son hub Mercure). Pas de framework JavaScript : un seul
@@ -74,20 +75,32 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
 
 ## Comment marchent les éditeurs
 
-- `/editeur` : mes niveaux, mes tiles, les niveaux publics et les tiles (les zones du jeu et celles des joueurs).
+- `/editeur` : mes niveaux, mes tiles, mes sprites, les niveaux publics, les tiles (les zones du jeu et celles
+  des joueurs) et les sprites publics.
   Un niveau public se regarde sans compte (`/niveau/{id}`, image `/niveau/{id}.png` pour les liens). L'édition
   demande un ordinateur : sur un téléphone, la page le dit et ne montre que la vue.
 - Un niveau a le format du jeu : largeur × hauteur blocs de 32 px, un octet par bloc (un bloc de son jeu de
   tiles), le départ de Sonic et les objets (`[type, x, y]` en blocs, types de `EditorData::OBJECTS`, ceux des
-  `level<N>.objects.php` du jeu). Il ne se joue pas encore dans le jeu.
+  `level<N>.objects.php` du jeu), sa musique et, s'il en a, son jeu de sprites. Le jeu le télécharge par
+  `/niveau/{id}/jeu.json` (un niveau privé avec la clé `lt` de `LevelToken`) : bouton Jouer / Tester, ou son
+  menu NIVEAUX DU SITE, qui lit `POST /api/niveaux` (les niveaux publics, et les siens avec le compte du joueur).
+- Dans l'éditeur de niveau, les objets sont dessinés avec leur sprite du jeu : `public/img/objects.png` et
+  `public/data/object-icons.json`, refaits par `DISPLAY=:77 python3 tools/object-icons.py <jeu>` (le jeu natif
+  dans un écran X, en mode `SONIC_OBJECT_ICONS`).
 - Un jeu de tiles : jusqu'à 256 blocs, 16 par ligne dans un PNG, et un octet de collision par bloc (comme
   `level<N>.solidity` : les 6 bits du bas sont une des 47 formes de `public/data/solidity-shapes.json`, le bit 7
   dessine le bloc devant Sonic). On peut copier ceux des autres s'ils sont publics. Un jeu utilisé par un niveau
   ne peut pas être supprimé, et seul son dernier bloc peut être enlevé (les niveaux visent les blocs par leur
-  numéro).
+  numéro). La zone rouge (collision) d'un bloc peut aussi être dessinée au pixel, avec ses côtés (sol, murs,
+  plafond) : `tileset.masks`, appliqué par le jeu (`Level::applyMask`).
+- Un jeu de sprites (`SpriteSet`, éditeur `/sprites/{id}/editer`) : des planches du jeu redessinées (Sonic,
+  badniks, objets, boss…, `SpriteSet::SHEETS`), chacune un PNG de la taille de celle du jeu, transparent là où
+  le jeu a sa couleur de transparence. Un niveau qui le choisit se joue avec : le jeu met ces planches à la
+  place des siennes pendant le niveau (`LevelManager::loadCustom`). Les planches de départ sont
+  `public/img/sheets/`, refaites par `python3 tools/sprite-sheets.py <jeu>`.
 - Les zones du jeu (blocs, collisions, l'acte 1 de chacune comme modèle) sont dans `data/game/`, refaites par
   `python3 tools/game-data.py <jeu>`. `bin/console app:zones` les met en base (lancé au démarrage du conteneur).
-- Les éditeurs (`public/js/level-view.js`, `editor-level.js`, `editor-tiles.js`) enregistrent en JSON avec le
+- Les éditeurs (`public/js/level-view.js`, `editor-level.js`, `editor-tiles.js`, `editor-sprites.js`) enregistrent en JSON avec le
   jeton CSRF `editor` (en-tête `X-CSRF-Token`) ; `EditorData` vérifie tout ce qu'ils envoient.
 
 ## Développer

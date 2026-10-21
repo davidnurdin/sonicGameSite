@@ -337,6 +337,7 @@
             start: level.start,
             objects: level.objects,
             music: Number($('[name="music"]').value),
+            sprites: $('[name="sprites"]').value ? Number($('[name="sprites"]').value) : null,
             thumb: view.sheet ? view.thumbnail() : undefined,
         };
         try {
@@ -365,6 +366,7 @@
         }
     });
     $('[name="music"]').addEventListener('change', changed);
+    $('[name="sprites"]').addEventListener('change', changed);
     $('[name="name"]').addEventListener('input', changed);
     $('[name="public"]').addEventListener('change', changed);
     $('.ed-undo').addEventListener('click', () => restore(undo, redo));

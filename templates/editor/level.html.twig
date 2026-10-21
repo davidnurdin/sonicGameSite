@@ -19,6 +19,7 @@
                     {{ 'par %name%'|trans({'%name%': level.user.username}) }} · {{ level.width }}×{{ level.height }} {{ 'blocs'|trans }} ·
                     {{ 'tiles'|trans }} <a href="{{ path('tileset', {id: level.tileset.id}) }}">{{ level.tileset.name }}</a> ·
                     {{ level.objects|length }} {{ 'objets'|trans }}
+                    {% if level.spriteSet %}· {{ 'sprites'|trans }} <a href="{{ path('sprites', {id: level.spriteSet.id}) }}">{{ level.spriteSet.name }}</a>{% endif %}
                     {% if not level.public %}· <span class="badge off">{{ 'Privé'|trans }}</span>{% endif %}
                 </p>
             </div>
@@ -57,6 +58,11 @@
             <label><input type="checkbox" name="public" {{ level.public ? 'checked' }}> {{ 'Public'|trans }}</label>
             <label>♪ <select name="music" aria-label="{{ 'Musique'|trans }}">
                 {% for index, name in musics %}<option value="{{ index }}"{% if index == level.music %} selected{% endif %}>{{ name|trans }}</option>{% endfor %}
+            </select></label>
+            <label title="{{ 'Les sprites du jeu, ou un de tes jeux de sprites'|trans }}">{{ 'Sprites'|trans }} <select name="sprites" aria-label="{{ 'Sprites'|trans }}">
+                <option value="">{{ 'ceux du jeu'|trans }}</option>
+                {% for set in spriteSets %}<option value="{{ set.id }}"{% if level.spriteSet and level.spriteSet.id == set.id %} selected{% endif %}>{{ set.name }}{% if set.user != app.user %} ({{ set.user.username }}){% endif %}</option>{% endfor %}
+                {% if level.spriteSet and level.spriteSet not in spriteSets %}<option value="{{ level.spriteSet.id }}" selected>{{ level.spriteSet.name }}</option>{% endif %}
             </select></label>
             <span class="ed-sep"></span>
             <button type="button" class="pill-button ed-undo" title="Ctrl+Z">↶</button>

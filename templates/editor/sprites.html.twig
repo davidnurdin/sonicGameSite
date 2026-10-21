@@ -1,0 +1,111 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ set.name }} · {{ edit ? 'Éditeur de sprites'|trans : 'Sprites'|trans }} · Sonic PHP{% endblock %}
+{% block description %}{{ 'Les sprites de Sonic PHP redessinés par %name%, pour les niveaux de l\'éditeur.'|trans({'%name%': set.user.username}) }}{% endblock %}
+{% block robots %}{{ set.public and not edit ? 'index, follow' : 'noindex' }}{% endblock %}
+{% block main_class %}{{ edit ? 'full' : 'wide' }}{% endblock %}
+
+{% block body %}
+{% if not edit %}
+    <section class="panel wide">
+        <div class="lv-head">
+            <div>
+                <h1>{{ set.name }}</h1>
+                <p class="muted">
+                    {{ 'par %name%'|trans({'%name%': set.user.username}) }} ·
+                    {{ used > 1 ? '%n% niveaux'|trans({'%n%': used}) : '%n% niveau'|trans({'%n%': used}) }}
+                    {% if not set.public %}· <span class="badge off">{{ 'Privé'|trans }}</span>{% endif %}
+                </p>
+            </div>
+            <div class="lv-actions">
+                {% if set.isOwnedBy(app.user) %}
+                    <a class="pill-button" href="{{ path('sprites_edit', {id: set.id}) }}">{{ 'Éditer'|trans }}</a>
+                {% elseif app.user %}
+                    <form method="post" action="{{ path('sprites_new') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+                        <input type="hidden" name="from" value="{{ set.id }}">
+                        <button class="pill-button pc-hide" type="submit">{{ 'Copier pour les modifier'|trans }}</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+        {% for sheet, info in sheets %}
+            {% if set.sheets[sheet] is defined %}
+                <h3>{{ info[2]|trans }}</h3>
+                <div class="ts-view sp-view"><img src="{{ path('sprites_png', {id: set.id, sheet: sheet, v: set.updatedAt.timestamp}) }}" alt="{{ info[2]|trans }}" width="{{ info[0] * 2 }}"></div>
+            {% endif %}
+        {% endfor %}
+        {% if set.sheets is empty %}<p class="muted">{{ 'Rien de redessiné pour le moment : ce sont les sprites du jeu.'|trans }}</p>{% endif %}
+        <p class="small muted">{{ 'Un niveau qui choisit ces sprites se joue avec eux. Les planches non redessinées restent celles du jeu.'|trans }} <a href="{{ path('editor') }}">{{ 'L\'éditeur'|trans }}</a></p>
+    </section>
+{% else %}
+    <p class="pc-only panel wide">{{ 'L\'éditeur se fait sur un ordinateur, avec une souris et un clavier.'|trans }}
+        <a href="{{ path('sprites', {id: set.id}) }}">{{ 'Voir les sprites'|trans }}</a></p>
+    <section id="sprite-editor" class="editor pc-hide"
+             data-json="{{ path('sprites_json', {id: set.id}) }}" data-save="{{ path('sprites_save', {id: set.id}) }}"
+             data-token="{{ csrf_token('editor') }}"
+             data-i18n="{{ {unsaved: 'Modifications non enregistrées'|trans, saving: 'Enregistrement…'|trans, saved: 'Enregistré'|trans,
+                 error: 'Erreur'|trans, size: 'Il faut une image de %w%×%h% pixels, comme la planche du jeu.'|trans, own: 'redessinée'|trans}|json_encode }}">
+        <div class="ed-bar">
+            <input type="text" name="name" value="{{ set.name }}" maxlength="40" aria-label="{{ 'Nom'|trans }}">
+            <label><input type="checkbox" name="public" {{ set.public ? 'checked' }}> {{ 'Public'|trans }}</label>
+            <span class="small muted">{{ used > 1 ? '%n% niveaux'|trans({'%n%': used}) : '%n% niveau'|trans({'%n%': used}) }}</span>
+            <span class="ed-sep"></span>
+            <button type="button" class="pill-button ed-undo" title="Ctrl+Z">↶</button>
+            <button type="button" class="pill-button ed-redo" title="Ctrl+Y">↷</button>
+            <button type="button" class="pill-button" data-zoom="-1" title="-">−</button>
+            <span class="ed-zoom"></span>
+            <button type="button" class="pill-button" data-zoom="1" title="+">+</button>
+            <label title="G"><input type="checkbox" data-toggle="grid" checked> {{ 'Grille'|trans }}</label>
+            <span class="ed-sep"></span>
+            <span class="ed-status" role="status"></span>
+            <button type="button" class="play small ed-save" title="Ctrl+S">{{ 'Enregistrer'|trans }}</button>
+        </div>
+        <div class="sp-tabs" role="tablist">
+            {% for sheet, info in sheets %}<button type="button" role="tab" data-sheet="{{ sheet }}">{{ info[2]|trans }}</button>{% endfor %}
+        </div>
+        <div class="ed-main">
+            <div class="sp-box"><canvas class="sp-canvas"></canvas></div>
+            <aside class="ed-side">
+                <div class="ed-tools">
+                    <button type="button" data-tool="pencil" title="B">✎ {{ 'Crayon'|trans }}</button>
+                    <button type="button" data-tool="fill" title="F">◧ {{ 'Remplir'|trans }}</button>
+                    <button type="button" data-tool="picker" title="I">⌖ {{ 'Pipette'|trans }}</button>
+                    <button type="button" data-tool="eraser" title="E">⌫ {{ 'Gomme'|trans }}</button>
+                </div>
+                <h3>{{ 'Couleur'|trans }}</h3>
+                <div class="ed-row"><input type="color" name="colour" aria-label="{{ 'Couleur'|trans }}"> <small class="muted">{{ 'clic droit : prendre la couleur'|trans }}</small></div>
+                <p class="small muted">{{ 'Les couleurs de cette planche :'|trans }}</p>
+                <div class="te-swatches sp-swatches"></div>
+                <h3>{{ 'Planche'|trans }} <small class="sp-size muted"></small></h3>
+                <div class="ed-row">
+                    <a class="pill-button sp-download" download>{{ 'Télécharger le PNG'|trans }}</a>
+                    <button type="button" class="pill-button sp-reset">{{ 'Revenir à celle du jeu'|trans }}</button>
+                </div>
+                <label class="small">{{ 'Importer un PNG de la même taille (dessiné ailleurs)'|trans }}
+                    <input type="file" name="import" accept="image/png"></label>
+                <details>
+                    <summary><h3>{{ 'Aide'|trans }}</h3></summary>
+                    <ul class="small ed-help">
+                        <li>{{ 'Chaque onglet est une planche du jeu : garde les dessins à leur place, le jeu les découpe aux mêmes endroits.'|trans }}</li>
+                        <li>{{ 'La gomme rend transparent. Clic droit : la pipette.'|trans }}</li>
+                        <li>{{ 'Molette : défiler (Maj : de côté). Ctrl + molette : zoom.'|trans }}</li>
+                        <li>{{ 'Ctrl+Z / Ctrl+Y : annuler / refaire. Ctrl+S : enregistrer.'|trans }}</li>
+                        <li>{{ 'Dans l\'éditeur de niveau, choisis ces sprites (en haut) : le niveau se jouera avec eux.'|trans }}</li>
+                    </ul>
+                </details>
+                <p class="sp-pos small muted"></p>
+                <form method="post" action="{{ path('sprites_delete', {id: set.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
+                      data-confirm="{{ 'Supprimer ces sprites pour de bon ? Les niveaux qui les utilisent reprendront ceux du jeu.'|trans }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+                    <button class="pill-button danger" type="submit">{{ 'Supprimer ces sprites'|trans }}</button>
+                </form>
+            </aside>
+        </div>
+    </section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+    {% if edit %}<script src="{{ asset('js/editor-sprites.js') }}" defer></script>{% endif %}
+{% endblock %}

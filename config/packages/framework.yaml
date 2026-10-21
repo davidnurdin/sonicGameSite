@@ -11,7 +11,7 @@ framework:
 
     # ?v= on css/js/img (cached one hour by docker/Caddyfile): bump it when one of them changes
     assets:
-        version: '18'
+        version: '19'
 
     rate_limiter:
         # sign-ups from one address
