@@ -35,6 +35,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 class EditorController extends AbstractController
 {
+    use TrashRedirect;
+
     private const PER_PAGE = 24;
     /** Levels and sets an account may have. */
     public const MAX_EACH = 100;
@@ -329,7 +331,7 @@ class EditorController extends AbstractController
         if ($level->isOwnedBy($this->user()) && $this->isCsrfTokenValid('editor', (string) $request->request->get('_token'))) {
             $this->creations->trash($level, $this->user());
 
-            return $this->toTrash();
+            return $this->afterTrash($request, $level);
         }
 
         return $this->redirectToRoute('editor');
@@ -439,7 +441,7 @@ class EditorController extends AbstractController
         // in the trash: the levels made with it (even other players') keep it
         $this->creations->trash($tileset, $this->user());
 
-        return $this->toTrash();
+        return $this->afterTrash($request, $tileset);
     }
 
     // ----
@@ -477,13 +479,6 @@ class EditorController extends AbstractController
     private function apiToken(Request $request): bool
     {
         return $this->isCsrfTokenValid('editor', (string) $request->headers->get('X-CSRF-Token'));
-    }
-
-    private function toTrash(): Response
-    {
-        $this->addFlash('trash', 'Mis à la corbeille.');
-
-        return $this->redirectToRoute('trash');
     }
 
     private function back(string $message, ?int $n = null): Response

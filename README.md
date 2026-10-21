@@ -143,6 +143,8 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
   déjà faits avec la gardent, ses forks restent. Le créateur la restaure ou la supprime pour de bon (des tiles
   qui servent encore à des niveaux ne peuvent pas l'être). Au bout de 30 jours, `app:trash` (au démarrage du
   conteneur, et à l'ouverture d'une corbeille) la supprime pour de bon ; son historique reste.
+  On y met une création par la poubelle rouge de sa carte (éditeur, profil : seulement son créateur, avec une
+  confirmation ; `TrashRedirect` revient sur la page avec un lien pour la restaurer) ou par le bouton de sa page.
 - **Historique complet** (`Revision`, `/niveau|tiles|sprites|son/{id}/historique`) : chaque action (création,
   fork, enregistrement, version reprise, joueur ajouté ou retiré, suppression), qui, quand, ce qui a changé en
   mots (`Creations::changes` : blocs, objets, dessin des blocs lu dans le PNG par `Png`, notes…) et, pour

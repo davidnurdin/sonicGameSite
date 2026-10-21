@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import '_parts/icons.html.twig' as icons %}
 {% import '_parts/people.html.twig' as people %}
 
 {% set kinds = {level: 'Niveau', tileset: 'Tiles', sprites: 'Sprites', sound: 'Son'} %}
@@ -25,16 +26,16 @@
                     <form method="post" action="{{ path('trash_action', {kind: item.kind, id: c.id}) }}" onsubmit="return event.submitter.value !== 'purge' || confirm(this.dataset.confirm)"
                           data-confirm="{{ 'Supprimer « %name% » pour de bon ? On ne pourra plus le restaurer.'|trans({'%name%': c.name}) }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('trash') }}">
-                        <a class="pill-button" href="{{ path(constant('App\\Service\\Creations::ROUTES')[item.kind][0], {id: c.id}) }}">{{ 'Voir'|trans }}</a>
-                        <button class="play small" type="submit" name="do" value="restore">{{ 'Restaurer'|trans }}</button>
-                        <button class="pill-button danger" type="submit" name="do" value="purge">{{ 'Supprimer pour de bon'|trans }}</button>
+                        <a class="pill-button" href="{{ path(constant('App\\Service\\Creations::ROUTES')[item.kind][0], {id: c.id}) }}">{{ icons.icon('view') }}{{ 'Voir'|trans }}</a>
+                        <button class="pill-button play-pill" type="submit" name="do" value="restore">{{ 'Restaurer'|trans }}</button>
+                        <button class="pill-button danger" type="submit" name="do" value="purge">{{ icons.icon('trash') }}{{ 'Supprimer pour de bon'|trans }}</button>
                     </form>
                 </li>
             {% endfor %}
         </ul>
         <form method="post" action="{{ path('trash_empty') }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ 'Tout supprimer pour de bon ?'|trans }}">
             <input type="hidden" name="_token" value="{{ csrf_token('trash') }}">
-            <button class="pill-button danger" type="submit">{{ 'Vider la corbeille'|trans }}</button>
+            <button class="pill-button danger" type="submit">{{ icons.icon('trash') }}{{ 'Vider la corbeille'|trans }}</button>
         </form>
     {% endif %}
 </section>

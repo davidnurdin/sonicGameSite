@@ -87,6 +87,9 @@
         {% for message in app.flashes('success') %}
             <p class="flash">{{ message }}</p>
         {% endfor %}
+        {% for name in app.flashes('trashed') %}
+            <p class="flash">{{ '« %name% » est dans ta corbeille.'|trans({'%name%': name}) }} <a href="{{ path('trash') }}">{{ 'Restaurer'|trans }}</a></p>
+        {% endfor %}
         {% for message in app.flashes('trash') %}
             <p class="flash">{{ message|trans }}</p>
         {% endfor %}

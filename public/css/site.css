@@ -285,16 +285,33 @@ canvas.sonics {
 .badge.busy, .badge.private { background: #d7263d; }
 
 .pill-button {
-    display: inline-block;
-    padding: 8px 14px;
+    /* the text (and an icon) centred, the same height for a link and a button */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+    min-height: 36px;
+    padding: 0 14px;
     border: 0;
     border-radius: 999px;
     background: rgba(255, 255, 255, .2);
     color: var(--white);
-    font: 700 15px/1.2 system-ui, sans-serif;
+    font: 700 15px/1 system-ui, sans-serif;
+    white-space: nowrap;
     text-decoration: none;
+    vertical-align: middle;
     cursor: pointer;
+    transition: background-color .15s, transform .1s;
 }
+.pill-button:active { transform: translateY(1px); }
+.pill-button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+.ico { flex: none; width: 16px; height: 16px; }
+.pill-button.icon-only { width: 36px; padding: 0; }
+.pill-button.icon-only .ico { width: 18px; height: 18px; }
+/* a play button that also stops (sound-engine.js: .on while it plays) */
+.sd-play .ico-stop, .sd-play.on .ico-play { display: none; }
+.sd-play.on .ico-stop { display: block; }
 .pill-button:hover { background: rgba(255, 255, 255, .3); }
 .pill-button:disabled { opacity: .5; cursor: default; }
 
@@ -422,6 +439,7 @@ main.full { max-width: none; padding: 0 12px 24px; }
 .badge.off { background: #5a6488; }
 .small { font-size: 14px; }
 .pill-button.danger { background: rgba(255, 90, 90, .35); }
+.pill-button.danger:hover { background: #d7263d; }
 .pill-button:disabled { opacity: .5; cursor: not-allowed; }
 
 .ed-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
@@ -433,7 +451,13 @@ main.full { max-width: none; padding: 0 12px 24px; }
 .ed-card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ed-card-text b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ed-card-text .badge { align-self: flex-start; }
-.ed-card-go { display: flex; gap: 6px; margin-top: auto; }
+/* the buttons of a card: one row, the same width each, the trash (red, square) at the end */
+.ed-card-go { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 4px; }
+.ed-card-go form { display: contents; }
+.ed-card-go > .pill-button, .ed-card-go > form > .pill-button { flex: 1 1 0; min-width: 0; padding: 0 10px; }
+.ed-card-go .pill-button.icon-only { flex: 0 0 36px; padding: 0; }
+.ed-card-go .ed-card-trash .pill-button { margin-left: auto; background: #c81e36; color: var(--white); }
+.ed-card-go .ed-card-trash .pill-button:hover { background: #ee2f4a; }
 .ed-only-empty { display: flex; flex-direction: column; gap: 6px; }
 
 .lv-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 8px 16px; margin-bottom: 10px; }
@@ -506,6 +530,7 @@ main.full { max-width: none; padding: 0 12px 24px; }
 
 .lv-actions .play.small, .lv-play { margin: 0; padding: 8px 20px; font-size: 17px; border-radius: 10px; }
 .pill-button.play-pill { background: var(--yellow); color: var(--ink); }
+.pill-button.play-pill:hover { background: #ffe14d; }
 .ed-bar select { padding: 4px 6px; border-radius: 6px; border: 0; font-size: 14px; }
 
 /* sprite editor */

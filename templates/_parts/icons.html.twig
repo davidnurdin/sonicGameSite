@@ -1,0 +1,13 @@
+{# Small icons (24 x 24, drawn with currentColor) for the buttons. #}
+{% macro icon(name) -%}
+    <svg class="ico ico-{{ name }}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+        {%- if name in ['play', 'stop'] %} fill="currentColor"{% else %} fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"{% endif %}>
+        {%- if name == 'play' -%}<path d="M8 5.2v13.6a.8.8 0 0 0 1.2.7l10.6-6.8a.8.8 0 0 0 0-1.4L9.2 4.5A.8.8 0 0 0 8 5.2z"/>
+        {%- elseif name == 'stop' -%}<rect x="6.5" y="6.5" width="11" height="11" rx="1.5"/>
+        {%- elseif name == 'edit' -%}<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M14.5 7.5l2 2"/>
+        {%- elseif name == 'view' -%}<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>
+        {%- elseif name == 'trash' -%}<path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/>
+        {%- elseif name == 'fork' -%}<circle cx="6" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><path d="M6 7v1a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4V7M12 12v5"/>
+        {%- endif -%}
+    </svg>
+{%- endmacro %}

@@ -23,6 +23,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  */
 class SpriteController extends AbstractController
 {
+    use TrashRedirect;
+
     /** Sets an account may have. */
     public const MAX_EACH = 50;
 
@@ -140,9 +142,8 @@ class SpriteController extends AbstractController
         // in the trash: the levels using it keep it (deleted for good: they go back to the game's sprites)
         if ($set->isOwnedBy($this->user()) && $this->isCsrfTokenValid('editor', (string) $request->request->get('_token'))) {
             $this->creations->trash($set, $this->user());
-            $this->addFlash('trash', 'Mis à la corbeille.');
 
-            return $this->redirectToRoute('trash');
+            return $this->afterTrash($request, $set);
         }
 
         return $this->redirectToRoute('editor');

@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import '_parts/icons.html.twig' as icons %}
 
 {% block title %}{{ 'Historique des parties'|trans }} · Sonic PHP{% endblock %}
 {% block description %}{{ 'Toutes les parties jouées sur Sonic PHP, à revoir dans le jeu.'|trans }}{% endblock %}
@@ -34,7 +35,7 @@
                             <li>{{ replay.players|join(', ') }}</li>
                         {% endfor %}
                     </ol>
-                    {% if replay.level != 36 or replay.siteLevel %}<a class="pill-button" href="{{ watch ~ replay.id }}">▶ {{ 'Revoir'|trans }}</a>{% endif %}
+                    {% if replay.level != 36 or replay.siteLevel %}<a class="pill-button" href="{{ watch ~ replay.id }}">{{ icons.icon('play') }}{{ 'Revoir'|trans }}</a>{% endif %}
                 </li>
             {% endfor %}
         </ul>

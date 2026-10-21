@@ -24,6 +24,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  */
 class SoundController extends AbstractController
 {
+    use TrashRedirect;
+
     /** Sounds an account may have. */
     public const MAX_EACH = 100;
 
@@ -134,9 +136,8 @@ class SoundController extends AbstractController
     {
         if ($sound->isOwnedBy($this->user()) && $this->isCsrfTokenValid('editor', (string) $request->request->get('_token'))) {
             $this->creations->trash($sound, $this->user());
-            $this->addFlash('trash', 'Mis à la corbeille.');
 
-            return $this->redirectToRoute('trash');
+            return $this->afterTrash($request, $sound);
         }
 
         return $this->redirectToRoute('editor');

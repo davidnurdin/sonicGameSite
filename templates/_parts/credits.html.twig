@@ -39,7 +39,8 @@
         <form class="cr-trash" method="post" action="{{ path(info.kind ~ '_delete', {id: creation.id}) }}"
               onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ 'Mettre à la corbeille ? Tu pourras restaurer pendant 30 jours. Les forks et les niveaux qui l\'utilisent ne changent pas.'|trans }}">
             <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
-            <button class="pill-button danger small" type="submit">{{ 'Mettre à la corbeille'|trans }}</button>
+            {% import '_parts/icons.html.twig' as icons %}
+            <button class="pill-button danger small" type="submit">{{ icons.icon('trash') }}{{ 'Mettre à la corbeille'|trans }}</button>
         </form>
     {% endif %}
     {% if info.forks is not empty %}

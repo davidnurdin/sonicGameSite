@@ -1,6 +1,8 @@
 {# The cards of the creations, in the editor's hub and on the profiles (mine: the viewer may edit it). #}
 {% macro level_card(level, mine) %}
     {% import '_parts/people.html.twig' as people %}
+    {% import _self as cards %}
+    {% import '_parts/icons.html.twig' as icons %}
     <li class="ed-card">
         <a class="ed-thumb" href="{{ path(mine ? 'level_edit' : 'level', {id: level.id}) }}">
             <img src="{{ path('level_png', {id: level.id, v: level.updatedAt.timestamp}) }}" alt="" loading="lazy">
@@ -14,15 +16,18 @@
             {% if mine %}<span class="badge{% if not level.public %} off{% endif %}">{{ level.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
         </div>
         <div class="ed-card-go">
-            <a class="pill-button play-pill" href="{{ path('level_play', {id: level.id}) }}">▶ {{ 'Jouer'|trans }}</a>
-            {% if mine %}<a class="pill-button" href="{{ path('level_edit', {id: level.id}) }}">{{ 'Éditer'|trans }}</a>{% endif %}
-            <a class="pill-button" href="{{ path('level', {id: level.id}) }}">{{ 'Voir'|trans }}</a>
+            <a class="pill-button play-pill" href="{{ path('level_play', {id: level.id}) }}">{{ icons.icon('play') }}{{ 'Jouer'|trans }}</a>
+            {% if mine %}<a class="pill-button" href="{{ path('level_edit', {id: level.id}) }}">{{ icons.icon('edit') }}{{ 'Éditer'|trans }}</a>{% endif %}
+            <a class="pill-button" href="{{ path('level', {id: level.id}) }}">{{ icons.icon('view') }}{{ 'Voir'|trans }}</a>
+            {{ cards.trash('level', level) }}
         </div>
     </li>
 {% endmacro %}
 
 {% macro tileset_card(tileset, mine) %}
     {% import '_parts/people.html.twig' as people %}
+    {% import _self as cards %}
+    {% import '_parts/icons.html.twig' as icons %}
     <li class="ed-card tiles">
         <a class="ed-thumb" href="{{ path(mine ? 'tileset_edit' : 'tileset', {id: tileset.id}) }}">
             <img src="{{ path('tileset_png', {id: tileset.id, v: tileset.updatedAt.timestamp}) }}" alt="" loading="lazy">
@@ -36,14 +41,17 @@
             {% if mine %}<span class="badge{% if not tileset.public %} off{% endif %}">{{ tileset.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
         </div>
         <div class="ed-card-go">
-            {% if mine %}<a class="pill-button" href="{{ path('tileset_edit', {id: tileset.id}) }}">{{ 'Éditer'|trans }}</a>{% endif %}
-            <a class="pill-button" href="{{ path('tileset', {id: tileset.id}) }}">{{ 'Voir'|trans }}</a>
+            {% if mine %}<a class="pill-button" href="{{ path('tileset_edit', {id: tileset.id}) }}">{{ icons.icon('edit') }}{{ 'Éditer'|trans }}</a>{% endif %}
+            <a class="pill-button" href="{{ path('tileset', {id: tileset.id}) }}">{{ icons.icon('view') }}{{ 'Voir'|trans }}</a>
+            {{ cards.trash('tileset', tileset) }}
         </div>
     </li>
 {% endmacro %}
 
 {% macro sprites_card(set, mine) %}
     {% import '_parts/people.html.twig' as people %}
+    {% import _self as cards %}
+    {% import '_parts/icons.html.twig' as icons %}
     <li class="ed-card sprites">
         <a class="ed-thumb" href="{{ path(mine ? 'sprites_edit' : 'sprites', {id: set.id}) }}">
             <img src="{{ path('sprites_png', {id: set.id, sheet: 'sonic', v: set.updatedAt.timestamp}) }}" alt="" loading="lazy">
@@ -57,14 +65,17 @@
             {% if mine %}<span class="badge{% if not set.public %} off{% endif %}">{{ set.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
         </div>
         <div class="ed-card-go">
-            {% if mine %}<a class="pill-button" href="{{ path('sprites_edit', {id: set.id}) }}">{{ 'Éditer'|trans }}</a>{% endif %}
-            <a class="pill-button" href="{{ path('sprites', {id: set.id}) }}">{{ 'Voir'|trans }}</a>
+            {% if mine %}<a class="pill-button" href="{{ path('sprites_edit', {id: set.id}) }}">{{ icons.icon('edit') }}{{ 'Éditer'|trans }}</a>{% endif %}
+            <a class="pill-button" href="{{ path('sprites', {id: set.id}) }}">{{ icons.icon('view') }}{{ 'Voir'|trans }}</a>
+            {{ cards.trash('sprites', set) }}
         </div>
     </li>
 {% endmacro %}
 
 {% macro sound_card(sound, mine) %}
     {% import '_parts/people.html.twig' as people %}
+    {% import _self as cards %}
+    {% import '_parts/icons.html.twig' as icons %}
     <li class="ed-card sound" data-sound-player data-kind="{{ sound.kind }}" data-sound="{{ sound.data|json_encode }}" data-name="{{ sound.name }}">
         <div class="ed-card-text">
             <b>{{ sound.music ? '♪' : '🔊' }} {{ sound.name }}</b>
@@ -75,16 +86,30 @@
             {% if mine %}<span class="badge{% if not sound.public %} off{% endif %}">{{ sound.public ? 'Public'|trans : 'Privé'|trans }}</span>{% endif %}
         </div>
         <div class="ed-card-go">
-            <button type="button" class="pill-button play-pill sd-play">▶</button>
-            {% if mine %}<a class="pill-button" href="{{ path('sound_edit', {id: sound.id}) }}">{{ 'Éditer'|trans }}</a>
+            <button type="button" class="pill-button play-pill icon-only sd-play" aria-label="{{ 'Écouter'|trans }}" title="{{ 'Écouter'|trans }}">{{ icons.icon('play') }}{{ icons.icon('stop') }}</button>
+            {% if mine %}<a class="pill-button" href="{{ path('sound_edit', {id: sound.id}) }}">{{ icons.icon('edit') }}{{ 'Éditer'|trans }}</a>
             {% elseif app.user %}
                 <form method="post" action="{{ path('sound_new') }}">
                     <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
                     <input type="hidden" name="from" value="{{ sound.id }}">
-                    <button class="pill-button pc-hide" type="submit" title="{{ 'Faire ta propre copie, que tu modifies comme tu veux. Le créateur reste cité.'|trans }}">{{ 'Forker'|trans }}</button>
+                    <button class="pill-button pc-hide" type="submit" title="{{ 'Faire ta propre copie, que tu modifies comme tu veux. Le créateur reste cité.'|trans }}">{{ icons.icon('fork') }}{{ 'Forker'|trans }}</button>
                 </form>
             {% endif %}
-            <a class="pill-button" href="{{ path('sound', {id: sound.id}) }}">{{ 'Voir'|trans }}</a>
+            <a class="pill-button" href="{{ path('sound', {id: sound.id}) }}">{{ icons.icon('view') }}{{ 'Voir'|trans }}</a>
+            {{ cards.trash('sound', sound) }}
         </div>
     </li>
+{% endmacro %}
+
+{# The red trash of a card: only its creator; asks first, then back to this page (TrashRedirect). #}
+{% macro trash(kind, creation) %}
+    {% import '_parts/icons.html.twig' as icons %}
+    {% if app.user and creation.ownedBy(app.user) and not creation.trashed %}
+        <form class="ed-card-trash" method="post" action="{{ path(kind ~ '_delete', {id: creation.id}) }}" onsubmit="return confirm(this.dataset.confirm)"
+              data-confirm="{{ 'Mettre « %name% » à la corbeille ? Tu pourras le restaurer pendant 30 jours. Les forks et les niveaux qui l\'utilisent ne changent pas.'|trans({'%name%': creation.name}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
+            <input type="hidden" name="back" value="{{ app.request.requestUri }}">
+            <button class="pill-button danger icon-only" type="submit" aria-label="{{ 'Mettre à la corbeille'|trans }}" title="{{ 'Mettre à la corbeille'|trans }}">{{ icons.icon('trash') }}</button>
+        </form>
+    {% endif %}
 {% endmacro %}

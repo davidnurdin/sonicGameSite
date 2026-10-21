@@ -257,10 +257,15 @@ window.SoundEngine = (() => {
         const kind = root.dataset.kind;
         const button = root.querySelector('.sd-play');
         const label = button.textContent;
+        // a button with icons (the cards): its class shows play or stop; else its text
+        const show = (on) => {
+            if (button.querySelector('svg')) button.classList.toggle('on', on);
+            else button.textContent = on ? '■' : label;
+        };
         button.addEventListener('click', () => {
-            if (playing) { stop(); button.textContent = label; return; }
-            button.textContent = '■';
-            play(kind, data, { onEnd: () => { button.textContent = label; } });
+            if (playing) { stop(); show(false); return; }
+            show(true);
+            play(kind, data, { onEnd: () => show(false) });
         });
         root.querySelector('.sd-wav')?.addEventListener('click', () => download(kind, data, root.dataset.name));
     }
