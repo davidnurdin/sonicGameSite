@@ -14,6 +14,10 @@ security:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build|css)/
             security: false
+        # the public API, read only (API Platform): what anybody sees, no account, no session, no cookie
+        public_api:
+            pattern: ^/api/public(/|$)
+            security: false
         # the studio for AIs (MCP server, REST): a player's API key, no session
         api:
             pattern: ^/(mcp|api/v1)(/|$)

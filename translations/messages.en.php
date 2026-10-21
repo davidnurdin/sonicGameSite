@@ -683,4 +683,13 @@ return [
     'Tu as déjà 10 clés : supprimes-en une d\'abord.' => 'You already have 10 keys: delete one first.',
     'Clé supprimée : elle ne marche plus.' => 'Key deleted: it no longer works.',
     'Par l\'API, clé « %key% »' => 'Through the API, key "%key%"',
+    'Par l\'API' => 'Through the API',
+
+    // the page of the public API
+    'API publique' => 'Public API',
+    'L\'API publique de Sonic PHP : les niveaux, tiles, sprites, sons, joueurs et parties du site en JSON, sans clé, avec sa documentation Swagger.' => 'The public API of Sonic PHP: the levels, tiles, sprites, sounds, players and games of the site as JSON, with no key, with its Swagger documentation.',
+    'Documentation' => 'Documentation',
+    'Démarrer' => 'Get started',
+    'Ce qu\'on y trouve' => 'What is in it',
+    'Les règles' => 'The rules',
 ];

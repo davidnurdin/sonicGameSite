@@ -11,7 +11,7 @@ framework:
 
     # ?v= on css/js/img (cached one hour by docker/Caddyfile): bump it when one of them changes
     assets:
-        version: '27'
+        version: '28'
 
     rate_limiter:
         # the API of the studio (MCP, REST), per key: calls, and the heavy ones (pictures, test runs, sounds)
@@ -23,6 +23,11 @@ framework:
             policy: sliding_window
             limit: 60
             interval: '10 minutes'
+        # the public API (read only), per address: 600 at once at most, then one a second
+        public_api:
+            policy: token_bucket
+            limit: 600
+            rate: { interval: '1 second', amount: 1 }
         # sign-ups from one address
         registration:
             policy: fixed_window

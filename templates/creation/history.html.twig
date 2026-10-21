@@ -39,7 +39,10 @@
                 </div>
                 {% if revision.changes is not empty %}
                     <ul class="small muted">
-                        {% for change in revision.changes %}<li>{{ change[0]|trans(change[1] ?? {}) }}</li>{% endfor %}
+                        {% for change in revision.changes %}<li>
+                            {#- the name of an API key: for those who work on it -#}
+                            {{- change[0] == 'Par l\'API, clé « %key% »' and not canEdit ? 'Par l\'API'|trans : change[0]|trans(change[1] ?? {}) -}}
+                        </li>{% endfor %}
                     </ul>
                 {% endif %}
             </li>

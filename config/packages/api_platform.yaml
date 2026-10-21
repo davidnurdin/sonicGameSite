@@ -1,0 +1,29 @@
+# The public API, read only (/api/public): what anybody sees on the site, as DTOs (src/ApiResource), read by
+# providers (src/State) that only give public things. The docs: /api/public/docs (Swagger UI, ReDoc, Scalar).
+api_platform:
+    title: Sonic PHP, API publique
+    version: 1.0.0
+    # the DTOs are read by our own providers: no Doctrine integration (it would expose the entities)
+    doctrine:
+        enabled: false
+    mapping:
+        paths: ['%kernel.project_dir%/src/ApiResource']
+    formats:
+        jsonld: ['application/ld+json']
+        json: ['application/json']
+    docs_formats:
+        jsonld: ['application/ld+json']
+        jsonopenapi: ['application/vnd.openapi+json']
+        html: ['text/html']
+    defaults:
+        stateless: true
+        pagination_items_per_page: 30
+        pagination_maximum_items_per_page: 100
+        pagination_client_items_per_page: true
+        # a field with no value says null (forkedFrom, music...), rather than missing
+        normalization_context:
+            skip_null_values: false
+        cache_headers:
+            max_age: 60
+            shared_max_age: 60
+            vary: ['Content-Type', 'Accept', 'Origin']

@@ -578,3 +578,10 @@ main.full { max-width: none; padding: 0 12px 24px; }
 .ai-form { max-width: 440px; }
 .ai-form select { padding: 8px 10px; border: 0; border-radius: 8px; font-size: 15px; }
 .danger-text { color: #ff7a7a; }
+
+/* the page of the public API */
+.dev-docs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dev-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.dev-table th, .dev-table td { padding: 6px 8px; border-bottom: 1px solid rgba(255, 255, 255, .12); text-align: left; vertical-align: top; }
+.dev-table td:first-child { white-space: nowrap; }
+@media (max-width: 600px) { .dev-table td:first-child { white-space: normal; } }

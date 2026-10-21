@@ -1,0 +1,97 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'API publique'|trans }} · Sonic PHP{% endblock %}
+{% block description %}{{ 'L\'API publique de Sonic PHP : les niveaux, tiles, sprites, sons, joueurs et parties du site en JSON, sans clé, avec sa documentation Swagger.'|trans }}{% endblock %}
+{% block main_class %}wide{% endblock %}
+
+{% block body %}
+{% set fr = app.request.locale == 'fr' %}
+{% set api = app.request.schemeAndHttpHost ~ '/api/public' %}
+<section class="panel wide ai-doc">
+    <h1>{{ 'API publique'|trans }}</h1>
+    {% if fr %}
+        <p>Tout ce qui est public sur Sonic PHP est aussi lisible en <b>JSON</b>, <b>sans compte et sans clé</b> : les niveaux (et leur
+            contenu, bloc par bloc), les tiles et leurs collisions, les sprites, les musiques et bruitages, les joueurs, les parties
+            jouées et l'historique de chaque création. De quoi faire une galerie de niveaux, un bot, des statistiques, un lecteur de
+            musiques, un autre éditeur…</p>
+        <p>Elle est <b>en lecture seule</b> et ne donne que ce qu'un visiteur voit sur le site : jamais une création privée ou dans une
+            corbeille, ni une adresse e-mail.</p>
+    {% else %}
+        <p>Everything public on Sonic PHP can also be read as <b>JSON</b>, <b>with no account and no key</b>: the levels (and their
+            content, block by block), the tiles and their collisions, the sprites, the musics and sound effects, the players, the games
+            played and the history of each creation. Enough to make a gallery of levels, a bot, statistics, a music player, another
+            editor…</p>
+        <p>It is <b>read only</b> and only gives what a visitor sees on the site: never a private creation or one in a trash, nor an
+            e-mail address.</p>
+    {% endif %}
+
+    <h2>{{ 'Documentation'|trans }}</h2>
+    <p class="dev-docs">
+        <a class="play small" href="{{ api }}/docs">Swagger UI</a>
+        <a class="pill-button" href="{{ api }}/docs?ui=re_doc">ReDoc</a>
+        <a class="pill-button" href="{{ api }}/docs?ui=scalar">Scalar</a>
+        <a class="pill-button" href="{{ api }}/docs.jsonopenapi">OpenAPI (JSON)</a>
+    </p>
+    <p class="muted">{{ fr ? 'Chaque route, chaque champ et chaque paramètre y est décrit, avec des exemples. « Try it out » dans Swagger UI appelle l\'API pour de vrai.' : 'Every route, field and parameter is described there, with examples. "Try it out" in Swagger UI calls the API for real.' }}</p>
+
+    <h2>{{ 'Démarrer'|trans }}</h2>
+    <h3>curl</h3>
+    <pre>curl -H "Accept: application/json" "{{ api }}/levels?order=created&amp;itemsPerPage=5"</pre>
+    <h3>JavaScript ({{ fr ? 'depuis n\'importe quelle page web' : 'from any web page' }})</h3>
+    <pre>const levels = await fetch('{{ api }}/levels', { headers: { Accept: 'application/json' } }).then(r => r.json());
+for (const level of levels) console.log(level.name, level.authorName, level.links.play);</pre>
+    <h3>Python</h3>
+    <pre>import requests
+level = requests.get('{{ api }}/levels/12', headers={'Accept': 'application/json'}).json()
+grid = requests.get('{{ api }}' + level['links']['map'].removeprefix('/api/public'), headers={'Accept': 'application/json'}).json()
+print(level['name'], len(grid['blocks']), 'x', len(grid['blocks'][0]))</pre>
+
+    <h2>{{ 'Ce qu\'on y trouve'|trans }}</h2>
+    <table class="dev-table">
+        <thead><tr><th>{{ fr ? 'Adresse' : 'Address' }}</th><th>{{ fr ? 'Quoi' : 'What' }}</th></tr></thead>
+        <tbody>
+            {% for row in [
+                ['/levels', 'Les niveaux publics (filtres : author, tileset, name, order)', 'The public levels (filters: author, tileset, name, order)'],
+                ['/levels/{id}', 'Un niveau : tiles, sprites, musique, bruitages, taille, départ, anneaux, liens (page, jouer, miniature)', 'A level: tiles, sprites, music, sound effects, size, start, rings, links (page, play, thumbnail)'],
+                ['/levels/{id}/map', 'Son contenu : la grille de blocs, les objets, le départ', 'Its content: the grid of blocks, the objects, the start'],
+                ['/tilesets', 'Les 7 zones du jeu et les tiles publiques (filtres : author, zone)', 'The 7 zones of the game and the public tiles (filters: author, zone)'],
+                ['/tilesets/{id}/blocks', 'Chaque bloc : place dans l\'image, collision, comportement', 'Each block: place in the image, collision, behaviour'],
+                ['/sprites', 'Les sprites publics (les planches redessinées, en PNG)', 'The public sprites (the redrawn sheets, as PNG)'],
+                ['/sounds', 'Les musiques et bruitages publics (filtre : kind), la partition et le WAV', 'The public musics and sound effects (filter: kind), the score and the WAV'],
+                ['/players', 'Les joueurs, comme leur profil public', 'The players, as their public profile'],
+                ['/replays', 'Les parties jouées (filtres : player, kind, level), à revoir dans le jeu', 'The games played (filters: player, kind, level), to watch in the game'],
+                ['/levels/{id}/history', 'L\'historique d\'une création (aussi /tilesets, /sprites, /sounds)', 'The history of a creation (also /tilesets, /sprites, /sounds)'],
+            ] %}
+                <tr><td><code>{{ row[0] }}</code></td><td>{{ fr ? row[1] : row[2] }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>{{ 'Les règles'|trans }}</h2>
+    {% if fr %}
+        <ul>
+            <li><b>Formats</b> : JSON-LD / Hydra par défaut (<code>Accept: application/ld+json</code> : avec le total et les liens des pages),
+                ou JSON simple (<code>Accept: application/json</code>). Les liens entre ressources sont des adresses de l'API, comme
+                <code>/api/public/players/SONIC</code> ; les images et les sons sont des adresses du site, dans <code>links</code>.</li>
+            <li><b>Pages</b> : <code>?page=2&amp;itemsPerPage=50</code> (30 par défaut, 100 au plus).</li>
+            <li><b>Erreurs</b> au format <i>Problem Details</i> : 404 (inconnu ou pas public), 422 (paramètre invalide : <code>detail</code> dit lequel), 429 (trop de requêtes).</li>
+            <li><b>Limite</b> par adresse IP : 600 requêtes d'un coup au plus, puis une par seconde. Au-delà : 429 et l'en-tête <code>Retry-After</code> (en secondes).</li>
+            <li><b>CORS</b> ouvert, sans cookie ; les réponses peuvent être gardées en cache 60 secondes.</li>
+            <li>Ce sont les créations des joueurs : citez leur auteur (<code>authorName</code>) et mettez un lien vers leur page (<code>links.page</code>).</li>
+        </ul>
+        <p class="muted">Pour <b>créer</b> des niveaux sur son compte avec une IA (écriture, avec une clé), c'est le <a href="{{ path('ai') }}">serveur MCP</a>.</p>
+    {% else %}
+        <ul>
+            <li><b>Formats</b>: JSON-LD / Hydra by default (<code>Accept: application/ld+json</code>: with the total and the links of the pages),
+                or plain JSON (<code>Accept: application/json</code>). Links between resources are addresses of the API, like
+                <code>/api/public/players/SONIC</code>; pictures and sounds are addresses of the site, in <code>links</code>.</li>
+            <li><b>Pages</b>: <code>?page=2&amp;itemsPerPage=50</code> (30 by default, 100 at most).</li>
+            <li><b>Errors</b> as <i>Problem Details</i>: 404 (unknown or not public), 422 (wrong parameter: <code>detail</code> says which), 429 (too many requests).</li>
+            <li><b>Limit</b> per IP address: 600 requests at once at most, then one a second. Beyond: 429 and the <code>Retry-After</code> header (in seconds).</li>
+            <li><b>CORS</b> open, no cookie; answers may be cached for 60 seconds.</li>
+            <li>These are the players' creations: credit their author (<code>authorName</code>) and link to their page (<code>links.page</code>).</li>
+        </ul>
+        <p class="muted">To <b>make</b> levels on one's account with an AI (writing, with a key), see the <a href="{{ path('ai') }}">MCP server</a>.</p>
+    {% endif %}
+</section>
+{% endblock %}

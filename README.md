@@ -193,6 +193,44 @@ bruitages. Elle le regarde, le teste et le publie. La page `/ia` (publique) expl
   - `SoundRenderer` : le portage PHP de `sound-engine.js`, qui fait les WAV de `SoundAudio` ;
   - `Canvas`, `Pixels` et `Png::encode` : le pixel art en texte vers PNG, et l'inverse (il n'y a pas GD).
 
+## Comment marche l'API publique (lecture seule)
+
+Tout ce qu'un visiteur non connecté voit sur le site, en JSON, sans compte et sans clé. Elle est faite avec
+**API Platform 5**. La page `/developpeurs` la présente. La doc est sur `/api/public/docs` : Swagger UI, et
+aussi ReDoc (`?ui=re_doc`), Scalar (`?ui=scalar`) et `docs.jsonopenapi` (OpenAPI 3.2).
+
+- **DTO** (`src/ApiResource`) :
+  - `Level`, `LevelMap` (`/levels/{id}/map`) ;
+  - `Tileset`, `TilesetBlocks` ;
+  - `SpriteSet`, `Sound` ;
+  - `Player`, `Replay`, `HistoryEntry`.
+
+  Ce sont des DTO, jamais les entités : l'intégration Doctrine d'API Platform est désactivée. Chaque champ,
+  paramètre et opération a sa description et ses exemples. Les liens entre ressources sont des IRI.
+- **Providers** (`src/State/PublicApi`) : `PublicView` convertit les entités en DTO. La seule règle est
+  `Creations::canSee($creation, null)`, c'est-à-dire ce qu'un visiteur voit. Les listes ne donnent que le public
+  (plus les zones pour les tiles). Une partie privée d'un niveau public n'est liée que si le site la montre :
+  ses tiles et ses sprites oui, une musique privée non.
+- **Ce qui n'est jamais donné** :
+  - ni l'e-mail ;
+  - ni les statistiques privées ;
+  - ni les créations privées ou dans une corbeille ;
+  - ni la clé `lt` d'un niveau privé ;
+  - ni le nom des clés API dans l'historique (« Par l'API » seulement ; la page historique du site le cache aussi
+    à ceux qui ne peuvent pas modifier la création).
+- **Firewall** `public_api` (`security: false`) : sans session ni cookie.
+- **`PublicApiSubscriber`** :
+  - CORS ouvert (`*`, GET) ;
+  - limite par IP (`limiter.public_api`, seau à jetons : 600 d'un coup, puis 1 par seconde ; 429 avec
+    `Retry-After`) ;
+  - en-têtes `X-RateLimit-*`.
+
+  La doc n'est pas comptée.
+- **`App\OpenApi\PublicApiDocs`** décore la fabrique OpenAPI : description générale, tags documentés, lien vers
+  `/developpeurs`, pagination expliquée. `NoSecurityNormalizer` enlève les `securitySchemes` vides (sinon Swagger
+  UI affiche un bouton « Authorize »).
+- **Paramètres** : `QueryParameter` avec contraintes. Une valeur invalide renvoie 422 en *Problem Details*.
+
 ## Développer
 
 ```bash
