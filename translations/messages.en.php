@@ -391,7 +391,8 @@ return [
     'ceux du jeu' => 'the game\'s',
     'Sonic' => 'Sonic',
     'Badniks' => 'Badniks',
-    'Objets 2 (moniteurs, ressorts…)' => 'Objects 2 (monitors, springs…)',
+    'Divers (poses de Sonic, plateformes…)' => 'Misc (Sonic\'s poses, platforms…)',
+    'Sonic : ses poses d\'attente, de ressort et de glissade sont dans « Divers ».' => 'Sonic: his waiting, spring and slide poses are in « Misc ».',
     'Dr. Robotnik' => 'Dr. Robotnik',
     'Tu as déjà %n% jeux de sprites.' => 'You already have %n% sprite sets.',
 ];

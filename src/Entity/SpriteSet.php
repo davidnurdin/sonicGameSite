@@ -21,7 +21,7 @@ class SpriteSet
         'sonic' => [435, 128, 'Sonic'],
         'enemies' => [648, 176, 'Badniks'],
         'objects' => [640, 216, 'Objets'],
-        'rom' => [1242, 82, 'Objets 2 (moniteurs, ressorts…)'],
+        'rom' => [1242, 82, 'Divers (poses de Sonic, plateformes…)'],
         'eggman' => [508, 231, 'Dr. Robotnik'],
         'boss' => [2048, 98, 'Boss'],
     ];
