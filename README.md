@@ -129,6 +129,10 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
   être dans un autre bloc (Alt+clic sur la liste des blocs).
 - Un replay sur un niveau de l'éditeur (niveau 36) est relié à ce niveau (`replay.site_level_id`) : son nom dans
   l'historique ; « Revoir » le télécharge d'abord.
+- « Revoir » rejoue la partie telle qu'elle a été jouée : les Sonic aux positions enregistrées, et les objets
+  de l'acte (boss, panneau de fin, capsule, badniks, moniteurs) qui réagissent au Sonic du joueur comme pendant
+  la partie, avec le HUD. Pour un match : ligne d'arrivée, bases, drapeau, scores et messages. Le format est
+  décrit dans `ReplayRecorder.php` (jeu) ; les anciens replays restent lisibles.
 - En local, le site vise par défaut le relais de prod (`.env`) : pour tester les salons, mettre `RELAY_WS_URL`,
   `RELAY_HEALTH_URL` et `GAME_URL` sur le relais et la page locaux dans `.env.local`.
 - Les éditeurs (`public/js/level-view.js`, `editor-level.js`, `editor-tiles.js`, `editor-sprites.js`,
