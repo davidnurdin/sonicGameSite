@@ -104,6 +104,8 @@
             <a href="https://github.com/davidnurdin/php-wasm-network">{{ 'le réseau'|trans }}</a> ·
             <a href="{{ path('developers') }}">{{ 'API publique'|trans }}</a>
         </p>
+        {% set visitors = site_visitors() %}
+        <p class="small">{{ (visitors.count > 1 ? '%count% visiteurs depuis le %date%' : '%count% visiteur depuis le %date%')|trans({'%count%': '<span id="visitors">' ~ visitors.count|number_format(0, ',', app.request.locale == 'fr' ? ' ' : ',') ~ '</span>', '%date%': visitors.since|date(app.request.locale == 'fr' ? 'd/m/Y' : 'Y-m-d')})|raw }}</p>
         <p class="small">{{ 'Sonic the Hedgehog est une marque de SEGA. Ce site n\'est pas affilié à SEGA.'|trans }}</p>
     </footer>
     <script>
@@ -112,6 +114,7 @@
         document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelector('details.menu')?.removeAttribute('open'); });
     </script>
     <script src="{{ asset('js/sonics.js') }}" defer></script>
+    <script src="{{ asset('js/visit.js') }}" data-url="{{ path('api_visit') }}" defer></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

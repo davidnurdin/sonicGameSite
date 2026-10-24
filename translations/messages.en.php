@@ -17,6 +17,8 @@ return [
     'le moteur' => 'the engine',
     'le réseau' => 'the network',
     "Sonic the Hedgehog est une marque de SEGA. Ce site n'est pas affilié à SEGA." => 'Sonic the Hedgehog is a trademark of SEGA. This site is not affiliated with SEGA.',
+    '%count% visiteurs depuis le %date%' => '%count% visitors since %date%',
+    '%count% visiteur depuis le %date%' => '%count% visitor since %date%',
     'joueur en ligne' => 'player online',
     'joueurs en ligne' => 'players online',
     'membre' => 'member',

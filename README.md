@@ -129,6 +129,10 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
   être dans un autre bloc (Alt+clic sur la liste des blocs).
 - Un replay sur un niveau de l'éditeur (niveau 36) est relié à ce niveau (`replay.site_level_id`) : son nom dans
   l'historique ; « Revoir » le télécharge d'abord.
+- Compteur de visiteurs en bas des pages (depuis le 24/10/2026) : une visite compte quand le JavaScript de la page
+  l'envoie (`public/js/visit.js`, `POST /api/visit` avec l'en-tête `X-Sonic-Visit`), pas pour les robots (agent
+  utilisateur, navigateur piloté), et une seule fois par adresse IP. Les adresses ne sont pas gardées : un hachage
+  à clé (`VisitorCounter`, table `visitor`).
 - « Revoir » rejoue la partie telle qu'elle a été jouée : les Sonic aux positions enregistrées, et les objets
   de l'acte (boss, panneau de fin, capsule, badniks, moniteurs) qui réagissent au Sonic du joueur comme pendant
   la partie, avec le HUD. Pour un match : ligne d'arrivée, bases, drapeau, scores et messages. Le format est
