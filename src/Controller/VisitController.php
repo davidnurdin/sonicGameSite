@@ -18,8 +18,13 @@ class VisitController extends AbstractController
         if ($request->headers->get('X-Sonic-Visit') !== '1' || VisitorCounter::isRobot($request->headers->get('User-Agent'))) {
             return new JsonResponse(['counted' => false], 202);
         }
+        // a private address is the proxy's (the visitor's own one did not reach the site): not counted, the
+        // browser asks again on its next page
         $address = $request->getClientIp();
-        $counted = $address !== null && $visitors->visit($address);
+        if ($address === null || !filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return new JsonResponse(['counted' => false], 202);
+        }
+        $counted = $visitors->visit($address);
         $response = new JsonResponse(['counted' => $counted, 'visitors' => $visitors->count()]);
         $response->setPrivate();
         return $response;

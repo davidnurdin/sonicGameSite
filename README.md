@@ -132,7 +132,8 @@ plafonne chaque envoi et en limite le nombre (240 par heure et par compte).
 - Compteur de visiteurs en bas des pages (depuis le 24/10/2026) : une visite compte quand le JavaScript de la page
   l'envoie (`public/js/visit.js`, `POST /api/visit` avec l'en-tête `X-Sonic-Visit`), pas pour les robots (agent
   utilisateur, navigateur piloté), et une seule fois par adresse IP. Les adresses ne sont pas gardées : un hachage
-  à clé (`VisitorCounter`, table `visitor`).
+  à clé (`VisitorCounter`, table `visitor`). Il faut l'adresse réelle du visiteur (le proxy Cloudflare devant
+  le domaine, voir plus bas) : une adresse privée (celle de Traefik) ne compte pas.
 - « Revoir » rejoue la partie telle qu'elle a été jouée : les Sonic aux positions enregistrées, et les objets
   de l'acte (boss, panneau de fin, capsule, badniks, moniteurs) qui réagissent au Sonic du joueur comme pendant
   la partie, avec le HUD. Pour un match : ligne d'arrivée, bases, drapeau, scores et messages. Le format est
