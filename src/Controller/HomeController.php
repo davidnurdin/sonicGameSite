@@ -59,12 +59,14 @@ class HomeController extends AbstractController
         return $this->redirect($this->playUrl($request));
     }
 
-    /** The players online and the public rooms (the lobby asks every few seconds). */
+    /** The players online and the public rooms (the lobby and the game's menu SALONS ask every few seconds). */
     #[Route('/salons.json', name: 'rooms_json', methods: ['GET'])]
     public function rooms(OnlineStats $online): JsonResponse
     {
         $response = new JsonResponse(($online->get() ?? ['players' => null, 'watchers' => null, 'list' => []]) + ['ingame' => $online->inGame()]);
         $response->setPrivate();
+        // public, without a cookie: the game's page reads it from its own domain
+        $response->headers->set('Access-Control-Allow-Origin', '*');
 
         return $response;
     }
