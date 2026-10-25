@@ -166,6 +166,7 @@ return [
     'Page %page% sur %pages%' => 'Page %page% of %pages%',
     'Sonic PHP : des Sonic de toutes les couleurs à Green Hill' => 'Sonic PHP: Sonics of every colour in Green Hill',
     'Crée ton compte, puis tu reviens directement dans le salon.' => 'Create your account, then you go straight back to the room.',
+    'Il faut un compte pour jouer : tes parties, tes replays et tes statistiques sont enregistrés. Crée-le, puis le jeu se lance.' => 'You need an account to play: your games, replays and statistics are saved. Create it, then the game starts.',
     'Course, drapeau, anneaux ou deathmatch, dans le navigateur.' => 'Race, flag, rings or deathmatch, in the browser.',
     'connecte-toi' => 'log in',
     'pour jouer et discuter dans le salon.' => 'to play and chat in the room.',

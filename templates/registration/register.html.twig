@@ -7,7 +7,8 @@
 <section class="panel">
     <h1>{{ 'Inscription'|trans }}</h1>
     <p class="tagline">{{ 'Un nom, un mot de passe, c\'est tout (l\'email est facultatif).'|trans }}</p>
-    {% if next starts with '/salon/' %}<p class="flash">{{ 'Crée ton compte, puis tu reviens directement dans le salon.'|trans }}</p>{% endif %}
+    {% if next starts with '/salon/' %}<p class="flash">{{ 'Crée ton compte, puis tu reviens directement dans le salon.'|trans }}</p>
+    {% elseif next == path('play') or (next ends with '/jouer') %}<p class="flash">{{ 'Il faut un compte pour jouer : tes parties, tes replays et tes statistiques sont enregistrés. Crée-le, puis le jeu se lance.'|trans }}</p>{% endif %}
     {{ form_start(form, {attr: {class: 'form', novalidate: 'novalidate'}}) }}
         {{ form_errors(form) }}
         {{ form_row(form.username) }}

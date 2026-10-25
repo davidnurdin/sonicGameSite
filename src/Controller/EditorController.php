@@ -179,6 +179,8 @@ class EditorController extends AbstractController
     {
         $user = $this->user();
         if (!$this->creations->canSee($level, $user)) throw $this->createNotFoundException();
+        // playing needs an account (its games and statistics are saved)
+        if ($user === null) return $this->redirectToRoute('register', ['next' => $this->generateUrl('level_play', ['id' => $level->getId()])]);
         $query = [
             'lang' => $request->getLocale(),
             'site' => $request->getSchemeAndHttpHost(),
@@ -186,7 +188,7 @@ class EditorController extends AbstractController
             'level' => $level->getId(),
             'lt' => $tokens->create($level),
         ];
-        if ($user !== null) $query += ['name' => $user->getUsername(), 'st' => $stats->create($user)];
+        $query += ['name' => $user->getUsername(), 'st' => $stats->create($user)];
 
         return $this->redirect($this->gameUrl . (str_contains($this->gameUrl, '?') ? '&' : '?') . http_build_query($query));
     }

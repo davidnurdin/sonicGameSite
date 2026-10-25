@@ -16,8 +16,11 @@ Le site de [Sonic PHP](https://github.com/davidnurdin/sonicGamePhp), en ligne su
   lien est copié. Les Sonic du fond sont ceux du salon ;
 - l'onglet **Statistiques** : temps de jeu (seul, en ligne, contre l'ordinateur), sauts, anneaux, ennemis,
   ressorts, vies perdues, actes, émeraudes, matchs et victoires, et le classement de ceux qui jouent le plus ;
-- **invité sans compte** : JOUER, sur la page d'un salon, mène à l'inscription (ou à la connexion), puis
-  revient directement dans le salon (`?next=`) ;
+- **il faut un compte pour jouer** (toutes les parties et les statistiques sont enregistrées) : sans compte,
+  JOUER (`/jouer`, un niveau du site, la page d'un salon) mène à l'inscription (ou à la connexion), puis
+  revient directement au jeu ou dans le salon (`?next=`). La page du jeu, ouverte sans le jeton d'un compte
+  (`?st=`, vérifié avec `POST /api/stats`), renvoie ici ; pas pour revoir un replay, ni dans une régie de
+  live (`?tap=0`) ;
 - la liste des **joueurs inscrits** (`/joueurs`, 30 par page), et la page de chacun (`/joueur/{nom}`) : ses
   créations, celles auxquelles il participe, ses dernières actions, ses parties (`/historique?joueur={nom}`) ;
 - le nombre de **joueurs dans le jeu** dans l'en-tête de chaque page : les jeux ouverts (la page du jeu le

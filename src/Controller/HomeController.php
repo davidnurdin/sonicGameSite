@@ -50,10 +50,12 @@ class HomeController extends AbstractController
         ]);
     }
 
-    /** JOUER: the game; signed in, with the account's name (the game uses it in the online rooms). */
+    /** JOUER: the game, with the account's name (the online rooms) and its token; no account: sign up first. */
     #[Route('/jouer', name: 'play', methods: ['GET'])]
     public function play(Request $request): Response
     {
+        if (!$this->getUser() instanceof User) return $this->redirectToRoute('register', ['next' => $this->generateUrl('play')]);
+
         return $this->redirect($this->playUrl($request));
     }
 
