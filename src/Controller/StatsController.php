@@ -54,7 +54,7 @@ class StatsController extends AbstractController
         $body = json_decode(substr($request->getContent(), 0, 512), true);
         $id = is_array($body) ? (string) ($body['id'] ?? '') : '';
         if (!preg_match('/^[a-z0-9]{6,20}$/', $id)) return $response->setStatusCode(Response::HTTP_BAD_REQUEST);
-        $name = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', (string) ($body['name'] ?? '')), 0, 8));
+        $name = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', (string) ($body['name'] ?? '')), 0, 15));
         $presence->beat($id, $name !== '' ? $name : null, !empty($body['bye']));
 
         return $response;

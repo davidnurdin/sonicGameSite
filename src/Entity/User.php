@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * A player's account. Its username is also his name in the game's online rooms, so it follows the game's
- * rule (Online::cleanName): 3 to 8 letters or digits, kept in capitals (the game's font has no lower case).
+ * rule (Online::cleanName): 3 to 15 letters or digits, kept in capitals (the game's font has no lower case).
  */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
@@ -23,9 +23,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 8, unique: true)]
+    #[ORM\Column(length: 15, unique: true)]
     #[Assert\NotBlank(message: 'Choisis un nom.')]
-    #[Assert\Regex(pattern: '/^[A-Z0-9]{3,8}$/', message: 'De 3 à 8 lettres ou chiffres, sans espace ni accent.')]
+    #[Assert\Regex(pattern: '/^[A-Z0-9]{3,15}$/', message: 'De 3 à 15 lettres ou chiffres, sans espace ni accent.')]
     private string $username = '';
 
     /** Optional, never shown: to get in touch with the player (not checked by an email for now). */

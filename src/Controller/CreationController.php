@@ -123,7 +123,7 @@ class CreationController extends AbstractController
     }
 
     /** A player: his creations (the public ones; all of them for himself), those he works on, what he did lately. */
-    #[Route('/joueur/{username}', name: 'profile', requirements: ['username' => '[A-Za-z0-9]{1,8}'], methods: ['GET'])]
+    #[Route('/joueur/{username}', name: 'profile', requirements: ['username' => '[A-Za-z0-9]{1,15}'], methods: ['GET'])]
     public function profile(
         string $username,
         UserRepository $users,

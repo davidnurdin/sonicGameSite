@@ -22,7 +22,7 @@ use App\State\PublicApi\PlayerProvider;
 )]
 final class Player
 {
-    #[ApiProperty(identifier: true, description: 'Son nom de joueur (celui du jeu, 8 caractères au plus).', example: 'SONIC')]
+    #[ApiProperty(identifier: true, description: 'Son nom de joueur (celui du jeu, 15 caractères au plus).', example: 'SONIC')]
     public string $username;
 
     #[ApiProperty(description: 'Depuis quand il est inscrit.')]

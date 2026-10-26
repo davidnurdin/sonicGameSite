@@ -36,7 +36,7 @@ return [
     'Créer mon compte' => 'Create my account',
     'Déjà inscrit ?' => 'Already signed up?',
     'Ton nom de joueur' => 'Your player name',
-    '3 à 8 lettres ou chiffres : le nom affiché dans les parties en ligne.' => '3 to 8 letters or digits: the name shown in the online games.',
+    '3 à 15 lettres ou chiffres : le nom affiché dans les parties en ligne.' => '3 to 15 letters or digits: the name shown in the online games.',
     'Email (facultatif)' => 'Email (optional)',
     'Pour te prévenir des nouveautés (éditeur de niveau…). Jamais affiché.' => 'To tell you about what is new (level editor…). Never shown.',
     'Ne pas remplir' => 'Leave empty',

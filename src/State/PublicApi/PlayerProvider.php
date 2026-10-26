@@ -14,7 +14,7 @@ final class PlayerProvider extends PublicProvider implements ProviderInterface
     {
         if (!$operation instanceof CollectionOperationInterface) {
             $name = (string) $uriVariables['username'];
-            $user = preg_match('/^[A-Za-z0-9]{1,8}$/', $name) ? $this->view->em->getRepository(User::class)->findOneBy(['username' => strtoupper($name)]) : null;
+            $user = preg_match('/^[A-Za-z0-9]{1,15}$/', $name) ? $this->view->em->getRepository(User::class)->findOneBy(['username' => strtoupper($name)]) : null;
 
             return $user !== null ? $this->view->players([$user])[0] : null;
         }

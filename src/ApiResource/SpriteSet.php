@@ -22,7 +22,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             openapi: new Operation(summary: 'Les sprites publics, les derniers modifiés d\'abord.'),
             parameters: [
                 'author' => new QueryParameter(description: 'Seulement ceux de ce joueur.',
-                    schema: ['type' => 'string', 'pattern' => '^[A-Za-z0-9]{1,8}$'], constraints: [new Assert\Regex(pattern: '/^[A-Za-z0-9]{1,8}$/')]),
+                    schema: ['type' => 'string', 'pattern' => '^[A-Za-z0-9]{1,15}$'], constraints: [new Assert\Regex(pattern: '/^[A-Za-z0-9]{1,15}$/')]),
             ],
         ),
         new Get(uriTemplate: '/sprites/{id}', openapi: new Operation(summary: 'Des sprites publics, ou ceux d\'un niveau public.')),

@@ -29,7 +29,7 @@
         {% if info.owned %}
             <form class="cr-add" method="post" action="{{ path('creation_members', {kind: info.kind, id: creation.id}) }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('editor') }}">
-                <input type="text" name="name" maxlength="8" required placeholder="{{ 'Pseudo'|trans }}" aria-label="{{ 'Pseudo du joueur'|trans }}">
+                <input type="text" name="name" maxlength="15" required placeholder="{{ 'Pseudo'|trans }}" aria-label="{{ 'Pseudo du joueur'|trans }}">
                 <button class="pill-button" type="submit">{{ 'Ajouter'|trans }}</button>
             </form>
             <p class="small muted">{{ 'Un joueur ajouté peut l\'ouvrir dans l\'éditeur et l\'enregistrer comme toi. Chaque changement reste dans l\'historique, qu\'on peut reprendre.'|trans }}</p>

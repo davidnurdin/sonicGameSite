@@ -22,7 +22,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             openapi: new Operation(summary: 'Les niveaux publics, les derniers modifiés d\'abord (ou un autre ordre avec `order`).'),
             parameters: [
                 'author' => new QueryParameter(description: 'Seulement ceux de ce joueur (son nom, par exemple SONIC).',
-                    schema: ['type' => 'string', 'pattern' => '^[A-Za-z0-9]{1,8}$'], constraints: [new Assert\Regex(pattern: '/^[A-Za-z0-9]{1,8}$/')]),
+                    schema: ['type' => 'string', 'pattern' => '^[A-Za-z0-9]{1,15}$'], constraints: [new Assert\Regex(pattern: '/^[A-Za-z0-9]{1,15}$/')]),
                 'tileset' => new QueryParameter(description: 'Seulement ceux faits avec ces tiles (leur id).',
                     schema: ['type' => 'integer', 'minimum' => 1], constraints: [new Assert\Positive()]),
                 'name' => new QueryParameter(description: 'Seulement ceux dont le nom contient ce texte.',

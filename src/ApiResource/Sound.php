@@ -22,7 +22,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             openapi: new Operation(summary: 'Les musiques et bruitages publics, les derniers modifiés d\'abord.'),
             parameters: [
                 'author' => new QueryParameter(description: 'Seulement ceux de ce joueur.',
-                    schema: ['type' => 'string', 'pattern' => '^[A-Za-z0-9]{1,8}$'], constraints: [new Assert\Regex(pattern: '/^[A-Za-z0-9]{1,8}$/')]),
+                    schema: ['type' => 'string', 'pattern' => '^[A-Za-z0-9]{1,15}$'], constraints: [new Assert\Regex(pattern: '/^[A-Za-z0-9]{1,15}$/')]),
                 'kind' => new QueryParameter(description: '`music` ou `sfx` (bruitage).',
                     schema: ['type' => 'string', 'enum' => ['music', 'sfx']], constraints: [new Assert\Choice(choices: ['music', 'sfx'])]),
             ],

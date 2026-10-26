@@ -19,9 +19,9 @@ class RegistrationType extends AbstractType
         $builder
             ->add('username', TextType::class, [
                 'label' => 'Ton nom de joueur',
-                'help' => '3 à 8 lettres ou chiffres : le nom affiché dans les parties en ligne.',
-                'attr' => ['maxlength' => 8, 'autocomplete' => 'username', 'autocapitalize' => 'characters',
-                    'spellcheck' => 'false', 'pattern' => '[A-Za-z0-9]{3,8}', 'autofocus' => true],
+                'help' => '3 à 15 lettres ou chiffres : le nom affiché dans les parties en ligne.',
+                'attr' => ['maxlength' => 15, 'autocomplete' => 'username', 'autocapitalize' => 'characters',
+                    'spellcheck' => 'false', 'pattern' => '[A-Za-z0-9]{3,15}', 'autofocus' => true],
             ])
             ->add('plainPassword', PasswordType::class, [
                 'label' => 'Mot de passe',

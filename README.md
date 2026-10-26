@@ -4,7 +4,7 @@ Le site de [Sonic PHP](https://github.com/davidnurdin/sonicGamePhp), en ligne su
 
 - un gros bouton **JOUER**, qui ouvre le jeu (https://davidnurdin.github.io/php-wasm-sdl/). Si on est
   connecté, le jeu reçoit le nom du compte (`?name=`) et l'utilise dans les salons en ligne ;
-- une **inscription rapide** : un nom de joueur (3 à 8 lettres ou chiffres, comme dans le jeu), un mot de
+- une **inscription rapide** : un nom de joueur (3 à 15 lettres ou chiffres, comme dans le jeu), un mot de
   passe, un email facultatif. Pas de mail de confirmation pour le moment. L'accueil montre le nombre de
   membres ;
 - **connecté, l'accueil devient le hall des salons** : les salons publics du jeu (rafraîchis toutes les

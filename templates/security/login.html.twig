@@ -17,7 +17,7 @@
     <form method="post" action="{{ path('login') }}" class="form">
         <label for="username">{{ 'Nom de joueur'|trans }}</label>
         <input type="text" id="username" name="_username" value="{{ last_username }}" autocomplete="username"
-               autocapitalize="characters" spellcheck="false" maxlength="8" required autofocus>
+               autocapitalize="characters" spellcheck="false" maxlength="15" required autofocus>
 
         <label for="password">{{ 'Mot de passe'|trans }}</label>
         <input type="password" id="password" name="_password" autocomplete="current-password" required>

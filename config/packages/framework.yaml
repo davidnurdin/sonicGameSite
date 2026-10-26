@@ -11,7 +11,7 @@ framework:
 
     # ?v= on css/js/img (cached one hour by docker/Caddyfile): bump it when one of them changes
     assets:
-        version: '32'
+        version: '33'
 
     rate_limiter:
         # the API of the studio (MCP, REST), per key: calls, and the heavy ones (pictures, test runs, sounds)

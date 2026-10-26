@@ -23,7 +23,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             openapi: new Operation(summary: 'Les parties, les plus récentes d\'abord.'),
             parameters: [
                 'player' => new QueryParameter(description: 'Seulement celles enregistrées par ce joueur.',
-                    schema: ['type' => 'string', 'pattern' => '^[A-Za-z0-9]{1,8}$'], constraints: [new Assert\Regex(pattern: '/^[A-Za-z0-9]{1,8}$/')]),
+                    schema: ['type' => 'string', 'pattern' => '^[A-Za-z0-9]{1,15}$'], constraints: [new Assert\Regex(pattern: '/^[A-Za-z0-9]{1,15}$/')]),
                 'kind' => new QueryParameter(description: '`solo`, `versus` (contre l\'ordinateur) ou `online` (en ligne).',
                     schema: ['type' => 'string', 'enum' => ['solo', 'versus', 'online']], constraints: [new Assert\Choice(choices: ['solo', 'versus', 'online'])]),
                 'level' => new QueryParameter(description: 'Seulement celles jouées sur ce niveau public du site (son id).',

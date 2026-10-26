@@ -33,7 +33,7 @@
     const encoder = new TextEncoder(), decoder = new TextDecoder();
     // the game's rules (Online::cleanName, cleanChat): its font has capitals, digits and a few signs
     const cleanName = (name, peer) => {
-        const n = String(name || '').toUpperCase().replace(/[^A-Z0-9 ]/g, '').trim().slice(0, 8);
+        const n = String(name || '').toUpperCase().replace(/[^A-Z0-9 ]/g, '').trim().slice(0, 15);
         return n || (peer === undefined ? '' : 'J' + (peer + 1));
     };
     const cleanChat = text => String(text || '').toUpperCase().replace(/[^A-Z0-9 .!?-]/g, '').replace(/ +/g, ' ').trim().slice(0, CHAT_LENGTH).trim();

@@ -39,7 +39,7 @@ class ReplayController extends AbstractController
         $mine = $request->query->get('voir') === 'moi' && $this->getUser() instanceof User;
         // one player's games (from his profile)
         $name = $request->query->get('joueur');
-        $player = $mine || !is_string($name) ? null : $users->findOneBy(['username' => strtoupper(substr($name, 0, 8))]);
+        $player = $mine || !is_string($name) ? null : $users->findOneBy(['username' => strtoupper(substr($name, 0, 15))]);
         if ($player === $this->getUser() && $player !== null) [$mine, $player] = [true, null];
         $query = $mine ? ['voir' => 'moi'] : ($player ? ['joueur' => $player->getUsername()] : []);
         $page = max(1, $request->query->getInt('page', 1));
